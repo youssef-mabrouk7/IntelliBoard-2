@@ -1,0 +1,261 @@
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, ChevronDown } from 'lucide-react-native';
+import Colors from '@/constants/colors';
+import { currentUser } from '@/constants/mockData';
+
+export default function EditProfileScreen() {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    jobTitle: 'Product Manager',
+    email: 'mark@example.com',
+    phone: '+20 111 222 3333',
+    department: 'Development',
+    role: 'Product Manager',
+    emailNotification: true,
+    taskAssignmentAlerts: true,
+    deadlineReminder: true,
+    timeZone: 'GMT +2: Cairo',
+    language: 'English',
+  });
+
+  const handleSave = () => {
+    router.back();
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={Colors.light.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <Text style={styles.saveButtonText}>Save</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.avatarSection}>
+          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+          <TouchableOpacity style={styles.changePhotoButton}>
+            <Text style={styles.changePhotoText}>Change Photo</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Full Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your full name"
+              placeholderTextColor={Colors.light.textSecondary}
+              value={formData.fullName}
+              onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Job Title</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.jobTitle}
+              onChangeText={(text) => setFormData({ ...formData, jobTitle: text })}
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.email}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
+              keyboardType="email-address"
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Phone</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.phone}
+              onChangeText={(text) => setFormData({ ...formData, phone: text })}
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Work Information</Text>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Department</Text>
+            <TouchableOpacity style={styles.selectButton}>
+              <Text style={styles.selectText}>{formData.department}</Text>
+              <ChevronDown size={18} color={Colors.light.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Role</Text>
+            <TouchableOpacity style={styles.selectButton}>
+              <Text style={styles.selectText}>{formData.role}</Text>
+              <ChevronDown size={18} color={Colors.light.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preference</Text>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Email Notification</Text>
+            <Switch
+              value={formData.emailNotification}
+              onValueChange={(value) => setFormData({ ...formData, emailNotification: value })}
+              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Task Assignment Alerts</Text>
+            <Switch
+              value={formData.taskAssignmentAlerts}
+              onValueChange={(value) => setFormData({ ...formData, taskAssignmentAlerts: value })}
+              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Deadline Reminder</Text>
+            <Switch
+              value={formData.deadlineReminder}
+              onValueChange={(value) => setFormData({ ...formData, deadlineReminder: value })}
+              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Time Zone</Text>
+            <TouchableOpacity style={styles.selectButton}>
+              <Text style={styles.selectText}>{formData.timeZone}</Text>
+              <ChevronDown size={18} color={Colors.light.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>Language</Text>
+            <TouchableOpacity style={styles.selectButton}>
+              <Text style={styles.selectText}>{formData.language}</Text>
+              <ChevronDown size={18} color={Colors.light.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.tintDark,
+  },
+  saveButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  avatarSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
+  },
+  changePhotoButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  changePhotoText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  section: {
+    backgroundColor: Colors.light.cardSecondary,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  inputLabel: {
+    fontSize: 15,
+    color: Colors.light.text,
+    flex: 1,
+  },
+  input: {
+    flex: 1.5,
+    fontSize: 15,
+    color: Colors.light.text,
+    textAlign: 'right',
+    paddingVertical: 4,
+  },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  selectText: {
+    fontSize: 15,
+    color: Colors.light.textSecondary,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    color: Colors.light.text,
+  },
+});

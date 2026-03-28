@@ -1,0 +1,279 @@
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, Search, Plus, Users } from 'lucide-react-native';
+import Colors from '@/constants/colors';
+import { teams } from '@/constants/mockData';
+
+export default function AllTeamsScreen() {
+  const [activeFilter, setActiveFilter] = useState<'All' | 'Active' | 'Archived'>('All');
+
+  const filteredTeams = teams.filter((team) => {
+    if (activeFilter === 'All') return true;
+    if (activeFilter === 'Active') return team.progress < 100;
+    if (activeFilter === 'Archived') return team.progress === 100;
+    return true;
+  });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={Colors.light.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>All Teams</Text>
+        <TouchableOpacity style={styles.headerIcon}>
+          <Search size={22} color={Colors.light.text} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Users size={24} color="#FFFFFF" />
+            <Text style={styles.statNumber}>{teams.length}</Text>
+            <Text style={styles.statLabel}>Total Teams</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: '#4CAF90' }]}>
+            <Users size={24} color="#FFFFFF" />
+            <Text style={styles.statNumber}>{teams.filter(t => t.progress < 100).length}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+        </View>
+
+        <View style={styles.filterRow}>
+          {(['All', 'Active', 'Archived'] as const).map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterButton, activeFilter === filter && styles.filterButtonActive]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.teamsList}>
+          {filteredTeams.map((team) => (
+            <TouchableOpacity key={team.id} style={styles.teamCard}>
+              <View style={styles.teamHeader}>
+                <View style={[styles.teamIcon, { backgroundColor: team.color }]}>
+                  <Text style={styles.teamIconText}>{team.name.charAt(0)}</Text>
+                </View>
+                <View style={styles.teamInfo}>
+                  <Text style={styles.teamName}>{team.name}</Text>
+                  <Text style={styles.memberCount}>{team.memberCount} Members</Text>
+                </View>
+              </View>
+              <View style={styles.progressSection}>
+                <View style={styles.progressHeader}>
+                  <Text style={styles.progressLabel}>Progress</Text>
+                  <Text style={styles.progressValue}>{team.progress}%</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${team.progress}%`, backgroundColor: team.color }]} />
+                </View>
+              </View>
+              <View style={styles.membersSection}>
+                <View style={styles.membersRow}>
+                  {team.members.slice(0, 5).map((member, idx) => (
+                    <Image
+                      key={idx}
+                      source={{ uri: member.avatar }}
+                      style={[styles.memberAvatar, { marginLeft: idx > 0 ? -10 : 0 }]}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.viewDetailsText}>View Details</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      <TouchableOpacity style={styles.fab} onPress={() => router.push('/create-team')}>
+        <Plus size={28} color="#FFFFFF" />
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.tintDark,
+  },
+  headerIcon: {
+    padding: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginVertical: 8,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  filterButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.light.tintDark,
+  },
+  filterText: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  filterTextActive: {
+    color: Colors.light.tintDark,
+    fontWeight: '600',
+  },
+  teamsList: {
+    paddingHorizontal: 16,
+    gap: 16,
+    paddingBottom: 100,
+  },
+  teamCard: {
+    backgroundColor: Colors.light.cardSecondary,
+    borderRadius: 16,
+    padding: 16,
+  },
+  teamHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  teamIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  teamIconText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  teamInfo: {
+    flex: 1,
+  },
+  teamName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: Colors.light.tintDark,
+    marginBottom: 2,
+  },
+  memberCount: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  progressSection: {
+    marginBottom: 16,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  progressValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: Colors.light.border,
+    borderRadius: 3,
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 3,
+  },
+  membersSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+    paddingTop: 12,
+  },
+  membersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  memberAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.light.cardSecondary,
+  },
+  viewDetailsText: {
+    fontSize: 13,
+    color: Colors.light.tint,
+    fontWeight: '500',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.light.tint,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+});

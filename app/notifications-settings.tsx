@@ -1,0 +1,199 @@
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, Bell, Mail, MessageSquare, Calendar, CheckCircle } from 'lucide-react-native';
+import Colors from '@/constants/colors';
+
+interface NotificationSetting {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  enabled: boolean;
+}
+
+export default function NotificationsSettingsScreen() {
+  const [settings, setSettings] = useState<NotificationSetting[]>([
+    {
+      id: 'push',
+      title: 'Push Notifications',
+      description: 'Receive push notifications on your device',
+      icon: <Bell size={18} color={Colors.light.tint} />,
+      enabled: true,
+    },
+    {
+      id: 'email',
+      title: 'Email Notifications',
+      description: 'Receive email updates about your tasks',
+      icon: <Mail size={18} color="#E57373" />,
+      enabled: true,
+    },
+    {
+      id: 'messages',
+      title: 'Messages',
+      description: 'Get notified when someone sends you a message',
+      icon: <MessageSquare size={18} color="#4CAF90" />,
+      enabled: false,
+    },
+    {
+      id: 'events',
+      title: 'Calendar Events',
+      description: 'Reminders for upcoming events and meetings',
+      icon: <Calendar size={18} color="#9C7BB8" />,
+      enabled: true,
+    },
+    {
+      id: 'tasks',
+      title: 'Task Updates',
+      description: 'Notifications when tasks are assigned or completed',
+      icon: <CheckCircle size={18} color="#FFB74D" />,
+      enabled: true,
+    },
+  ]);
+
+  const toggleSetting = (id: string) => {
+    setSettings(settings.map(s => 
+      s.id === id ? { ...s, enabled: !s.enabled } : s
+    ));
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={Colors.light.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.descriptionSection}>
+          <Text style={styles.descriptionText}>
+            Customize how you want to be notified about activity in your workspace.
+          </Text>
+        </View>
+
+        <View style={styles.settingsList}>
+          {settings.map((setting, index) => (
+            <View key={setting.id} style={[styles.settingItem, index === settings.length - 1 && styles.settingItemLast]}>
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: Colors.light.card }]}>
+                  {setting.icon}
+                </View>
+                <View style={styles.settingText}>
+                  <Text style={styles.settingTitle}>{setting.title}</Text>
+                  <Text style={styles.settingDescription}>{setting.description}</Text>
+                </View>
+              </View>
+              <Switch
+                value={setting.enabled}
+                onValueChange={() => toggleSetting(setting.id)}
+                trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.quietHoursButton}>
+          <Text style={styles.quietHoursTitle}>Quiet Hours</Text>
+          <Text style={styles.quietHoursDescription}>
+            Pause notifications during specific hours
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.tintDark,
+  },
+  descriptionSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    lineHeight: 20,
+  },
+  settingsList: {
+    backgroundColor: Colors.light.cardSecondary,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    paddingVertical: 8,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  settingItemLast: {
+    borderBottomWidth: 0,
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingText: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 2,
+  },
+  settingDescription: {
+    fontSize: 13,
+    color: Colors.light.textSecondary,
+  },
+  quietHoursButton: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: Colors.light.cardSecondary,
+    borderRadius: 16,
+    padding: 16,
+  },
+  quietHoursTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  quietHoursDescription: {
+    fontSize: 13,
+    color: Colors.light.textSecondary,
+  },
+});

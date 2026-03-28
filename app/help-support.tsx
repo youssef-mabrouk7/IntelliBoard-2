@@ -1,0 +1,202 @@
+import { router } from 'expo-router';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, HelpCircle, MessageCircle, FileText, Mail, ChevronRight } from 'lucide-react-native';
+import Colors from '@/constants/colors';
+
+const supportOptions = [
+  {
+    icon: HelpCircle,
+    title: 'FAQs',
+    description: 'Find answers to common questions',
+    color: Colors.light.tint,
+  },
+  {
+    icon: MessageCircle,
+    title: 'Live Chat',
+    description: 'Chat with our support team',
+    color: '#4CAF90',
+  },
+  {
+    icon: FileText,
+    title: 'Documentation',
+    description: 'Browse our help articles',
+    color: '#9C7BB8',
+  },
+  {
+    icon: Mail,
+    title: 'Email Support',
+    description: 'Send us an email',
+    color: '#FFB74D',
+  },
+];
+
+const quickLinks = [
+  'Getting Started',
+  'Managing Tasks',
+  'Team Collaboration',
+  'Account Settings',
+  'Billing & Plans',
+];
+
+export default function HelpSupportScreen() {
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={Colors.light.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Help & Support</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.optionsGrid}>
+          {supportOptions.map((option, index) => (
+            <TouchableOpacity key={index} style={styles.optionCard}>
+              <View style={[styles.optionIcon, { backgroundColor: option.color + '20' }]}>
+                <option.icon size={24} color={option.color} />
+              </View>
+              <Text style={styles.optionTitle}>{option.title}</Text>
+              <Text style={styles.optionDescription}>{option.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Links</Text>
+          <View style={styles.linksList}>
+            {quickLinks.map((link, index) => (
+              <TouchableOpacity key={index} style={styles.linkItem}>
+                <Text style={styles.linkText}>{link}</Text>
+                <ChevronRight size={20} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.contactSection}>
+          <Text style={styles.contactTitle}>Still need help?</Text>
+          <Text style={styles.contactDescription}>
+            Our support team is available 24/7 to assist you
+          </Text>
+          <TouchableOpacity style={styles.contactButton}>
+            <Text style={styles.contactButtonText}>Contact Us</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.tintDark,
+  },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 24,
+  },
+  optionCard: {
+    width: '47%',
+    backgroundColor: Colors.light.cardSecondary,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  optionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  optionDescription: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+  },
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 12,
+  },
+  linksList: {
+    backgroundColor: Colors.light.cardSecondary,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  linkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  linkText: {
+    fontSize: 15,
+    color: Colors.light.text,
+  },
+  contactSection: {
+    marginHorizontal: 16,
+    marginBottom: 30,
+    padding: 24,
+    backgroundColor: Colors.light.tint + '10',
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  contactTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  contactDescription: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  contactButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  contactButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+});
