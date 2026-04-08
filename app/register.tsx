@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { supabase } from '@/utils/supabase';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -13,8 +14,58 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleRegister = () => {
-    router.replace('/(tabs)/home');
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (!email || !password || !name) {
+      alert('Please fill all fields');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      if (user) {
+        // Create public profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              name: name,
+              email: email,
+            }
+          ]);
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // Don't block the user if only the profile creation fails, they can fix it later
+        }
+      }
+
+      alert('Registration successful! Please check your email for verification if needed.');
+      router.replace('/(tabs)/home');
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -117,8 +168,12 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-                <Text style={styles.registerButtonText}>Create Account</Text>
+              <TouchableOpacity 
+                style={[styles.registerButton, loading && styles.disabledButton]} 
+                onPress={handleRegister}
+                disabled={loading}
+              >
+                <Text style={styles.registerButtonText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
               </TouchableOpacity>
 
               <View style={styles.loginContainer}>
@@ -236,6 +291,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
   registerButtonText: {
     fontSize: 16,

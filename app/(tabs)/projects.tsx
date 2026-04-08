@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Menu, Search, Bell, Plus, ChevronDown, ArrowUpDown } from 'lucide-react-native';
 import { router } from 'expo-router';
 import Colors from '@/constants/colors';
-import { projects } from '@/constants/mockData';
 import SideDrawer from '@/components/SideDrawer';
+import { supabaseService } from '@/services/supabaseService';
+import { Project } from '@/constants/types';
+import { useEffect } from 'react';
 
 export default function ProjectsScreen() {
   const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Completed'>('All');
@@ -14,6 +16,23 @@ export default function ProjectsScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const data = await supabaseService.getProjects();
+        setProjects(data);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProjects();
+  }, []);
 
   let filteredProjects = projects.filter((project) => {
     if (activeTab === 'All') return true;

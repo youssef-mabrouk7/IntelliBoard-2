@@ -4,12 +4,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Menu, Search, Bell, ArrowRight, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import Colors from '@/constants/colors';
-import { projects, tasks, homeDays } from '@/constants/mockData';
+import { homeDays } from '@/constants/mockData';
 import SideDrawer from '@/components/SideDrawer';
+import { supabaseService } from '@/services/supabaseService';
+import { Project, Task } from '@/constants/types';
+import { useEffect } from 'react';
 
 export default function HomeScreen() {
   const [selectedDay, setSelectedDay] = useState(2);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [projectsData, tasksData] = await Promise.all([
+          supabaseService.getProjects(),
+          supabaseService.getTasks()
+        ]);
+        setProjects(projectsData);
+        setTasks(tasksData || []);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>

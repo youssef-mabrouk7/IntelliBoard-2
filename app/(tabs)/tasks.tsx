@@ -4,15 +4,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Menu, Search, Bell, Plus, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { tasks } from '@/constants/mockData';
-import type { Task } from '@/constants/types';
 import SideDrawer from '@/components/SideDrawer';
+import { supabaseService } from '@/services/supabaseService';
+import type { Task } from '@/constants/types';
+import { useEffect } from 'react';
 
 type FilterType = 'All' | 'In Progress' | 'Completed' | 'Overdue';
 
 export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTasks() {
+      try {
+        const data = await supabaseService.getTasks();
+        setTasks(data);
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTasks();
+  }, []);
 
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === 'All') return true;

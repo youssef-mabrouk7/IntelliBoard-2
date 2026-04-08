@@ -1,0 +1,258 @@
+﻿app/(tabs)/_layout.tsx(1,22): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/_layout.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/_layout.tsx(3,48): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/(tabs)/_layout.tsx(29,26): error TS7031: Binding element 'color' implicitly has an 'any' type.
+app/(tabs)/_layout.tsx(36,26): error TS7031: Binding element 'color' implicitly has an 'any' type.
+app/(tabs)/_layout.tsx(43,26): error TS7031: Binding element 'color' implicitly has an 'any' type.
+app/(tabs)/_layout.tsx(50,26): error TS7031: Binding element 'color' implicitly has an 'any' type.
+app/(tabs)/analytics.tsx(1,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/analytics.tsx(2,92): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/(tabs)/analytics.tsx(3,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/(tabs)/analytics.tsx(4,67): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/(tabs)/analytics.tsx(5,27): error TS2307: Cannot find module 'react-native-chart-kit' or its corresponding type declarations.
+app/(tabs)/analytics.tsx(6,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/calendar.tsx(1,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/calendar.tsx(2,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/(tabs)/calendar.tsx(3,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/(tabs)/calendar.tsx(4,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/calendar.tsx(5,55): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/(tabs)/home.tsx(1,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/home.tsx(2,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/(tabs)/home.tsx(3,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/(tabs)/home.tsx(4,63): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/(tabs)/home.tsx(5,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/projects.tsx(1,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/projects.tsx(2,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/(tabs)/projects.tsx(3,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/(tabs)/projects.tsx(4,68): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/(tabs)/projects.tsx(5,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/tasks.tsx(1,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/tasks.tsx(2,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/(tabs)/tasks.tsx(3,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/(tabs)/tasks.tsx(4,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/tasks.tsx(5,75): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/(tabs)/tasks.tsx(95,23): error TS2322: Type '{ key: string; task: Task; }' is not assignable to type '{ task: Task; }'.
+  Property 'key' does not exist on type '{ task: Task; }'.
+app/(tabs)/teams.tsx(1,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/(tabs)/teams.tsx(2,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/(tabs)/teams.tsx(3,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/(tabs)/teams.tsx(4,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/(tabs)/teams.tsx(5,42): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/+not-found.tsx(2,29): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/+not-found.tsx(3,40): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/+not-found.tsx(7,5): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/+not-found.tsx(7,5): error TS2879: Using JSX fragments requires fragment factory 'React' to be in scope, but it could not be found.
+app/+not-found.tsx(8,8): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/+not-found.tsx(9,8): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/+not-found.tsx(10,10): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/+not-found.tsx(12,10): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/+not-found.tsx(13,12): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/_layout.tsx(1,50): error TS2307: Cannot find module '@tanstack/react-query' or its corresponding type declarations.
+app/_layout.tsx(2,23): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/_layout.tsx(3,31): error TS2307: Cannot find module 'expo-splash-screen' or its corresponding type declarations.
+app/_layout.tsx(4,34): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/_layout.tsx(5,40): error TS2307: Cannot find module 'react-native-gesture-handler' or its corresponding type declarations.
+app/about.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/about.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/about.tsx(3,70): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/about.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/about.tsx(5,63): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/account.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/account.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/account.tsx(3,85): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/account.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/account.tsx(5,68): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/add-member.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/add-member.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/add-member.tsx(3,88): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/add-member.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/add-member.tsx(5,52): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/add-member.tsx(24,30): error TS7006: Parameter 'u' implicitly has an 'any' type.
+app/add-member.tsx(29,41): error TS7006: Parameter 'u' implicitly has an 'any' type.
+app/add-member.tsx(31,41): error TS7006: Parameter 'u' implicitly has an 'any' type.
+app/add-member.tsx(73,33): error TS7006: Parameter 'user' implicitly has an 'any' type.
+app/all-events.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/all-events.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/all-events.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/all-events.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/all-events.tsx(5,70): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/all-projects.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/all-projects.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/all-projects.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/all-projects.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/all-projects.tsx(5,48): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/all-tasks.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/all-tasks.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/all-tasks.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/all-tasks.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/all-tasks.tsx(5,68): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/all-tasks.tsx(80,23): error TS2322: Type '{ key: string; task: Task; }' is not assignable to type '{ task: Task; }'.
+  Property 'key' does not exist on type '{ task: Task; }'.
+app/all-teams.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/all-teams.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/all-teams.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/all-teams.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/all-teams.tsx(5,48): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/appearance.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/appearance.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/appearance.tsx(3,78): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/appearance.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/appearance.tsx(5,50): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/collaborations.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/collaborations.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/collaborations.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/collaborations.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/collaborations.tsx(5,41): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/create-task.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/create-task.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/create-task.tsx(3,88): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/create-task.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/create-task.tsx(5,79): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/create-team.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/create-team.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/create-team.tsx(3,88): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/create-team.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/create-team.tsx(5,43): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/create-team.tsx(29,31): error TS7006: Parameter 'm' implicitly has an 'any' type.
+app/create-team.tsx(99,27): error TS7006: Parameter 'member' implicitly has an 'any' type.
+app/edit-profile.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/edit-profile.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/edit-profile.tsx(3,96): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/edit-profile.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/edit-profile.tsx(5,40): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/edit-profile.tsx(57,30): error TS7006: Parameter 'text' implicitly has an 'any' type.
+app/edit-profile.tsx(65,30): error TS7006: Parameter 'text' implicitly has an 'any' type.
+app/edit-profile.tsx(73,30): error TS7006: Parameter 'text' implicitly has an 'any' type.
+app/edit-profile.tsx(82,30): error TS7006: Parameter 'text' implicitly has an 'any' type.
+app/edit-profile.tsx(112,31): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/edit-profile.tsx(121,31): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/edit-profile.tsx(130,31): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/help-support.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/help-support.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/help-support.tsx(3,70): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/help-support.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/help-support.tsx(5,84): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/index.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/index.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/index.tsx(3,58): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/index.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/index.tsx(5,32): error TS2307: Cannot find module 'expo-linear-gradient' or its corresponding type declarations.
+app/index.tsx(6,28): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/invite-email.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/invite-email.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/invite-email.tsx(3,88): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/invite-email.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/invite-email.tsx(5,52): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/invite-email.tsx(16,29): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/invite-email.tsx(38,26): error TS7006: Parameter 'email' implicitly has an 'any' type.
+app/invite-email.tsx(38,33): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/language-date.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/language-date.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/language-date.tsx(3,70): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/language-date.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/language-date.tsx(5,51): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/login.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/login.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/login.tsx(3,120): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/login.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/login.tsx(5,41): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/modal.tsx(2,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/modal.tsx(3,27): error TS2307: Cannot find module 'expo-status-bar' or its corresponding type declarations.
+app/modal.tsx(12,8): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/modal.tsx(16,6): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(22,8): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(23,10): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(24,12): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(25,12): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(30,12): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(34,14): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/modal.tsx(40,8): error TS2874: This JSX tag requires 'React' to be in scope, but it could not be found.
+app/new-event.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/new-event.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/new-event.tsx(3,81): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/new-event.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/new-event.tsx(5,65): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/new-project.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/new-project.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/new-project.tsx(3,81): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/new-project.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/new-project.tsx(5,54): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/new-project.tsx(23,43): error TS7006: Parameter 't' implicitly has an 'any' type.
+app/notifications-settings.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/notifications-settings.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/notifications-settings.tsx(3,78): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/notifications-settings.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/notifications-settings.tsx(5,77): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/notifications-settings.tsx(56,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+app/notifications-settings.tsx(79,26): error TS7006: Parameter 'setting' implicitly has an 'any' type.
+app/notifications-settings.tsx(79,35): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/nvite-members.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/nvite-members.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/nvite-members.tsx(3,88): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/nvite-members.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/nvite-members.tsx(5,48): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/nvite-members.tsx(16,49): error TS7006: Parameter 'm' implicitly has an 'any' type.
+app/preferences.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/preferences.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/preferences.tsx(3,78): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/preferences.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/preferences.tsx(5,41): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/preferences.tsx(77,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/profile.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/profile.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/profile.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/profile.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/profile.tsx(5,79): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/register.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/register.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/register.tsx(3,113): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/register.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/register.tsx(5,58): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/role-permissions.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/role-permissions.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/role-permissions.tsx(3,85): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/role-permissions.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/role-permissions.tsx(5,34): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/role-permissions.tsx(24,24): error TS7006: Parameter 'p' implicitly has an 'any' type.
+app/role-permissions.tsx(58,23): error TS7006: Parameter 'perm' implicitly has an 'any' type.
+app/select-attachment.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/select-attachment.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/select-attachment.tsx(3,70): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/select-attachment.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/select-attachment.tsx(5,76): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/select-attachment.tsx(63,43): error TS7006: Parameter 'f' implicitly has an 'any' type.
+app/select-attachment.tsx(87,35): error TS7006: Parameter 'file' implicitly has an 'any' type.
+app/select-category.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/select-category.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/select-category.tsx(3,70): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/select-category.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/select-category.tsx(5,45): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/select-due-date.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/select-due-date.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/select-due-date.tsx(3,70): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/select-due-date.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/select-due-date.tsx(5,54): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/select-priority.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/select-priority.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/select-priority.tsx(3,58): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/select-priority.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/select-priority.tsx(5,40): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/select-subtasks.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/select-subtasks.tsx(2,33): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/select-subtasks.tsx(3,81): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/select-subtasks.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/select-subtasks.tsx(5,48): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+app/select-subtasks.tsx(23,30): error TS7006: Parameter 'st' implicitly has an 'any' type.
+app/select-subtasks.tsx(40,33): error TS7006: Parameter 'st' implicitly has an 'any' type.
+app/select-subtasks.tsx(47,42): error TS7006: Parameter 'st' implicitly has an 'any' type.
+app/select-subtasks.tsx(80,28): error TS7006: Parameter 'subtask' implicitly has an 'any' type.
+app/settings.tsx(1,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+app/settings.tsx(2,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+app/settings.tsx(3,77): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+app/settings.tsx(4,30): error TS2307: Cannot find module 'react-native-safe-area-context' or its corresponding type declarations.
+app/settings.tsx(5,120): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+components/SideDrawer.tsx(1,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+components/SideDrawer.tsx(11,8): error TS2307: Cannot find module 'react-native' or its corresponding type declarations.
+components/SideDrawer.tsx(12,24): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+components/SideDrawer.tsx(23,8): error TS2307: Cannot find module 'lucide-react-native' or its corresponding type declarations.
+tsconfig.json(2,16): error TS6053: File 'expo/tsconfig.base' not found.

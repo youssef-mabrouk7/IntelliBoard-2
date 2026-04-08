@@ -9,7 +9,20 @@ void SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+import { supabase } from "@/utils/supabase";
+import { router } from "expo-router";
+
 function RootLayoutNav() {
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        router.replace("/(tabs)/home");
+      } else {
+        router.replace("/login");
+      }
+    });
+  }, []);
+
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
