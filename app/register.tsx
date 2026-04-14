@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { supabase } from '@/utils/supabase';
+import { friendlyAuthNetworkMessage, isSupabaseConfigured, supabase } from '@/utils/supabase';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -46,6 +46,13 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!isSupabaseConfigured) {
+      alert(
+        'Supabase is not configured in this build. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY in Expo environment variables for your build profile, then rebuild the APK.',
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
@@ -81,7 +88,12 @@ export default function RegisterScreen() {
       alert('Registration successful! Please check your email for verification if needed.');
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      alert(getFriendlySignUpError(error));
+      const msg = error?.message as string | undefined
+      if ((msg ?? '').toLowerCase().includes('network request failed')) {
+        alert(friendlyAuthNetworkMessage(msg))
+      } else {
+        alert(getFriendlySignUpError(error))
+      }
     } finally {
       setLoading(false);
     }

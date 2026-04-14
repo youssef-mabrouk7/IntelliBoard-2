@@ -1,31 +1,39 @@
 {
-    "expo": {
-      "name": "IntelliBoard",
-      "slug": "hpd5e4astrvqoqnb2pww2",
-      "version": "1.0.0",
-      "orientation": "portrait",
-      "scheme": "rork-app",
-      "userInterfaceStyle": "automatic",
-      "newArchEnabled": true,
-      "ios": {
-        "supportsTablet": false,
-        "bundleIdentifier": "app.rork.hpd5e4astrvqoqnb2pww2"
-      },
-      "android": {
-        "package": "app.rork.hpd5e4astrvqoqnb2pww2"
-      },
-      "plugins": [
-        [
-          "expo-router",
-          {
-            "origin": "https://rork.com/"
-          }
-        ],
-        "expo-font",
-        "expo-web-browser"
+  "expo": {
+    "name": "IntelliBoard",
+    "slug": "hpd5e4astrvqoqnb2pww2",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "rork-app",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.rork.hpd5e4astrvqoqnb2pww2"
+    },
+    "android": {
+      "package": "app.rork.hpd5e4astrvqoqnb2pww2"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://rork.com/"
+        }
       ],
-      "experiments": {
-        "typedRoutes": false
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "545dc66e-bc78-40ee-838f-0747540fd861"
       }
     }
   }
+}

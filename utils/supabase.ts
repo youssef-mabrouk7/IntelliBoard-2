@@ -4,9 +4,11 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Supabase env vars are missing. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY in your .env file.',
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+
+if (!isSupabaseConfigured) {
+  console.error(
+    'Supabase env vars are missing. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY in .env (local) and EAS environment variables (cloud builds).',
   )
 }
 
@@ -35,7 +37,10 @@ const authStorage = {
   },
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const fallbackUrl = 'https://example.supabase.co'
+const fallbackAnonKey = 'missing-supabase-anon-key'
+
+export const supabase = createClient(supabaseUrl ?? fallbackUrl, supabaseAnonKey ?? fallbackAnonKey, {
   auth: {
     storage: authStorage,
     autoRefreshToken: true,
@@ -43,3 +48,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 })
+
+/** User-facing hint when fetch fails (common if EAS build has no EXPO_PUBLIC_* at compile time). */
+export function friendlyAuthNetworkMessage(raw: string | undefined): string {
+  const m = (raw ?? '').toLowerCase()
+  if (m.includes('network request failed')) {
+    return (
+      'Cannot reach Supabase. For release/APK builds, set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY ' +
+      'in Expo (Project → Environment variables) for the same profile you use to build, then create a new build. ' +
+      'Local .env is not shipped to EAS.'
+    )
+  }
+  return raw ?? 'Something went wrong.'
+}

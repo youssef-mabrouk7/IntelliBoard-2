@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { supabase } from '@/utils/supabase';
+import { friendlyAuthNetworkMessage, isSupabaseConfigured, supabase } from '@/utils/supabase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -15,7 +15,14 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) return;
-    
+
+    if (!isSupabaseConfigured) {
+      alert(
+        'Supabase is not configured in this build. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY in Expo environment variables for your build profile, then rebuild the APK.',
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -30,7 +37,7 @@ export default function LoginScreen() {
 
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      alert(error.message);
+      alert(friendlyAuthNetworkMessage(error?.message));
     } finally {
       setLoading(false);
     }
