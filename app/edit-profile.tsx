@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { currentUser } from '@/constants/mockData';
+import { supabaseService } from '@/services/supabaseService';
+import { User as AppUser } from '@/constants/types';
 
 export default function EditProfileScreen() {
+  const [profile, setProfile] = useState<AppUser | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     jobTitle: 'Product Manager',
@@ -20,6 +22,25 @@ export default function EditProfileScreen() {
     timeZone: 'GMT +2: Cairo',
     language: 'English',
   });
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const data = await supabaseService.getCurrentProfile();
+      if (data) {
+        setProfile(data);
+        setFormData((prev) => ({
+          ...prev,
+          fullName: data.name || '',
+          jobTitle: data.jobTitle || prev.jobTitle,
+          email: data.email || '',
+          phone: data.phone || '',
+          department: data.department || prev.department,
+          role: data.role || prev.role,
+        }));
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleSave = () => {
     router.back();
@@ -39,7 +60,7 @@ export default function EditProfileScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.avatarSection}>
-          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+          <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/120' }} style={styles.avatar} />
           <TouchableOpacity style={styles.changePhotoButton}>
             <Text style={styles.changePhotoText}>Change Photo</Text>
           </TouchableOpacity>

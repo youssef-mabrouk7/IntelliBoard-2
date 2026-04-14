@@ -1,13 +1,31 @@
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Folder, CheckCircle, Users, ChevronRight, Settings } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { currentUser, tasks, teams } from '@/constants/mockData';
+import { supabaseService } from '@/services/supabaseService';
+import { Task, Team, User } from '@/constants/types';
 
 export default function ProfileScreen() {
+  const [profile, setProfile] = useState<User | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const myTasks = tasks.slice(0, 3);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const [profileData, tasksData, teamsData] = await Promise.all([
+        supabaseService.getCurrentProfile(),
+        supabaseService.getTasks(),
+        supabaseService.getTeams(),
+      ]);
+      setProfile(profileData);
+      setTasks(tasksData);
+      setTeams(teamsData);
+    };
+    loadData();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -24,14 +42,14 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
           <View style={styles.profileHeader}>
-            <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+            <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/120' }} style={styles.avatar} />
             <View style={styles.profileInfo}>
-              <Text style={styles.name}>{currentUser.name}</Text>
-              <Text style={styles.email}>{currentUser.email}</Text>
+              <Text style={styles.name}>{profile?.name || 'User'}</Text>
+              <Text style={styles.email}>{profile?.email || 'No email'}</Text>
             </View>
           </View>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{currentUser.role}</Text>
+            <Text style={styles.roleText}>{profile?.role || 'Member'}</Text>
           </View>
         </View>
 
@@ -40,21 +58,21 @@ export default function ProfileScreen() {
             <View style={[styles.statIcon, { backgroundColor: '#E3F2FD' }]}>
               <Folder size={20} color={Colors.light.tint} />
             </View>
-            <Text style={styles.statNumber}>4</Text>
+            <Text style={styles.statNumber}>{Math.max(0, teams.length)}</Text>
             <Text style={styles.statLabel}>Active Projects</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-tasks')}>
             <View style={[styles.statIcon, { backgroundColor: '#E8F5E9' }]}>
               <CheckCircle size={20} color={Colors.light.status.completed} />
             </View>
-            <Text style={styles.statNumber}>28</Text>
+            <Text style={styles.statNumber}>{tasks.length}</Text>
             <Text style={styles.statLabel}>Tasks</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-teams')}>
             <View style={[styles.statIcon, { backgroundColor: '#FFEBEE' }]}>
               <Users size={20} color={Colors.light.priority.high} />
             </View>
-            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statNumber}>{teams.length}</Text>
             <Text style={styles.statLabel}>Teams</Text>
           </TouchableOpacity>
         </View>
@@ -98,7 +116,7 @@ export default function ProfileScreen() {
               <TouchableOpacity key={team.id} style={styles.teamItem} onPress={() => router.push('/(tabs)/teams')}>
                 <View>
                   <Text style={styles.teamName}>{team.name}</Text>
-                  <Text style={styles.teamEmail}>{currentUser.email}</Text>
+                  <Text style={styles.teamEmail}>{profile?.email || 'No email'}</Text>
                 </View>
                 <View style={styles.membersRow}>
                   {team.members.slice(0, 3).map((member, idx) => (

@@ -1,15 +1,22 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Plus, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { users } from '@/constants/mockData';
+import { User } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 export default function InviteMembersScreen() {
   const [activeTab, setActiveTab] = useState<'All' | 'Suggested'>('Suggested');
   const [selectedMembers, setSelectedMembers] = useState<string[]>(['1']);
   const [searchQuery, setSearchQuery] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const load = async () => setUsers(await supabaseService.getProfiles());
+    load();
+  }, []);
 
   const toggleMember = (id: string) => {
     if (selectedMembers.includes(id)) {

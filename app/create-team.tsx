@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, X, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { users } from '@/constants/mockData';
+import { User } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 const teamColors = [
   { color: '#4CAF90', id: 1 },
@@ -19,10 +20,38 @@ export default function CreateTeamScreen() {
   const [teamName, setTeamName] = useState('Design Team');
   const [description, setDescription] = useState('UI/UX Designers working on user interface design');
   const [selectedColor, setSelectedColor] = useState(4);
-  const [members, setMembers] = useState(users.slice(0, 2));
+  const [members, setMembers] = useState<User[]>([]);
+  const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    const load = async () => setMembers((await supabaseService.getProfiles()).slice(0, 2));
+    load();
+  }, []);
 
-  const handleCreate = () => {
-    router.back();
+  const handleCreate = async () => {
+    if (!teamName.trim()) {
+      Alert.alert('Validation', 'Team name is required.');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const color = teamColors.find((c) => c.id === selectedColor)?.color || '#9C7BB8';
+      await supabaseService.createTeam(
+        {
+          name: teamName.trim(),
+          description: description.trim(),
+          color: color || '#9C7BB8',
+          progress: 0,
+        },
+        members.map((m) => m.id),
+      );
+      Alert.alert('Success', 'Team created successfully.');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Create Team Failed', error?.message || 'Unknown error.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const removeMember = (id: string) => {
@@ -36,8 +65,8 @@ export default function CreateTeamScreen() {
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Team</Text>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-          <Text style={styles.createButtonText}>Create</Text>
+        <TouchableOpacity style={[styles.createButton, creating && styles.createButtonDisabled]} onPress={handleCreate} disabled={creating}>
+          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
         </TouchableOpacity>
       </View>
 
@@ -145,6 +174,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  createButtonDisabled: {
+    opacity: 0.7,
   },
   inputSection: {
     backgroundColor: Colors.light.cardSecondary,

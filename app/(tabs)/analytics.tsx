@@ -1,17 +1,76 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Menu, Filter, Check, AlertCircle, FileText, Clock } from 'lucide-react-native';
+import { Menu, Filter, Check, AlertCircle, FileText, Clock, Briefcase, Users } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { router } from 'expo-router';
 import Colors from '@/constants/colors';
-import { analyticsData } from '@/constants/mockData';
 import SideDrawer from '@/components/SideDrawer';
+import { supabaseService } from '@/services/supabaseService';
+import { Project, Task, Team } from '@/constants/types';
 
 export default function AnalyticsScreen() {
   const [timeRange, setTimeRange] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [overviewRange, setOverviewRange] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [tasksData, projectsData, teamsData] = await Promise.all([
+          supabaseService.getTasks(),
+          supabaseService.getProjects(),
+          supabaseService.getTeams(),
+        ]);
+        setTasks(tasksData);
+        setProjects(projectsData);
+        setTeams(teamsData);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const analyticsData = useMemo(() => {
+    const completed = tasks.filter((t) => t.status === 'completed').length;
+    const overdue = tasks.filter((t) => t.status === 'overdue').length;
+    const ongoing = tasks.filter((t) => t.status === 'inProgress').length;
+    const totalProjects = projects.length;
+    const activeProjects = projects.filter((p) => p.status !== 'archived').length;
+    const totalTeams = teams.length;
+    const avgTeamProgress =
+      totalTeams === 0 ? 0 : Math.round(teams.reduce((sum, t) => sum + (t.progress ?? 0), 0) / totalTeams);
+    return {
+      totalTasks: tasks.length,
+      completed,
+      overdue,
+      overdued: overdue,
+      ongoing,
+      totalProjects,
+      activeProjects,
+      totalTeams,
+      avgTeamProgress,
+      weeklyData: [
+        { day: 'Mon', completed, overdue },
+        { day: 'Tue', completed, overdue },
+        { day: 'Wed', completed, overdue },
+        { day: 'Thu', completed, overdue },
+        { day: 'Fri', completed, overdue },
+        { day: 'Sat', completed, overdue },
+        { day: 'Sun', completed, overdue },
+      ],
+    };
+  }, [tasks]);
 
   const chartData = {
     labels: analyticsData.weeklyData.map(d => d.day),
@@ -43,6 +102,17 @@ export default function AnalyticsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {loading && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <ActivityIndicator color={Colors.light.tint} />
+          </View>
+        )}
+        {!!error && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <Text style={{ color: Colors.light.error }}>{error}</Text>
+          </View>
+        )}
+
         <View style={styles.timeRangeTabs}>
           {(['Week', 'Month', 'Year'] as const).map((range) => (
             <TouchableOpacity
@@ -165,6 +235,24 @@ export default function AnalyticsScreen() {
             <View>
               <Text style={styles.statNumber}>{analyticsData.ongoing}</Text>
               <Text style={styles.statLabel}>Ongoing</Text>
+            </View>
+          </View>
+          <View style={[styles.bottomStatCard, { flex: 1 }]}>
+            <View style={[styles.statIcon, { backgroundColor: '#E8EAF6' }]}>
+              <Briefcase size={24} color="#7B8CDE" />
+            </View>
+            <View>
+              <Text style={styles.statNumber}>{analyticsData.totalProjects}</Text>
+              <Text style={styles.statLabel}>Projects</Text>
+            </View>
+          </View>
+          <View style={[styles.bottomStatCard, { flex: 1 }]}>
+            <View style={[styles.statIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Users size={24} color="#FFB74D" />
+            </View>
+            <View>
+              <Text style={styles.statNumber}>{analyticsData.totalTeams}</Text>
+              <Text style={styles.statLabel}>Teams</Text>
             </View>
           </View>
         </View>

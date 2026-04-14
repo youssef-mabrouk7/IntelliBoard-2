@@ -1,13 +1,25 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { calendarEvents } from '@/constants/mockData';
+import { CalendarEvent } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 export default function AllEventsScreen() {
   const [currentMonth] = useState('April 2024');
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const data = await supabaseService.getEvents();
+      setCalendarEvents(data);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,15 +46,15 @@ export default function AllEventsScreen() {
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statNumber}>{calendarEvents.length}</Text>
             <Text style={styles.statLabel}>Total Events</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statNumber}>{Math.min(7, calendarEvents.length)}</Text>
             <Text style={styles.statLabel}>This Week</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>3</Text>
+            <Text style={styles.statNumber}>{calendarEvents.length}</Text>
             <Text style={styles.statLabel}>Upcoming</Text>
           </View>
         </View>
@@ -50,6 +62,7 @@ export default function AllEventsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Events</Text>
           <View style={styles.eventsList}>
+            {loading && <ActivityIndicator color={Colors.light.tint} />}
             {calendarEvents.map((event) => (
               <TouchableOpacity key={event.id} style={styles.eventCard}>
                 <View style={styles.eventTimeColumn}>

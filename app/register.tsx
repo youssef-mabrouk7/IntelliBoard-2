@@ -16,6 +16,25 @@ export default function RegisterScreen() {
 
   const [loading, setLoading] = useState(false);
 
+  const getFriendlySignUpError = (error: { message?: string; code?: string } | null) => {
+    const message = (error?.message || '').toLowerCase();
+    const code = (error?.code || '').toLowerCase();
+
+    if (
+      message.includes('email rate limit exceeded') ||
+      message.includes('over_email_send_rate_limit') ||
+      code.includes('over_email_send_rate_limit')
+    ) {
+      return 'Too many signup emails were sent recently. Please wait 1-2 minutes and try again.';
+    }
+
+    if (message.includes('already registered') || message.includes('user already registered')) {
+      return 'This email is already registered. Please log in instead.';
+    }
+
+    return error?.message || 'Registration failed. Please try again.';
+  };
+
   const handleRegister = async () => {
     if (!email || !password || !name) {
       alert('Please fill all fields');
@@ -62,7 +81,7 @@ export default function RegisterScreen() {
       alert('Registration successful! Please check your email for verification if needed.');
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      alert(error.message);
+      alert(getFriendlySignUpError(error));
     } finally {
       setLoading(false);
     }

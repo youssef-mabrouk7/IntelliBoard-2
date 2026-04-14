@@ -1,24 +1,101 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, Flag, Tag, Paperclip, List, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Flag, Tag, Paperclip, List, ChevronRight, Briefcase, Users as UsersIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { users, teams } from '@/constants/mockData';
+import { Project, Team, User } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
+import { useDateDraftStore } from '@/stores/dateDraftStore';
 
 export default function CreateTaskScreen() {
   const [taskName, setTaskName] = useState('Design New Dashboard UI');
   const [description, setDescription] = useState('');
-  const [dueDate] = useState('Apr 30, 2024');
+  const dueDraft = useDateDraftStore((s) => s.byContext.task);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const dueDate = dueDraft?.dateISO ?? todayISO;
   const [priority] = useState('High');
   const [category] = useState('Upload');
   const [subtasksCount] = useState(3);
+  const [users, setUsers] = useState<User[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [teamPickerOpen, setTeamPickerOpen] = useState(false);
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
 
-  const assignedUser = users[0];
-  const assignedTeam = teams[0];
+  useEffect(() => {
+    const load = async () => {
+      const [profiles, teamsData, projectsData] = await Promise.all([
+        supabaseService.getProfiles(),
+        supabaseService.getTeams(),
+        supabaseService.getProjects(),
+      ]);
+      setUsers(profiles);
+      setTeams(teamsData);
+      setProjects(projectsData);
 
-  const handleCreate = () => {
-    router.back();
+      // Defaults: first project/team/user if available.
+      setSelectedTeamId((prev) => prev ?? (teamsData[0]?.id ?? null));
+      setSelectedProjectId((prev) => prev ?? (projectsData[0]?.id ?? null));
+      setSelectedUserId((prev) => prev ?? (profiles[0]?.id ?? null));
+    };
+    load();
+  }, []);
+
+  const selectedTeam = useMemo(
+    () => (selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined),
+    [teams, selectedTeamId],
+  );
+  const selectedProject = useMemo(
+    () => (selectedProjectId ? projects.find((p) => p.id === selectedProjectId) : undefined),
+    [projects, selectedProjectId],
+  );
+
+  const availableAssignees = useMemo(() => {
+    if (selectedTeam && selectedTeam.members?.length) return selectedTeam.members;
+    return users;
+  }, [selectedTeam, users]);
+
+  const assignedUser = useMemo(() => {
+    const fromId = selectedUserId ? availableAssignees.find((u) => u.id === selectedUserId) : undefined;
+    return fromId ?? availableAssignees[0];
+  }, [availableAssignees, selectedUserId]);
+
+  const assignedTeam = selectedTeam;
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!taskName.trim()) {
+      Alert.alert('Validation', 'Task name is required.');
+      return;
+    }
+    try {
+      setCreating(true);
+      const dbPriority = priority.toLowerCase() as 'high' | 'medium' | 'low';
+      await supabaseService.createTask({
+        title: taskName.trim(),
+        description: description.trim(),
+        dueDate,
+        priority: dbPriority,
+        status: 'inProgress',
+        progress: 0,
+        category,
+        subtasks: subtasksCount,
+        projectId: selectedProject?.id ?? undefined,
+        teamId: assignedTeam?.id ?? undefined,
+        assignees: assignedUser ? [assignedUser] : [],
+      });
+      Alert.alert('Success', 'Task created successfully.');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Create Task Failed', error?.message || 'Unknown error.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -28,8 +105,8 @@ export default function CreateTaskScreen() {
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Task</Text>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-          <Text style={styles.createButtonText}>Create</Text>
+        <TouchableOpacity style={[styles.createButton, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
+          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
         </TouchableOpacity>
       </View>
 
@@ -59,16 +136,43 @@ export default function CreateTaskScreen() {
         </View>
 
         <View style={styles.section}>
-          <View style={styles.assigneeRow}>
-            <Image source={{ uri: assignedUser.avatar }} style={styles.assigneeAvatar} />
+          <TouchableOpacity style={styles.assigneeRow} onPress={() => setAssigneePickerOpen(true)}>
+            <Image source={{ uri: assignedUser?.avatar || 'https://via.placeholder.com/100' }} style={styles.assigneeAvatar} />
             <View style={styles.assigneeInfo}>
-              <Text style={styles.assigneeName}>{assignedUser.name}</Text>
-              <Text style={styles.assigneeEmail}>{assignedUser.email}</Text>
+              <Text style={styles.assigneeName}>{assignedUser?.name || 'Unassigned'}</Text>
+              <Text style={styles.assigneeEmail}>{assignedUser?.email || 'No email'}</Text>
             </View>
-          </View>
+            <ChevronRight size={18} color={Colors.light.textSecondary} />
+          </TouchableOpacity>
 
           <View style={styles.optionsList}>
-            <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-due-date')}>
+            <TouchableOpacity style={styles.optionRow} onPress={() => setProjectPickerOpen(true)}>
+              <View style={styles.optionLeft}>
+                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
+                  <Briefcase size={18} color="#7B8CDE" />
+                </View>
+                <Text style={styles.optionLabel}>Project</Text>
+              </View>
+              <View style={styles.optionRight}>
+                <Text style={styles.optionValue}>{selectedProject?.name || 'None'}</Text>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionRow} onPress={() => setTeamPickerOpen(true)}>
+              <View style={styles.optionLeft}>
+                <View style={[styles.optionIcon, { backgroundColor: '#FFF3E0' }]}>
+                  <UsersIcon size={18} color="#FFB74D" />
+                </View>
+                <Text style={styles.optionLabel}>Team</Text>
+              </View>
+              <View style={styles.optionRight}>
+                <Text style={styles.optionValue}>{assignedTeam?.name || 'None'}</Text>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'task' } })}>
               <View style={styles.optionLeft}>
                 <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
                   <Calendar size={18} color={Colors.light.tint} />
@@ -145,14 +249,14 @@ export default function CreateTaskScreen() {
           <Text style={styles.sectionTitle}>Teams</Text>
           <View style={styles.teamRow}>
             <View>
-              <Text style={styles.teamName}>{assignedTeam.name}</Text>
-              <Text style={styles.teamEmail}>{assignedUser.email}</Text>
+              <Text style={styles.teamName}>{assignedTeam?.name || 'No team'}</Text>
+              <Text style={styles.teamEmail}>{assignedUser?.email || 'No email'}</Text>
             </View>
             <View style={styles.membersRow}>
-              {assignedTeam.members.slice(0, 3).map((member, idx) => (
+              {(assignedTeam?.members || []).slice(0, 3).map((member, idx) => (
                 <Image
                   key={idx}
-                  source={{ uri: member.avatar }}
+                  source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
                   style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                 />
               ))}
@@ -163,6 +267,104 @@ export default function CreateTaskScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal visible={projectPickerOpen} transparent animationType="fade" onRequestClose={() => setProjectPickerOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setProjectPickerOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Project</Text>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={styles.modalRow}
+                onPress={() => {
+                  setSelectedProjectId(null);
+                  setProjectPickerOpen(false);
+                }}
+              >
+                <Text style={styles.modalRowText}>None</Text>
+              </TouchableOpacity>
+              {projects.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.modalRow}
+                  onPress={() => {
+                    setSelectedProjectId(p.id);
+                    setProjectPickerOpen(false);
+                  }}
+                >
+                  <Text style={styles.modalRowText}>{p.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={teamPickerOpen} transparent animationType="fade" onRequestClose={() => setTeamPickerOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setTeamPickerOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Team</Text>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={styles.modalRow}
+                onPress={() => {
+                  setSelectedTeamId(null);
+                  setTeamPickerOpen(false);
+                }}
+              >
+                <Text style={styles.modalRowText}>None</Text>
+              </TouchableOpacity>
+              {teams.map((t) => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={styles.modalRow}
+                  onPress={() => {
+                    setSelectedTeamId(t.id);
+                    // When switching teams, pick the first team member (if any) as default assignee.
+                    const firstMember = t.members?.[0];
+                    setSelectedUserId(firstMember?.id ?? null);
+                    setTeamPickerOpen(false);
+                  }}
+                >
+                  <Text style={styles.modalRowText}>
+                    {t.name} {t.memberCount ? `(${t.memberCount})` : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={assigneePickerOpen} transparent animationType="fade" onRequestClose={() => setAssigneePickerOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setAssigneePickerOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Assignee</Text>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={styles.modalRow}
+                onPress={() => {
+                  setSelectedUserId(null);
+                  setAssigneePickerOpen(false);
+                }}
+              >
+                <Text style={styles.modalRowText}>Unassigned</Text>
+              </TouchableOpacity>
+              {availableAssignees.map((u) => (
+                <TouchableOpacity
+                  key={u.id}
+                  style={styles.modalRow}
+                  onPress={() => {
+                    setSelectedUserId(u.id);
+                    setAssigneePickerOpen(false);
+                  }}
+                >
+                  <Text style={styles.modalRowText}>{u.name || u.email}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -240,6 +442,35 @@ const styles = StyleSheet.create({
   },
   assigneeInfo: {
     flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: Colors.light.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 12,
+  },
+  modalRow: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  modalRowText: {
+    fontSize: 15,
+    color: Colors.light.text,
+    fontWeight: '600',
   },
   assigneeName: {
     fontSize: 16,

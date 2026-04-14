@@ -1,39 +1,62 @@
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useDateDraftStore, type DateDraftContext } from '@/stores/dateDraftStore';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-export default function SelectDueDateScreen() {
-  const [selectedDate, setSelectedDate] = useState(17);
-  const [currentMonth] = useState('April 2024');
+const toISODate = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-  const dates = [
-    { day: 14, month: 'prev' },
-    { day: 15, month: 'prev' },
-    { day: 16, month: 'prev' },
-    { day: 17, month: 'current', selected: true },
-    { day: 18, month: 'current' },
-    { day: 19, month: 'current' },
-    { day: 20, month: 'current' },
-    { day: 21, month: 'current' },
-    { day: 22, month: 'current' },
-    { day: 23, month: 'current' },
-    { day: 24, month: 'current' },
-    { day: 25, month: 'current' },
-    { day: 26, month: 'current' },
-    { day: 27, month: 'current' },
-    { day: 28, month: 'current' },
-    { day: 29, month: 'current' },
-    { day: 30, month: 'current' },
-    { day: 1, month: 'next' },
-    { day: 2, month: 'next' },
-    { day: 3, month: 'next' },
-    { day: 4, month: 'next' },
-  ];
+const parseISODate = (iso: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const d = new Date(year, month, day);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+};
+
+const addMonths = (base: Date, delta: number) => {
+  const d = new Date(base);
+  d.setMonth(d.getMonth() + delta);
+  return d;
+};
+
+const addYears = (base: Date, delta: number) => {
+  const d = new Date(base);
+  d.setFullYear(d.getFullYear() + delta);
+  return d;
+};
+
+const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const monthName = (d: Date) =>
+  d.toLocaleString('en-US', { month: 'long' });
+
+export default function SelectDueDateScreen() {
+  const params = useLocalSearchParams<{ context?: string }>();
+  const context = (params.context as DateDraftContext | undefined) ?? 'task';
+  const setDateDraft = useDateDraftStore((s) => s.setDateDraft);
+  const draft = useDateDraftStore((s) => s.byContext[context]);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const fromDraft = draft?.dateISO ? parseISODate(draft.dateISO) : null;
+    return fromDraft ?? new Date();
+  });
+  const [visibleMonth, setVisibleMonth] = useState<Date>(() => startOfMonth(selectedDate));
 
   const timeSlots = [
     '09:00 AM',
@@ -46,11 +69,27 @@ export default function SelectDueDateScreen() {
     '04:00 PM',
   ];
 
-  const [selectedTime, setSelectedTime] = useState('10:00 AM');
+  const [selectedTime, setSelectedTime] = useState(draft?.time ?? '10:00 AM');
 
   const handleSave = () => {
+    setDateDraft(context, { dateISO: toISODate(selectedDate), time: selectedTime });
     router.back();
   };
+
+  const calendarCells = useMemo(() => {
+    const first = startOfMonth(visibleMonth);
+    const firstWeekday = first.getDay(); // 0..6
+    const start = new Date(first);
+    start.setDate(first.getDate() - firstWeekday);
+
+    const cells: { date: Date; isCurrentMonth: boolean }[] = [];
+    for (let i = 0; i < 42; i += 1) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      cells.push({ date: d, isCurrentMonth: d.getMonth() === visibleMonth.getMonth() && d.getFullYear() === visibleMonth.getFullYear() });
+    }
+    return cells;
+  }, [visibleMonth]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,12 +105,30 @@ export default function SelectDueDateScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.monthSelector}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setVisibleMonth((m) => startOfMonth(addMonths(m, -1)))}>
             <ChevronLeft size={24} color={Colors.light.text} />
           </TouchableOpacity>
-          <Text style={styles.monthText}>{currentMonth}</Text>
-          <TouchableOpacity>
+          <Text style={styles.monthText}>
+            {monthName(visibleMonth)} {visibleMonth.getFullYear()}
+          </Text>
+          <TouchableOpacity onPress={() => setVisibleMonth((m) => startOfMonth(addMonths(m, 1)))}>
             <ChevronRight size={24} color={Colors.light.text} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.yearAdjustRow}>
+          <TouchableOpacity style={styles.yearAdjustBtn} onPress={() => setVisibleMonth((m) => startOfMonth(addYears(m, -1)))}>
+            <Text style={styles.yearAdjustText}>- Year</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.todayBtn} onPress={() => {
+            const today = new Date();
+            setSelectedDate(today);
+            setVisibleMonth(startOfMonth(today));
+          }}>
+            <Text style={styles.todayText}>Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.yearAdjustBtn} onPress={() => setVisibleMonth((m) => startOfMonth(addYears(m, 1)))}>
+            <Text style={styles.yearAdjustText}>+ Year</Text>
           </TouchableOpacity>
         </View>
 
@@ -82,24 +139,27 @@ export default function SelectDueDateScreen() {
         </View>
 
         <View style={styles.calendarGrid}>
-          {dates.map((date, index) => (
+          {calendarCells.map((cell, index) => (
             <TouchableOpacity
               key={index}
               style={[
                 styles.dateCell,
-                date.day === selectedDate && date.month === 'current' && styles.dateCellSelected,
-                date.month !== 'current' && styles.dateCellMuted,
+                sameDay(cell.date, selectedDate) && styles.dateCellSelected,
+                !cell.isCurrentMonth && styles.dateCellMuted,
               ]}
-              onPress={() => date.month === 'current' && setSelectedDate(date.day)}
+              onPress={() => {
+                setSelectedDate(cell.date);
+                if (!cell.isCurrentMonth) setVisibleMonth(startOfMonth(cell.date));
+              }}
             >
               <Text
                 style={[
                   styles.dateText,
-                  date.day === selectedDate && date.month === 'current' && styles.dateTextSelected,
-                  date.month !== 'current' && styles.dateTextMuted,
+                  sameDay(cell.date, selectedDate) && styles.dateTextSelected,
+                  !cell.isCurrentMonth && styles.dateTextMuted,
                 ]}
               >
-                {date.day}
+                {cell.date.getDate()}
               </Text>
             </TouchableOpacity>
           ))}
@@ -169,6 +229,37 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 20,
     marginTop: 10,
+  },
+  yearAdjustRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  yearAdjustBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: Colors.light.cardSecondary,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  yearAdjustText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  todayBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: Colors.light.tint,
+  },
+  todayText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   monthText: {
     fontSize: 18,

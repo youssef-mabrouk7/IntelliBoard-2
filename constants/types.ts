@@ -21,6 +21,7 @@ export interface User {
     category?: string;
     subtasks?: number;
     projectId?: string;
+    teamId?: string;
   }
   
   export interface Project {

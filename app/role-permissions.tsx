@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { currentUser } from '@/constants/mockData';
+import { User as AppUser } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 const permissions = [
   { id: '1', label: 'Manage Projects', enabled: true, type: 'main' },
@@ -19,6 +20,11 @@ const permissions = [
 
 export default function RolePermissionsScreen() {
   const [perms, setPerms] = useState(permissions);
+  const [profile, setProfile] = useState<AppUser | null>(null);
+  useEffect(() => {
+    const load = async () => setProfile(await supabaseService.getCurrentProfile());
+    load();
+  }, []);
 
   const togglePermission = (id: string) => {
     setPerms(perms.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
@@ -40,10 +46,10 @@ export default function RolePermissionsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
-          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+          <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/120' }} style={styles.avatar} />
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{currentUser.name}</Text>
-            <Text style={styles.email}>{currentUser.email}</Text>
+            <Text style={styles.name}>{profile?.name || 'User'}</Text>
+            <Text style={styles.email}>{profile?.email || 'No email'}</Text>
           </View>
         </View>
 

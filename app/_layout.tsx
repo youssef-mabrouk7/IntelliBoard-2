@@ -34,7 +34,7 @@ function RootLayoutNav() {
       <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
       <Stack.Screen name="create-task" options={{ headerShown: false }} />
       <Stack.Screen name="create-team" options={{ headerShown: false }} />
-      <Stack.Screen name="invite-members" options={{ headerShown: false }} />
+      <Stack.Screen name="nvite-members" options={{ headerShown: false }} />
       <Stack.Screen name="invite-email" options={{ headerShown: false }} />
       <Stack.Screen name="role-permissions" options={{ headerShown: false }} />
 

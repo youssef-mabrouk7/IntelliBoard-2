@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Folder, Users, Briefcase } from 'lucide-react-native';
+import { Home, Folder, Users, Briefcase, Calendar, BarChart3 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
 
@@ -41,6 +41,20 @@ export default function TabLayout() {
         options={{
           title: 'Teams',
           tabBarIcon: ({ color }) => <Users size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color }) => <Calendar size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: 'Analytics',
+          tabBarIcon: ({ color }) => <BarChart3 size={22} color={color} />,
         }}
       />
       <Tabs.Screen

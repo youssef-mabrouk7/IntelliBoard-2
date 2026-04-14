@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Menu, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { calendarEvents, currentUser } from '@/constants/mockData';
 import SideDrawer from '@/components/SideDrawer';
+import { CalendarEvent } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
+import { useDateDraftStore } from '@/stores/dateDraftStore';
 
 export default function CalendarScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const dateDraft = useDateDraftStore((s) => s.byContext.calendar);
+  const selectedDateISO = dateDraft?.dateISO ?? new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await supabaseService.getEvents();
+        setCalendarEvents(data);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load events');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEvents();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -17,7 +40,7 @@ export default function CalendarScreen() {
           <Menu size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Calender</Text>
-        <Image source={{ uri: currentUser.avatar }} style={styles.headerAvatar} />
+        <View style={styles.headerAvatarPlaceholder} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -25,7 +48,9 @@ export default function CalendarScreen() {
           <TouchableOpacity>
             <ChevronLeft size={24} color={Colors.light.text} />
           </TouchableOpacity>
-          <Text style={styles.monthText}>April 2024</Text>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'calendar' } })}>
+            <Text style={styles.monthText}>April 2024</Text>
+          </TouchableOpacity>
           <TouchableOpacity>
             <ChevronRight size={24} color={Colors.light.text} />
           </TouchableOpacity>
@@ -38,26 +63,33 @@ export default function CalendarScreen() {
         </View>
 
         <View style={styles.daysRow}>
-          {[18, 19, 20, 17, 18, 19, 20].map((day, index) => (
-            <View key={index} style={styles.dayCell}>
-              <Text style={[
-                styles.dayNumber,
-                day === 17 && styles.dayNumberToday,
-              ]}>{day}</Text>
-              {day === 17 && <View style={styles.todayDot} />}
-            </View>
-          ))}
+          {[18, 19, 20, 17, 18, 19, 20].map((day, index) => {
+            const iso = `2024-04-${String(day).padStart(2, '0')}`;
+            const isSelected = iso === selectedDateISO;
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.dayCell}
+                onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'calendar' } })}
+              >
+                <Text style={[styles.dayNumber, isSelected && styles.dayNumberToday]}>{day}</Text>
+                {isSelected && <View style={styles.todayDot} />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.selectedDateSection}>
-          <Text style={styles.selectedDateText}>Wednesday , April 17</Text>
+          <Text style={styles.selectedDateText}>{selectedDateISO}</Text>
           <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push('/all-events' as const)}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.eventsList}>
-          {calendarEvents.map((event) => (
+          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!loading && !error && calendarEvents.map((event) => (
             <TouchableOpacity key={event.id} style={styles.eventCard}>
               <View style={styles.eventTimeColumn}>
                 <Text style={styles.eventTime}>{event.startTime}</Text>
@@ -85,7 +117,7 @@ export default function CalendarScreen() {
                       {event.assignees.slice(0, 3).map((assignee, idx) => (
                         <Image
                           key={idx}
-                          source={{ uri: assignee.avatar }}
+                          source={{ uri: assignee.avatar || 'https://via.placeholder.com/60' }}
                           style={[styles.assigneeAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                         />
                       ))}
@@ -140,6 +172,10 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  headerAvatarPlaceholder: {
+    width: 36,
+    height: 36,
   },
   monthSelector: {
     flexDirection: 'row',
@@ -352,5 +388,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  errorText: {
+    color: Colors.light.error,
+    fontSize: 14,
   },
 });

@@ -1,118 +1,313 @@
--- Create Tables for IntelliBoard
+-- IntelliBoard schema + RLS policies
+-- Run this whole file once in Supabase SQL Editor.
 
--- 1. Profiles (extending auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  avatar TEXT,
-  role TEXT,
-  department TEXT,
-  job_title TEXT,
-  phone TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+create extension if not exists "pgcrypto";
+
+-- 1) Profiles
+create table if not exists public.profiles (
+  id uuid references auth.users(id) on delete cascade primary key,
+  name text not null default '',
+  email text not null default '',
+  avatar text,
+  role text default 'Member',
+  department text,
+  job_title text,
+  phone text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 2. Projects
-CREATE TABLE IF NOT EXISTS public.projects (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  due_date DATE,
-  progress INTEGER DEFAULT 0,
-  status TEXT CHECK (status IN ('active', 'completed', 'onHold')) DEFAULT 'active',
-  color TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  created_by UUID REFERENCES public.profiles(id)
+-- 2) Projects
+create table if not exists public.projects (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  due_date date,
+  progress integer not null default 0 check (progress between 0 and 100),
+  status text not null default 'active' check (status in ('active', 'completed', 'onHold')),
+  color text,
+  created_at timestamptz not null default now(),
+  created_by uuid references public.profiles(id) on delete set null
 );
 
--- 3. Teams
-CREATE TABLE IF NOT EXISTS public.teams (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  progress INTEGER DEFAULT 0,
-  color TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- Backward/forward compatible alters for existing DBs
+alter table public.projects
+  add column if not exists tags text[] not null default '{}'::text[];
+
+alter table public.projects
+  add column if not exists tasks integer not null default 0;
+
+-- 3) Teams
+create table if not exists public.teams (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  progress integer not null default 0 check (progress between 0 and 100),
+  color text,
+  created_at timestamptz not null default now()
 );
 
--- 4. Tasks
-CREATE TABLE IF NOT EXISTS public.tasks (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  due_date DATE,
-  priority TEXT CHECK (priority IN ('high', 'medium', 'low')) DEFAULT 'medium',
-  status TEXT CHECK (status IN ('inProgress', 'completed', 'overdue')) DEFAULT 'inProgress',
-  progress INTEGER DEFAULT 0,
-  category TEXT,
-  subtasks_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- 4) Tasks
+create table if not exists public.tasks (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid references public.projects(id) on delete cascade,
+  title text not null,
+  description text,
+  due_date date,
+  priority text not null default 'medium' check (priority in ('high', 'medium', 'low')),
+  status text not null default 'inProgress' check (status in ('inProgress', 'completed', 'overdue')),
+  progress integer not null default 0 check (progress between 0 and 100),
+  category text,
+  subtasks_count integer not null default 0,
+  created_at timestamptz not null default now()
 );
 
--- 5. Calendar Events
-CREATE TABLE IF NOT EXISTS public.calendar_events (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  start_time TEXT,
-  end_time TEXT,
-  date DATE NOT NULL,
-  color TEXT,
-  status TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- 5) Calendar Events
+create table if not exists public.calendar_events (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  start_time text,
+  end_time text,
+  date date not null,
+  color text,
+  status text,
+  created_at timestamptz not null default now()
 );
 
--- Junction Tables for Many-to-Many Relationships
-
--- Task Assignees
-CREATE TABLE IF NOT EXISTS public.task_assignees (
-  task_id UUID REFERENCES public.tasks(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  PRIMARY KEY (task_id, user_id)
+-- Junction tables
+create table if not exists public.task_assignees (
+  task_id uuid references public.tasks(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  primary key (task_id, user_id)
 );
 
--- Project Members
-CREATE TABLE IF NOT EXISTS public.project_members (
-  project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  PRIMARY KEY (project_id, user_id)
+create table if not exists public.project_members (
+  project_id uuid references public.projects(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  primary key (project_id, user_id)
 );
 
--- Team Members
-CREATE TABLE IF NOT EXISTS public.team_members (
-  team_id UUID REFERENCES public.teams(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  PRIMARY KEY (team_id, user_id)
+create table if not exists public.team_members (
+  team_id uuid references public.teams(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  primary key (team_id, user_id)
 );
 
--- Event Assignees
-CREATE TABLE IF NOT EXISTS public.event_assignees (
-  event_id UUID REFERENCES public.calendar_events(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  PRIMARY KEY (event_id, user_id)
+create table if not exists public.event_assignees (
+  event_id uuid references public.calendar_events(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  primary key (event_id, user_id)
 );
 
--- Enable Row Level Security (RLS)
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.calendar_events ENABLE ROW LEVEL SECURITY;
+-- Helpful indexes
+create index if not exists idx_tasks_project_id on public.tasks(project_id);
+create index if not exists idx_project_members_user_id on public.project_members(user_id);
+create index if not exists idx_task_assignees_user_id on public.task_assignees(user_id);
+create index if not exists idx_team_members_user_id on public.team_members(user_id);
 
--- Simple Policies (Can be refined later)
-CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
+-- RLS enable
+alter table public.profiles enable row level security;
+alter table public.projects enable row level security;
+alter table public.tasks enable row level security;
+alter table public.teams enable row level security;
+alter table public.calendar_events enable row level security;
+alter table public.task_assignees enable row level security;
+alter table public.project_members enable row level security;
+alter table public.team_members enable row level security;
+alter table public.event_assignees enable row level security;
 
-CREATE POLICY "Projects are viewable by members." ON public.projects FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM public.project_members WHERE project_id = projects.id AND user_id = auth.uid()
-  ) OR created_by = auth.uid()
-);
+-- Remove previous versions to avoid duplicate policy errors
+drop policy if exists "Public profiles are viewable by everyone." on public.profiles;
+drop policy if exists "Users can update their own profile." on public.profiles;
+drop policy if exists "Projects are viewable by members." on public.projects;
+drop policy if exists "Tasks are viewable by project members." on public.tasks;
 
-CREATE POLICY "Tasks are viewable by project members." ON public.tasks FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM public.project_members WHERE project_id = tasks.project_id AND user_id = auth.uid()
+-- Profiles policies
+create policy profiles_select_authenticated
+on public.profiles
+for select
+to authenticated
+using (true);
+
+create policy profiles_insert_self
+on public.profiles
+for insert
+to authenticated
+with check (auth.uid() = id);
+
+create policy profiles_update_self
+on public.profiles
+for update
+to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
+
+-- Projects policies
+create policy projects_select
+on public.projects
+for select
+to authenticated
+using (
+  created_by = auth.uid()
+  or exists (
+    select 1 from public.project_members pm
+    where pm.project_id = projects.id and pm.user_id = auth.uid()
   )
 );
+
+create policy projects_insert
+on public.projects
+for insert
+to authenticated
+with check (created_by = auth.uid() or created_by is null);
+
+create policy projects_update
+on public.projects
+for update
+to authenticated
+using (
+  created_by = auth.uid()
+  or exists (
+    select 1 from public.project_members pm
+    where pm.project_id = projects.id and pm.user_id = auth.uid()
+  )
+);
+
+-- Project members policies
+create policy project_members_select
+on public.project_members
+for select
+to authenticated
+using (true);
+
+create policy project_members_insert
+on public.project_members
+for insert
+to authenticated
+with check (true);
+
+-- Tasks policies
+create policy tasks_select
+on public.tasks
+for select
+to authenticated
+using (
+  project_id is null
+  or exists (
+    select 1 from public.project_members pm
+    where pm.project_id = tasks.project_id and pm.user_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.projects p
+    where p.id = tasks.project_id and p.created_by = auth.uid()
+  )
+);
+
+create policy tasks_insert
+on public.tasks
+for insert
+to authenticated
+with check (
+  project_id is null
+  or exists (
+    select 1 from public.project_members pm
+    where pm.project_id = tasks.project_id and pm.user_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.projects p
+    where p.id = tasks.project_id and p.created_by = auth.uid()
+  )
+);
+
+create policy tasks_update
+on public.tasks
+for update
+to authenticated
+using (
+  project_id is null
+  or exists (
+    select 1 from public.project_members pm
+    where pm.project_id = tasks.project_id and pm.user_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.projects p
+    where p.id = tasks.project_id and p.created_by = auth.uid()
+  )
+);
+
+-- Task assignees
+create policy task_assignees_select
+on public.task_assignees
+for select
+to authenticated
+using (true);
+
+create policy task_assignees_insert
+on public.task_assignees
+for insert
+to authenticated
+with check (true);
+
+-- Teams policies
+create policy teams_select
+on public.teams
+for select
+to authenticated
+using (true);
+
+create policy teams_insert
+on public.teams
+for insert
+to authenticated
+with check (true);
+
+create policy teams_update
+on public.teams
+for update
+to authenticated
+using (true);
+
+-- Team members policies
+create policy team_members_select
+on public.team_members
+for select
+to authenticated
+using (true);
+
+create policy team_members_insert
+on public.team_members
+for insert
+to authenticated
+with check (true);
+
+-- Calendar events policies
+create policy calendar_events_select
+on public.calendar_events
+for select
+to authenticated
+using (true);
+
+create policy calendar_events_insert
+on public.calendar_events
+for insert
+to authenticated
+with check (true);
+
+create policy calendar_events_update
+on public.calendar_events
+for update
+to authenticated
+using (true);
+
+-- Event assignees policies
+create policy event_assignees_select
+on public.event_assignees
+for select
+to authenticated
+using (true);
+
+create policy event_assignees_insert
+on public.event_assignees
+for insert
+to authenticated
+with check (true);

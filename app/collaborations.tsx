@@ -1,12 +1,23 @@
 import { router } from 'expo-router';
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { projects } from '@/constants/mockData';
+import { Project } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 export default function CollaborationsScreen() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const load = async () => {
+      const data = await supabaseService.getProjects();
+      setProjects(data);
+      setLoading(false);
+    };
+    load();
+  }, []);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -26,6 +37,7 @@ export default function CollaborationsScreen() {
         </View>
 
         <View style={styles.projectsList}>
+          {loading && <ActivityIndicator color={Colors.light.tint} />}
           {projects.map((project) => (
             <TouchableOpacity
               key={project.id}

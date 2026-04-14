@@ -1,24 +1,35 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Check, UserPlus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { users } from '@/constants/mockData';
+import { User } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 interface UserWithSelected {
   id: string;
   name: string;
   email: string;
   avatar: string;
+  role?: string;
+  department?: string;
+  jobTitle?: string;
+  phone?: string;
   selected: boolean;
 }
 
 export default function AddMemberScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [userList, setUserList] = useState<UserWithSelected[]>(
-    users.map(u => ({ ...u, selected: false }))
-  );
+  const [userList, setUserList] = useState<UserWithSelected[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const users: User[] = await supabaseService.getProfiles();
+      setUserList(users.map(u => ({ ...u, selected: false })));
+    };
+    load();
+  }, []);
 
   const toggleUser = (id: string) => {
     setUserList(userList.map(u => 

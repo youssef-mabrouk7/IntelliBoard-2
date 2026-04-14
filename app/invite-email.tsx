@@ -1,16 +1,22 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronRight, X, Shield } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { users } from '@/constants/mockData';
+import { User } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 export default function InviteEmailScreen() {
   const [emails, setEmails] = useState(['John@example.com', 'sarah@example.com', 'alice@example.com']);
   const [role] = useState('Member');
   const [message, setMessage] = useState('');
-  const suggestedUsers = users.slice(0, 3);
+  const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const load = async () => setSuggestedUsers((await supabaseService.getProfiles()).slice(0, 3));
+    load();
+  }, []);
 
   const removeEmail = (email: string) => {
     setEmails(emails.filter(e => e !== email));

@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, User, Bell, Palette, CheckCircle, HelpCircle, Info, Globe, LogOut, ChevronRight, Mail, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { currentUser } from '@/constants/mockData';
+import { supabaseService } from '@/services/supabaseService';
+import { User as AppUser } from '@/constants/types';
 
 const settingsItems = [
   { icon: User, label: 'Account', color: Colors.light.tint, route: '/account' },
@@ -17,6 +18,39 @@ const settingsItems = [
 ];
 
 export default function SettingsScreen() {
+  const [testingConnection, setTestingConnection] = React.useState(false);
+  const [profile, setProfile] = React.useState<AppUser | null>(null);
+
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await supabaseService.getCurrentProfile();
+        setProfile(data);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const handleTestConnection = async () => {
+    try {
+      setTestingConnection(true);
+      const result = await supabaseService.testConnection();
+      Alert.alert(
+        result.connected ? 'Supabase Connected' : 'Supabase Not Connected',
+        result.message,
+      );
+    } catch (error) {
+      Alert.alert(
+        'Supabase Not Connected',
+        error instanceof Error ? error.message : 'Unknown connection error.',
+      );
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -29,10 +63,10 @@ export default function SettingsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.profileCard} onPress={() => router.push('/profile')}>
-          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+          <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/100' }} style={styles.avatar} />
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{currentUser.name}</Text>
-            <Text style={styles.email}>{currentUser.email}</Text>
+            <Text style={styles.name}>{profile?.name || 'User'}</Text>
+            <Text style={styles.email}>{profile?.email || 'No email'}</Text>
           </View>
           <TouchableOpacity style={styles.editProfileButton} onPress={() => router.push('/edit-profile')}>
             <Text style={styles.editProfileText}>Edit Profile</Text>
@@ -62,6 +96,18 @@ export default function SettingsScreen() {
             <ChevronRight size={20} color={Colors.light.error} />
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.testConnectionButton}
+          onPress={handleTestConnection}
+          disabled={testingConnection}
+        >
+          {testingConnection ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.testConnectionText}>Test Supabase Connection</Text>
+          )}
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.inviteButton}>
           <Mail size={20} color="#FFFFFF" />
@@ -172,6 +218,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 24,
     marginBottom: 30,
+  },
+  testConnectionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.tintDark,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  testConnectionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   plusIcon: {
     marginLeft: -8,

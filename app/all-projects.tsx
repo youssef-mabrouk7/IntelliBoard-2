@@ -1,14 +1,35 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Grid3X3, List } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { projects } from '@/constants/mockData';
+import { Project } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 export default function AllProjectsScreen() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [activeFilter, setActiveFilter] = useState<'All' | 'Active' | 'Completed'>('All');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await supabaseService.getProjects();
+        setProjects(data);
+      } catch (err: any) {
+        console.error('Error fetching projects:', err);
+        setError(err?.message || 'Failed to fetch projects');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProjects();
+  }, []);
 
   const filteredProjects = projects.filter((project) => {
     if (activeFilter === 'All') return true;
@@ -71,10 +92,13 @@ export default function AllProjectsScreen() {
         </View>
 
         <View style={viewMode === 'grid' ? styles.projectsGrid : styles.projectsList}>
-          {filteredProjects.map((project) => (
+          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!loading && !error && filteredProjects.map((project) => (
             <TouchableOpacity 
               key={project.id} 
               style={[styles.projectCard, viewMode === 'grid' && styles.projectCardGrid]}
+              onPress={() => router.push(`/project/${project.id}`)}
             >
               <View style={[styles.projectIcon, { backgroundColor: project.color }]}>
                 <Text style={styles.projectIconText}>{project.name.charAt(0)}</Text>
@@ -95,12 +119,12 @@ export default function AllProjectsScreen() {
                   <Text style={styles.progressText}>{project.progress}%</Text>
                 </View>
                 <View style={styles.projectFooter}>
-                  <Text style={styles.dueDate}>Due: {project.dueDate}</Text>
+                  <Text style={styles.dueDate}>Due: {project.dueDate || '-'}</Text>
                   <View style={styles.membersRow}>
                     {project.members.slice(0, 2).map((member, idx) => (
                       <Image
                         key={idx}
-                        source={{ uri: member.avatar }}
+                        source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
                         style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                       />
                     ))}
@@ -325,5 +349,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  errorText: {
+    color: Colors.light.error,
+    fontSize: 14,
   },
 });

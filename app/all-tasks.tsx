@@ -1,16 +1,36 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { tasks } from '@/constants/mockData';
 import type { Task } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 type FilterType = 'All' | 'In Progress' | 'Completed' | 'Overdue';
 
 export default function AllTasksScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await supabaseService.getTasks();
+        setTasks(data);
+      } catch (err: any) {
+        console.error('Error fetching tasks:', err);
+        setError(err?.message || 'Failed to fetch tasks');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTasks();
+  }, []);
 
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === 'All') return true;
@@ -76,7 +96,9 @@ export default function AllTasksScreen() {
         </View>
 
         <View style={styles.tasksList}>
-          {filteredTasks.map((task) => (
+          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!loading && !error && filteredTasks.map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}
         </View>
@@ -332,5 +354,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.textSecondary,
     minWidth: 32,
+  },
+  errorText: {
+    color: Colors.light.error,
+    fontSize: 14,
   },
 });

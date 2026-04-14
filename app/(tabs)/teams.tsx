@@ -1,14 +1,42 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Menu, Search, Bell, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { teams } from '@/constants/mockData';
 import SideDrawer from '@/components/SideDrawer';
+import { Team } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function TeamsScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTeams = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await supabaseService.getTeams();
+      setTeams(data);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load teams');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTeams();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTeams();
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -43,7 +71,9 @@ export default function TeamsScreen() {
         </View>
 
         <View style={styles.teamsList}>
-          {teams.map((team) => (
+          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!loading && !error && teams.map((team) => (
             <TouchableOpacity key={team.id} style={styles.teamCard}>
               <View style={styles.teamHeader}>
                 <Text style={styles.teamName}>{team.name}</Text>
@@ -59,13 +89,15 @@ export default function TeamsScreen() {
                     {team.members.slice(0, 3).map((member, idx) => (
                       <Image
                         key={idx}
-                        source={{ uri: member.avatar }}
+                        source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
                         style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                       />
                     ))}
-                    <View style={styles.moreBadge}>
-                      <Text style={styles.moreText}>+{team.memberCount - 3}</Text>
-                    </View>
+                    {team.memberCount > 3 && (
+                      <View style={styles.moreBadge}>
+                        <Text style={styles.moreText}>+{team.memberCount - 3}</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               </View>
@@ -215,6 +247,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.light.textSecondary,
     fontWeight: '500',
+  },
+  errorText: {
+    color: Colors.light.error,
+    fontSize: 14,
   },
   fab: {
     position: 'absolute',

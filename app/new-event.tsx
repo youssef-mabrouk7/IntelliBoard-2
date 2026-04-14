@@ -1,19 +1,44 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Clock, Users, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { supabaseService } from '@/services/supabaseService';
+import { useDateDraftStore } from '@/stores/dateDraftStore';
 
 export default function NewEventScreen() {
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
-  const [date] = useState('Apr 17, 2024');
+  const dateDraft = useDateDraftStore((s) => s.byContext.event);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const date = dateDraft?.dateISO ?? todayISO;
   const [startTime] = useState('10:00 AM');
   const [endTime] = useState('11:00 AM');
+  const [creating, setCreating] = useState(false);
 
-  const handleCreate = () => {
-    router.back();
+  const handleCreate = async () => {
+    if (!eventName.trim()) {
+      Alert.alert('Validation', 'Event name is required.');
+      return;
+    }
+    try {
+      setCreating(true);
+      await supabaseService.createEvent({
+        title: eventName.trim(),
+        date,
+        startTime,
+        endTime,
+        color: Colors.light.tint,
+        status: description.trim() ? description.trim() : undefined,
+      });
+      Alert.alert('Success', 'Event created successfully.');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Create Event Failed', error?.message || 'Unknown error.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -23,8 +48,8 @@ export default function NewEventScreen() {
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Event</Text>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-          <Text style={styles.createButtonText}>Create</Text>
+        <TouchableOpacity style={[styles.createButton, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
+          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
         </TouchableOpacity>
       </View>
 
@@ -57,7 +82,7 @@ export default function NewEventScreen() {
           <Text style={styles.sectionTitle}>Event Details</Text>
           
           <View style={styles.optionsList}>
-            <TouchableOpacity style={styles.optionRow}>
+            <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'event' } })}>
               <View style={styles.optionLeft}>
                 <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
                   <Calendar size={18} color={Colors.light.tint} />

@@ -1,26 +1,32 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Menu, Search, Bell, ArrowRight, MessageCircle } from 'lucide-react-native';
+import { Menu, Search, Bell, ArrowRight, MessageCircle, Circle, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
 import Colors from '@/constants/colors';
-import { homeDays } from '@/constants/mockData';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
 import { Project, Task } from '@/constants/types';
 import { useEffect } from 'react';
+
+const homeDays = [
+  { day: 'Fri', date: 11 },
+  { day: 'Sat', date: 12 },
+  { day: 'Sun', date: 14, isSelected: true },
+  { day: 'Mon', date: 14 },
+  { day: 'Tue', date: 15 },
+];
 
 export default function HomeScreen() {
   const [selectedDay, setSelectedDay] = useState(2);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        setLoading(true);
         const [projectsData, tasksData] = await Promise.all([
           supabaseService.getProjects(),
           supabaseService.getTasks()
@@ -30,11 +36,28 @@ export default function HomeScreen() {
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
-        setLoading(false);
       }
     }
     loadData();
   }, []);
+
+  const refreshTasks = async () => {
+    const tasksData = await supabaseService.getTasks();
+    setTasks(tasksData || []);
+  };
+
+  const toggleComplete = async (task: Task) => {
+    if (updatingTaskId) return;
+    try {
+      setUpdatingTaskId(task.id);
+      const nextStatus = task.status === 'completed' ? 'inProgress' : 'completed';
+      const nextProgress = nextStatus === 'completed' ? 100 : Math.min(task.progress || 0, 99);
+      await supabaseService.updateTaskStatus(task.id, nextStatus as any, nextProgress);
+      await refreshTasks();
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -132,8 +155,26 @@ export default function HomeScreen() {
           </View>
           <View style={styles.tasksList}>
             {tasks.slice(0, 3).map((task) => (
-              <TouchableOpacity key={task.id} style={styles.taskItem} onPress={() => router.push('/all-tasks')}>
+              <TouchableOpacity key={task.id} style={styles.taskItem} onPress={() => router.push(`/task/${task.id}`)}>
                 <View style={[styles.taskIndicator, { backgroundColor: getPriorityColor(task.priority) }]} />
+                <TouchableOpacity
+                  style={styles.checkButton}
+                  onPress={(e: any) => {
+                    e?.stopPropagation?.();
+                    toggleComplete(task);
+                  }}
+                  disabled={updatingTaskId === task.id}
+                >
+                  {updatingTaskId === task.id ? (
+                    <ActivityIndicator size="small" color={Colors.light.tint} />
+                  ) : task.status === 'completed' ? (
+                    <View style={[styles.checkCircle, { backgroundColor: Colors.light.status.completed }]}>
+                      <Check size={14} color="#FFFFFF" />
+                    </View>
+                  ) : (
+                    <Circle size={20} color={Colors.light.border} />
+                  )}
+                </TouchableOpacity>
                 <View style={styles.taskContent}>
                   <Text style={styles.taskTitle}>{task.title}</Text>
                   <Text style={styles.taskSubtitle}>Projects</Text>
@@ -329,6 +370,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  checkButton: {
+    marginRight: 10,
+    width: 26,
+    height: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   taskIndicator: {
     width: 4,

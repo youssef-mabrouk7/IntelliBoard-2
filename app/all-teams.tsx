@@ -1,13 +1,24 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Plus, Users } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { teams } from '@/constants/mockData';
+import { Team } from '@/constants/types';
+import { supabaseService } from '@/services/supabaseService';
 
 export default function AllTeamsScreen() {
   const [activeFilter, setActiveFilter] = useState<'All' | 'Active' | 'Archived'>('All');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const load = async () => {
+      const data = await supabaseService.getTeams();
+      setTeams(data);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const filteredTeams = teams.filter((team) => {
     if (activeFilter === 'All') return true;
@@ -57,6 +68,7 @@ export default function AllTeamsScreen() {
         </View>
 
         <View style={styles.teamsList}>
+          {loading && <ActivityIndicator color={Colors.light.tint} />}
           {filteredTeams.map((team) => (
             <TouchableOpacity key={team.id} style={styles.teamCard}>
               <View style={styles.teamHeader}>
@@ -82,7 +94,7 @@ export default function AllTeamsScreen() {
                   {team.members.slice(0, 5).map((member, idx) => (
                     <Image
                       key={idx}
-                      source={{ uri: member.avatar }}
+                      source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
                       style={[styles.memberAvatar, { marginLeft: idx > 0 ? -10 : 0 }]}
                     />
                   ))}

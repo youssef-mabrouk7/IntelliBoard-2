@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Menu, Search, Bell, Plus, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Menu, Search, Bell, Plus, Clock, CheckCircle, AlertCircle, Circle, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
 import type { Task } from '@/constants/types';
 import { useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 type FilterType = 'All' | 'In Progress' | 'Completed' | 'Overdue';
 
@@ -17,19 +18,27 @@ export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchTasks() {
-      try {
-        const data = await supabaseService.getTasks();
-        setTasks(data);
-      } catch (err) {
-        console.error('Error fetching tasks:', err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchTasks = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await supabaseService.getTasks();
+      setTasks(data);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+    } finally {
+      setLoading(false);
     }
-    fetchTasks();
   }, []);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchTasks();
+    }, [fetchTasks]),
+  );
 
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === 'All') return true;
@@ -109,7 +118,7 @@ export default function TasksScreen() {
 
         <View style={styles.tasksList}>
           {filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} task={task} onChanged={fetchTasks} />
           ))}
         </View>
       </ScrollView>
@@ -123,7 +132,23 @@ export default function TasksScreen() {
   );
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
+  const [updating, setUpdating] = React.useState(false);
+
+  const toggleComplete = async (e: any) => {
+    e?.stopPropagation?.();
+    if (updating) return;
+    try {
+      setUpdating(true);
+      const nextStatus = task.status === 'completed' ? 'inProgress' : 'completed';
+      const nextProgress = nextStatus === 'completed' ? 100 : Math.min(task.progress || 0, 99);
+      await supabaseService.updateTaskStatus(task.id, nextStatus as any, nextProgress);
+      onChanged();
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const getStatusColor = () => {
     if (task.status === 'completed') return Colors.light.status.completed;
     if (task.status === 'overdue') return Colors.light.status.overdue;
@@ -137,9 +162,20 @@ function TaskCard({ task }: { task: Task }) {
   };
 
   return (
-    <View style={getCardStyle()}>
+    <TouchableOpacity style={getCardStyle()} onPress={() => router.push(`/task/${task.id}`)}>
       <View style={styles.taskHeader}>
         <View style={styles.taskLeft}>
+          <TouchableOpacity style={styles.checkButton} onPress={toggleComplete} disabled={updating}>
+            {updating ? (
+              <ActivityIndicator size="small" color={Colors.light.tint} />
+            ) : task.status === 'completed' ? (
+              <View style={[styles.checkCircle, { backgroundColor: Colors.light.status.completed }]}>
+                <Check size={16} color="#FFFFFF" />
+              </View>
+            ) : (
+              <Circle size={22} color={Colors.light.border} />
+            )}
+          </TouchableOpacity>
           <View style={[styles.progressCircle, { borderColor: getStatusColor() }]}>
             <Text style={[styles.progressTextCircle, { color: getStatusColor() }]}>
               {task.progress}%
@@ -159,7 +195,7 @@ function TaskCard({ task }: { task: Task }) {
           {task.assignees.slice(0, 3).map((assignee, idx) => (
             <Image
               key={idx}
-              source={{ uri: assignee.avatar }}
+              source={{ uri: assignee.avatar || 'https://via.placeholder.com/60' }}
               style={[styles.assigneeAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
             />
           ))}
@@ -171,7 +207,7 @@ function TaskCard({ task }: { task: Task }) {
           <Text style={styles.progressPercent}>{task.progress}%</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -324,6 +360,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  checkButton: {
+    marginRight: 10,
+    width: 26,
+    height: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   progressCircle: {
     width: 44,

@@ -1,33 +1,49 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, Users, Check, X } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Users, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { supabaseService } from '@/services/supabaseService';
+import { useDateDraftStore } from '@/stores/dateDraftStore';
 
 const projectColors = [
   '#4A7C9B', '#9C7BB8', '#4CAF90', '#E57373', '#FFB74D', '#7B8CDE', '#64B5F6'
 ];
 
-const availableTags = ['Design', 'Development', 'Marketing', 'Research', 'Testing'];
-
 export default function NewProjectScreen() {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate] = useState('Apr 30, 2024');
+  const dueDraft = useDateDraftStore((s) => s.byContext.project);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const dueDate = dueDraft?.dateISO ?? todayISO;
   const [selectedColor, setSelectedColor] = useState(projectColors[0]);
-  const [selectedTags, setSelectedTags] = useState<string[]>(['Design']);
+  const [creating, setCreating] = useState(false);
 
-  const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter(t => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
+  const handleCreate = async () => {
+    if (!projectName.trim()) {
+      Alert.alert('Validation', 'Project name is required.');
+      return;
     }
-  };
-
-  const handleCreate = () => {
-    router.back();
+    try {
+      setCreating(true);
+      await supabaseService.createProject({
+        name: projectName.trim(),
+        description: description.trim(),
+        dueDate,
+        progress: 0,
+        status: 'active',
+        color: selectedColor,
+        tasks: 0,
+        members: [],
+      });
+      Alert.alert('Success', 'Project created successfully.');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Create Project Failed', error?.message || 'Unknown error.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -37,8 +53,8 @@ export default function NewProjectScreen() {
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Project</Text>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-          <Text style={styles.createButtonText}>Create</Text>
+        <TouchableOpacity style={[styles.createButton, creating && styles.createButtonDisabled]} onPress={handleCreate} disabled={creating}>
+          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
         </TouchableOpacity>
       </View>
 
@@ -89,7 +105,7 @@ export default function NewProjectScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Due Date</Text>
-          <TouchableOpacity style={styles.optionRow}>
+          <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'project' } })}>
             <View style={styles.optionLeft}>
               <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
                 <Calendar size={20} color={Colors.light.tint} />
@@ -97,34 +113,6 @@ export default function NewProjectScreen() {
               <Text style={styles.optionValue}>{dueDate}</Text>
             </View>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tags</Text>
-          <View style={styles.tagsContainer}>
-            {availableTags.map((tag) => (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tagButton,
-                  selectedTags.includes(tag) && styles.tagButtonSelected,
-                ]}
-                onPress={() => toggleTag(tag)}
-              >
-                <Text
-                  style={[
-                    styles.tagButtonText,
-                    selectedTags.includes(tag) && styles.tagButtonTextSelected,
-                  ]}
-                >
-                  {tag}
-                </Text>
-                {selectedTags.includes(tag) && (
-                  <X size={14} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
         <View style={styles.section}>
@@ -168,6 +156,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  createButtonDisabled: {
+    opacity: 0.7,
   },
   inputSection: {
     backgroundColor: Colors.light.cardSecondary,

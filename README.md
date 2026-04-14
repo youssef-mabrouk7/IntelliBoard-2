@@ -7,6 +7,15 @@ This is a native cross-platform mobile app created with [Rork](https://rork.com)
 **Platform**: Native iOS & Android app, exportable to web
 **Framework**: Expo Router + React Native
 
+## Supabase setup
+
+1. Copy `.env.example` to `.env`
+2. Set your Supabase values:
+   - `EXPO_PUBLIC_SUPABASE_URL`
+   - `EXPO_PUBLIC_SUPABASE_KEY` (anon/public key)
+3. Restart the app (`bun run start`)
+4. Open **Settings** and tap **Test Supabase Connection**
+
 ## How can I edit this code?
 
 There are several ways of editing your native mobile application.

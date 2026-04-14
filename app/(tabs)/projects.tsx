@@ -8,6 +8,7 @@ import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
 import { Project } from '@/constants/types';
 import { useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function ProjectsScreen() {
   const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Completed'>('All');
@@ -20,19 +21,27 @@ export default function ProjectsScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const data = await supabaseService.getProjects();
-        setProjects(data);
-      } catch (err) {
-        console.error('Error fetching projects:', err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchProjects = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await supabaseService.getProjects();
+      setProjects(data);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    } finally {
+      setLoading(false);
     }
-    fetchProjects();
   }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProjects();
+    }, [fetchProjects]),
+  );
 
   let filteredProjects = projects.filter((project) => {
     if (activeTab === 'All') return true;
@@ -159,7 +168,7 @@ export default function ProjectsScreen() {
 
         <View style={styles.projectsList}>
           {filteredProjects.map((project) => (
-            <View key={project.id} style={styles.projectCard}>
+            <TouchableOpacity key={project.id} style={styles.projectCard} onPress={() => router.push(`/project/${project.id}`)}>
               <Text style={styles.projectName}>{project.name}</Text>
               <View style={styles.tagsRow}>
                 {project.tags.map((tag, idx) => (
@@ -194,7 +203,7 @@ export default function ProjectsScreen() {
                   {project.members.slice(0, 3).map((member, idx) => (
                     <Image
                       key={idx}
-                      source={{ uri: member.avatar }}
+                      source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
                       style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                     />
                   ))}
@@ -206,7 +215,7 @@ export default function ProjectsScreen() {
               {project.description && (
                 <Text style={styles.description}>{project.description}</Text>
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
