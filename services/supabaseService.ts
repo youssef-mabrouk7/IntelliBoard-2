@@ -335,6 +335,35 @@ export const supabaseService = {
     return (data || []) as User[];
   },
 
+  async updateCurrentProfile(patch: Partial<User>) {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    const user = authData.user;
+    if (!user) throw new Error('No authenticated user.');
+
+    const payload: any = {
+      id: user.id,
+      name: patch.name,
+      email: patch.email,
+      avatar: patch.avatar,
+      role: patch.role,
+      department: patch.department,
+      job_title: patch.jobTitle,
+      phone: patch.phone,
+    };
+
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select('*').single(),
+      ),
+    );
+    if (error) throw error;
+    return {
+      ...(data as any),
+      jobTitle: (data as any)?.job_title,
+    } as User;
+  },
+
   // --- Teams ---
   async getTeams() {
     const { data, error } = await withTimeout(

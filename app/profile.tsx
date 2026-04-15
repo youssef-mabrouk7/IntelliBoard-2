@@ -6,8 +6,10 @@ import { ArrowLeft, Folder, CheckCircle, Users, ChevronRight, Settings } from 'l
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { Task, Team, User } from '@/constants/types';
+import { useLocalization } from '@/utils/localization';
 
 export default function ProfileScreen() {
+  const { t } = useLocalization();
   const [profile, setProfile] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -33,7 +35,7 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t('profile')}</Text>
         <TouchableOpacity onPress={() => router.push('/settings')}>
           <Settings size={24} color={Colors.light.text} />
         </TouchableOpacity>
@@ -59,21 +61,21 @@ export default function ProfileScreen() {
               <Folder size={20} color={Colors.light.tint} />
             </View>
             <Text style={styles.statNumber}>{Math.max(0, teams.length)}</Text>
-            <Text style={styles.statLabel}>Active Projects</Text>
+            <Text style={styles.statLabel}>{t('projects')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-tasks')}>
             <View style={[styles.statIcon, { backgroundColor: '#E8F5E9' }]}>
               <CheckCircle size={20} color={Colors.light.status.completed} />
             </View>
             <Text style={styles.statNumber}>{tasks.length}</Text>
-            <Text style={styles.statLabel}>Tasks</Text>
+            <Text style={styles.statLabel}>{t('tasks')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-teams')}>
             <View style={[styles.statIcon, { backgroundColor: '#FFEBEE' }]}>
               <Users size={20} color={Colors.light.priority.high} />
             </View>
             <Text style={styles.statNumber}>{teams.length}</Text>
-            <Text style={styles.statLabel}>Teams</Text>
+            <Text style={styles.statLabel}>{t('teams')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -106,7 +108,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Teams</Text>
+            <Text style={styles.sectionTitle}>{t('teamsSection')}</Text>
             <TouchableOpacity onPress={() => router.push('/all-teams')}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
@@ -136,7 +138,7 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity style={styles.editButton} onPress={() => router.push('/edit-profile')}>
-          <Text style={styles.editButtonText}>Edit Profile</Text>
+          <Text style={styles.editButtonText}>{t('editProfile')}</Text>
           <ChevronRight size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </ScrollView>

@@ -4,16 +4,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Check, Globe, Calendar } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
+import { useLocalization } from '@/utils/localization';
 
 const languages = [
-  { code: 'en', name: 'English', flag: '' },
-  { code: 'es', name: 'Spanish', flag: '' },
-  { code: 'fr', name: 'French', flag: '' },
-  { code: 'de', name: 'German', flag: '' },
-  { code: 'it', name: 'Italian', flag: '' },
-  { code: 'pt', name: 'Portuguese', flag: '' },
-  { code: 'zh', name: 'Chinese', flag: '' },
-  { code: 'ja', name: 'Japanese', flag: '' },
+  { code: 'en', name: 'English' },
+  { code: 'ar', name: 'العربية' },
 ];
 
 const dateFormats = [
@@ -28,9 +24,22 @@ const timeFormats = [
 ];
 
 export default function LanguageDateScreen() {
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const [selectedDateFormat, setSelectedDateFormat] = useState('mdy');
-  const [selectedTimeFormat, setSelectedTimeFormat] = useState('12h');
+  const { t, isRTL } = useLocalization();
+  const selectedLanguage = useAppPreferencesStore((s) => s.language);
+  const selectedDateFormat = useAppPreferencesStore((s) => s.dateFormat);
+  const selectedTimeFormat = useAppPreferencesStore((s) => s.timeFormat);
+  const setLanguage = useAppPreferencesStore((s) => s.setLanguage);
+  const setDateFormat = useAppPreferencesStore((s) => s.setDateFormat);
+  const setTimeFormat = useAppPreferencesStore((s) => s.setTimeFormat);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      router.back();
+    }, 250);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -38,7 +47,7 @@ export default function LanguageDateScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Language & Date</Text>
+        <Text style={styles.headerTitle}>{t('languageAndDate')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -46,16 +55,16 @@ export default function LanguageDateScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Globe size={20} color={Colors.light.tint} />
-            <Text style={styles.sectionTitle}>Language</Text>
+            <Text style={styles.sectionTitle}>{t('language')}</Text>
           </View>
           <View style={styles.optionsList}>
             {languages.map((lang) => (
               <TouchableOpacity
                 key={lang.code}
                 style={styles.optionItem}
-                onPress={() => setSelectedLanguage(lang.code)}
+                onPress={() => setLanguage(lang.code as 'en' | 'ar')}
               >
-                <Text style={styles.optionText}>{lang.name}</Text>
+                <Text style={[styles.optionText, { textAlign: isRTL ? 'right' : 'left' }]}>{lang.name}</Text>
                 {selectedLanguage === lang.code && (
                   <View style={styles.checkIcon}>
                     <Check size={18} color={Colors.light.tint} />
@@ -69,14 +78,14 @@ export default function LanguageDateScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Calendar size={20} color={Colors.light.tint} />
-            <Text style={styles.sectionTitle}>Date Format</Text>
+            <Text style={styles.sectionTitle}>{t('dateFormat')}</Text>
           </View>
           <View style={styles.optionsList}>
             {dateFormats.map((format) => (
               <TouchableOpacity
                 key={format.id}
                 style={styles.formatItem}
-                onPress={() => setSelectedDateFormat(format.id)}
+                onPress={() => setDateFormat(format.id as 'mdy' | 'dmy' | 'ymd')}
               >
                 <View>
                   <Text style={styles.formatLabel}>{format.format}</Text>
@@ -95,14 +104,14 @@ export default function LanguageDateScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Calendar size={20} color={Colors.light.tint} />
-            <Text style={styles.sectionTitle}>Time Format</Text>
+            <Text style={styles.sectionTitle}>{t('timeFormat')}</Text>
           </View>
           <View style={styles.optionsList}>
             {timeFormats.map((format) => (
               <TouchableOpacity
                 key={format.id}
                 style={styles.formatItem}
-                onPress={() => setSelectedTimeFormat(format.id)}
+                onPress={() => setTimeFormat(format.id as '12h' | '24h')}
               >
                 <View>
                   <Text style={styles.formatLabel}>{format.format}</Text>
@@ -118,8 +127,8 @@ export default function LanguageDateScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
+          <Text style={styles.saveButtonText}>{t('saveChanges')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

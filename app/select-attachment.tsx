@@ -1,9 +1,13 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Image, FileText, Link, Camera, Folder, X, Check } from 'lucide-react-native';
+import { ArrowLeft, Image, FileText, Link, Camera, X, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import * as ImagePicker from 'expo-image-picker';
+import { useAttachmentDraftStore } from '@/stores/attachmentDraftStore';
+import type { DraftAttachment } from '@/stores/attachmentDraftStore';
+import { useLocalization } from '@/utils/localization';
 
 interface AttachmentType {
   id: string;
@@ -33,8 +37,8 @@ const attachmentTypes: AttachmentType[] = [
   },
   {
     id: 'files',
-    name: 'Browse Files',
-    icon: <Folder size={24} color="#4CAF90" />,
+    name: 'Image Files',
+    icon: <Image size={24} color="#4CAF90" />,
     color: '#4CAF90',
   },
   {
@@ -52,15 +56,84 @@ interface AttachedFile {
   type: string;
 }
 
+const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
+
 export default function SelectAttachmentScreen() {
+  const { t } = useLocalization();
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([
-    { id: '1', name: 'Design_Mockup_v2.png', size: '2.4 MB', type: 'image' },
-    { id: '2', name: 'Requirements.pdf', size: '1.1 MB', type: 'document' },
-  ]);
+  const [linkInput, setLinkInput] = useState('');
+  const attachmentsState = useAttachmentDraftStore((s) => s.byContext.task);
+  const attachments: DraftAttachment[] = attachmentsState ?? EMPTY_ATTACHMENTS;
+  const setAttachments = useAttachmentDraftStore((s) => s.setAttachments);
+  const removeAttachment = useAttachmentDraftStore((s) => s.removeAttachment);
+
+  const attachedFiles: AttachedFile[] = attachments.map((item) => ({
+    id: item.id,
+    name: item.name,
+    size: item.size ?? '',
+    type: item.type,
+  }));
 
   const handleRemoveFile = (id: string) => {
-    setAttachedFiles(attachedFiles.filter(f => f.id !== id));
+    removeAttachment('task', id);
+  };
+
+  const pickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+    if (result.canceled || result.assets.length === 0) return;
+    const asset = result.assets[0];
+    const next = [
+      ...attachments,
+      {
+        id: `${Date.now()}`,
+        name: asset.fileName || `image-${Date.now()}.jpg`,
+        uri: asset.uri,
+        type: 'image' as const,
+        size: asset.fileSize ? `${Math.max(1, Math.round(asset.fileSize / (1024 * 1024)))} MB` : undefined,
+      },
+    ];
+    setAttachments('task', next);
+  };
+
+  const takePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.9 });
+    if (result.canceled || result.assets.length === 0) return;
+    const asset = result.assets[0];
+    const next = [
+      ...attachments,
+      {
+        id: `${Date.now()}`,
+        name: asset.fileName || `camera-${Date.now()}.jpg`,
+        uri: asset.uri,
+        type: 'image' as const,
+      },
+    ];
+    setAttachments('task', next);
+  };
+
+  const addLink = () => {
+    const value = linkInput.trim();
+    if (!value) return;
+    const next = [
+      ...attachments,
+      {
+        id: `${Date.now()}`,
+        name: value.replace(/^https?:\/\//, ''),
+        uri: value,
+        type: 'link' as const,
+      },
+    ];
+    setAttachments('task', next);
+    setLinkInput('');
+  };
+
+  const handleChooseType = async (typeId: string) => {
+    setSelectedType(typeId);
+    if (typeId === 'photo' || typeId === 'files') await pickFromGallery();
+    if (typeId === 'camera') await takePhoto();
   };
 
   const handleSave = () => {
@@ -73,7 +146,7 @@ export default function SelectAttachmentScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Attachments</Text>
+        <Text style={styles.headerTitle}>{t('attachments')}</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
@@ -82,10 +155,19 @@ export default function SelectAttachmentScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {attachedFiles.length > 0 && (
           <View style={styles.attachedSection}>
-            <Text style={styles.sectionTitle}>Attached Files ({attachedFiles.length})</Text>
+            <Text style={styles.sectionTitle}>{t('attachedFiles')} ({attachedFiles.length})</Text>
             <View style={styles.filesList}>
               {attachedFiles.map((file) => (
-                <View key={file.id} style={styles.fileCard}>
+                <TouchableOpacity
+                  key={file.id}
+                  style={styles.fileCard}
+                  onPress={() => {
+                    const uri = attachments.find((a) => a.id === file.id)?.uri;
+                    if (uri) {
+                      void Linking.openURL(uri);
+                    }
+                  }}
+                >
                   <View style={styles.fileIcon}>
                     <FileText size={24} color={Colors.light.tint} />
                   </View>
@@ -99,14 +181,27 @@ export default function SelectAttachmentScreen() {
                   >
                     <X size={18} color={Colors.light.textSecondary} />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
         )}
 
         <View style={styles.addSection}>
-          <Text style={styles.sectionTitle}>Add Attachment</Text>
+          <Text style={styles.sectionTitle}>{t('addAttachment')}</Text>
+          <View style={styles.linkRow}>
+            <TextInput
+              style={styles.linkInput}
+              placeholder="https://..."
+              placeholderTextColor={Colors.light.textSecondary}
+              value={linkInput}
+              onChangeText={setLinkInput}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity style={styles.addLinkButton} onPress={addLink}>
+              <Text style={styles.addLinkText}>Add Link</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.attachmentGrid}>
             {attachmentTypes.map((type) => (
               <TouchableOpacity
@@ -115,7 +210,7 @@ export default function SelectAttachmentScreen() {
                   styles.attachmentCard,
                   selectedType === type.id && styles.attachmentCardSelected,
                 ]}
-                onPress={() => setSelectedType(type.id)}
+                onPress={() => handleChooseType(type.id)}
               >
                 <View
                   style={[
@@ -226,6 +321,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  linkInput: {
+    flex: 1,
+    backgroundColor: Colors.light.card,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: Colors.light.text,
+  },
+  addLinkButton: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  addLinkText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   attachmentCard: {
     width: '30%',

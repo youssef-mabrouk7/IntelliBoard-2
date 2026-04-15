@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -7,23 +7,27 @@ import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { CalendarEvent } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
-import { useDateDraftStore } from '@/stores/dateDraftStore';
+import { monthGrid, toISODate, useLocalization } from '@/utils/localization';
+import type { Task } from '@/constants/types';
 
 export default function CalendarScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const dateDraft = useDateDraftStore((s) => s.byContext.calendar);
-  const selectedDateISO = dateDraft?.dateISO ?? new Date().toISOString().slice(0, 10);
+  const { locale, t } = useLocalization();
+  const [visibleMonth, setVisibleMonth] = useState(new Date());
+  const [selectedDateISO, setSelectedDateISO] = useState(toISODate(new Date()));
 
   useEffect(() => {
     const loadEvents = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await supabaseService.getEvents();
-        setCalendarEvents(data);
+        const [eventsData, tasksData] = await Promise.all([supabaseService.getEvents(), supabaseService.getTasks()]);
+        setCalendarEvents(eventsData);
+        setTasks(tasksData);
       } catch (err: any) {
         setError(err?.message || 'Failed to load events');
       } finally {
@@ -33,46 +37,62 @@ export default function CalendarScreen() {
     loadEvents();
   }, []);
 
+  const grid = useMemo(() => monthGrid(visibleMonth), [visibleMonth]);
+  const eventsForDate = useMemo(
+    () => calendarEvents.filter((event) => toISODate(new Date(event.date)) === selectedDateISO),
+    [calendarEvents, selectedDateISO],
+  );
+  const tasksForDate = useMemo(
+    () => tasks.filter((task) => toISODate(new Date(task.dueDate)) === selectedDateISO),
+    [tasks, selectedDateISO],
+  );
+
+  const monthLabel = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(visibleMonth),
+    [locale, visibleMonth],
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
           <Menu size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Calender</Text>
+        <Text style={styles.headerTitle}>{t('calendar')}</Text>
         <View style={styles.headerAvatarPlaceholder} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.monthSelector}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
             <ChevronLeft size={24} color={Colors.light.text} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'calendar' } })}>
-            <Text style={styles.monthText}>April 2024</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
+          <Text style={styles.monthText}>{monthLabel}</Text>
+          <TouchableOpacity onPress={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
             <ChevronRight size={24} color={Colors.light.text} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.weekDaysRow}>
-          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <Text key={day} style={styles.weekDayLabel}>{day}</Text>
           ))}
         </View>
 
         <View style={styles.daysRow}>
-          {[18, 19, 20, 17, 18, 19, 20].map((day, index) => {
-            const iso = `2024-04-${String(day).padStart(2, '0')}`;
+          {grid.map((date) => {
+            const iso = toISODate(date);
             const isSelected = iso === selectedDateISO;
+            const inCurrentMonth = date.getMonth() === visibleMonth.getMonth();
             return (
               <TouchableOpacity
-                key={index}
+                key={iso}
                 style={styles.dayCell}
-                onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'calendar' } })}
+                onPress={() => setSelectedDateISO(iso)}
               >
-                <Text style={[styles.dayNumber, isSelected && styles.dayNumberToday]}>{day}</Text>
+                <Text style={[styles.dayNumber, !inCurrentMonth && { opacity: 0.4 }, isSelected && styles.dayNumberToday]}>
+                  {date.getDate()}
+                </Text>
                 {isSelected && <View style={styles.todayDot} />}
               </TouchableOpacity>
             );
@@ -82,15 +102,15 @@ export default function CalendarScreen() {
         <View style={styles.selectedDateSection}>
           <Text style={styles.selectedDateText}>{selectedDateISO}</Text>
           <TouchableOpacity style={styles.seeAllButton} onPress={() => router.push('/all-events' as const)}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.eventsList}>
           {loading && <ActivityIndicator color={Colors.light.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
-          {!loading && !error && calendarEvents.map((event) => (
-            <TouchableOpacity key={event.id} style={styles.eventCard}>
+          {!loading && !error && eventsForDate.map((event) => (
+            <TouchableOpacity key={event.id} style={styles.eventCard} onPress={() => router.push(`/event/${event.id}` as const)}>
               <View style={styles.eventTimeColumn}>
                 <Text style={styles.eventTime}>{event.startTime}</Text>
                 <View style={[styles.eventDot, { backgroundColor: event.color }]} />
@@ -138,11 +158,26 @@ export default function CalendarScreen() {
               </View>
             </TouchableOpacity>
           ))}
+          {!loading && !error && eventsForDate.length === 0 && tasksForDate.length === 0 && (
+            <Text style={styles.errorText}>{t('noTasksForDate')}</Text>
+          )}
+          {!loading && !error && tasksForDate.map((task) => (
+            <TouchableOpacity key={task.id} style={styles.eventCard} onPress={() => router.push(`/task/${task.id}` as const)}>
+              <View style={styles.eventTimeColumn}>
+                <Text style={styles.eventTime}>Task</Text>
+                <View style={[styles.eventDot, { backgroundColor: Colors.light.tint }]} />
+              </View>
+              <View style={styles.eventContent}>
+                <Text style={styles.eventTitle}>{task.title}</Text>
+                <Text style={styles.eventTimeRange}>{t('due')}: {task.dueDate}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <TouchableOpacity style={styles.newEventButton} onPress={() => router.push('/new-event')}>
           <Plus size={20} color="#FFFFFF" />
-          <Text style={styles.newEventText}>New Event</Text>
+          <Text style={styles.newEventText}>{t('newEvent')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -202,12 +237,13 @@ const styles = StyleSheet.create({
   },
   daysRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
     marginBottom: 16,
     position: 'relative',
   },
   dayCell: {
-    flex: 1,
+    width: '14.28%',
     alignItems: 'center',
     paddingVertical: 8,
   },

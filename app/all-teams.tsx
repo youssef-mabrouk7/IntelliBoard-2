@@ -11,11 +11,18 @@ export default function AllTeamsScreen() {
   const [activeFilter, setActiveFilter] = useState<'All' | 'Active' | 'Archived'>('All');
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const load = async () => {
-      const data = await supabaseService.getTeams();
-      setTeams(data);
-      setLoading(false);
+      try {
+        setError(null);
+        const data = await supabaseService.getTeams();
+        setTeams(data);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load teams');
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -69,8 +76,9 @@ export default function AllTeamsScreen() {
 
         <View style={styles.teamsList}>
           {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {!!error && <Text style={styles.viewDetailsText}>{error}</Text>}
           {filteredTeams.map((team) => (
-            <TouchableOpacity key={team.id} style={styles.teamCard}>
+            <TouchableOpacity key={team.id} style={styles.teamCard} onPress={() => router.push('/(tabs)/teams')}>
               <View style={styles.teamHeader}>
                 <View style={[styles.teamIcon, { backgroundColor: team.color }]}>
                   <Text style={styles.teamIconText}>{team.name.charAt(0)}</Text>

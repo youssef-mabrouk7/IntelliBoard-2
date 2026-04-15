@@ -1,14 +1,18 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalization } from '@/utils/localization';
 
 export default function EditProfileScreen() {
+  const { t } = useLocalization();
   const [profile, setProfile] = useState<AppUser | null>(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     jobTitle: 'Product Manager',
@@ -43,7 +47,33 @@ export default function EditProfileScreen() {
   }, []);
 
   const handleSave = () => {
-    router.back();
+    const run = async () => {
+      try {
+        setSaving(true);
+        await supabaseService.updateCurrentProfile({
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          department: formData.department,
+          role: formData.role,
+          jobTitle: formData.jobTitle,
+          avatar: profile?.avatar,
+        });
+        router.back();
+      } catch (error: any) {
+        Alert.alert('Save Failed', error?.message || 'Could not save profile.');
+      } finally {
+        setSaving(false);
+      }
+    };
+    run();
+  };
+
+  const changePhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    if (result.canceled || result.assets.length === 0) return;
+    const uri = result.assets[0].uri;
+    setProfile((prev) => (prev ? { ...prev, avatar: uri } : prev));
   };
 
   return (
@@ -52,16 +82,16 @@ export default function EditProfileScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{t('editProfile')}</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
+          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>{t('save')}</Text>}
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.avatarSection}>
           <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/120' }} style={styles.avatar} />
-          <TouchableOpacity style={styles.changePhotoButton}>
+          <TouchableOpacity style={styles.changePhotoButton} onPress={changePhoto}>
             <Text style={styles.changePhotoText}>Change Photo</Text>
           </TouchableOpacity>
         </View>
@@ -69,7 +99,7 @@ export default function EditProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Full Name</Text>
+            <Text style={styles.inputLabel}>{t('fullName')}</Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your full name"
@@ -79,7 +109,7 @@ export default function EditProfileScreen() {
             />
           </View>
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Job Title</Text>
+            <Text style={styles.inputLabel}>{t('jobTitle')}</Text>
             <TextInput
               style={styles.input}
               value={formData.jobTitle}
@@ -87,7 +117,7 @@ export default function EditProfileScreen() {
             />
           </View>
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Email</Text>
+            <Text style={styles.inputLabel}>{t('email')}</Text>
             <TextInput
               style={styles.input}
               value={formData.email}
@@ -96,7 +126,7 @@ export default function EditProfileScreen() {
             />
           </View>
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Phone</Text>
+            <Text style={styles.inputLabel}>{t('phone')}</Text>
             <TextInput
               style={styles.input}
               value={formData.phone}
@@ -109,18 +139,12 @@ export default function EditProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Work Information</Text>
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Department</Text>
-            <TouchableOpacity style={styles.selectButton}>
-              <Text style={styles.selectText}>{formData.department}</Text>
-              <ChevronDown size={18} color={Colors.light.textSecondary} />
-            </TouchableOpacity>
+            <Text style={styles.inputLabel}>{t('department')}</Text>
+            <TextInput style={styles.input} value={formData.department} onChangeText={(text) => setFormData({ ...formData, department: text })} />
           </View>
           <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Role</Text>
-            <TouchableOpacity style={styles.selectButton}>
-              <Text style={styles.selectText}>{formData.role}</Text>
-              <ChevronDown size={18} color={Colors.light.textSecondary} />
-            </TouchableOpacity>
+            <Text style={styles.inputLabel}>{t('role')}</Text>
+            <TextInput style={styles.input} value={formData.role} onChangeText={(text) => setFormData({ ...formData, role: text })} />
           </View>
         </View>
 

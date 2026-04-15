@@ -3,8 +3,11 @@ import React from 'react';
 import { Home, Folder, Users, Briefcase, Calendar, BarChart3 } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
+import { useLocalization } from '@/utils/localization';
 
 export default function TabLayout() {
+  const { t } = useLocalization();
+
   return (
     <Tabs
       screenOptions={{
@@ -25,42 +28,42 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: t('home'),
           tabBarIcon: ({ color }) => <Home size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="tasks"
         options={{
-          title: 'Tasks',
+          title: t('tasks'),
           tabBarIcon: ({ color }) => <Folder size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="teams"
         options={{
-          title: 'Teams',
+          title: t('teams'),
           tabBarIcon: ({ color }) => <Users size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
+          title: t('calendar'),
           tabBarIcon: ({ color }) => <Calendar size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="analytics"
         options={{
-          title: 'Analytics',
+          title: t('analytics'),
           tabBarIcon: ({ color }) => <BarChart3 size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="projects"
         options={{
-          title: 'Projects',
+          title: t('projects'),
           tabBarIcon: ({ color }) => <Briefcase size={22} color={color} />,
           href: '/projects',
         }}

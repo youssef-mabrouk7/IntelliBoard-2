@@ -7,8 +7,14 @@ import Colors from '@/constants/colors';
 import { Project, Team, User } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
+import { useAttachmentDraftStore } from '@/stores/attachmentDraftStore';
+import type { DraftAttachment } from '@/stores/attachmentDraftStore';
+import { useLocalization } from '@/utils/localization';
+
+const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
 
 export default function CreateTaskScreen() {
+  const { t } = useLocalization();
   const [taskName, setTaskName] = useState('Design New Dashboard UI');
   const [description, setDescription] = useState('');
   const dueDraft = useDateDraftStore((s) => s.byContext.task);
@@ -67,6 +73,8 @@ export default function CreateTaskScreen() {
 
   const assignedTeam = selectedTeam;
   const [creating, setCreating] = useState(false);
+  const taskAttachmentsState = useAttachmentDraftStore((s) => s.byContext.task);
+  const taskAttachments = taskAttachmentsState ?? EMPTY_ATTACHMENTS;
 
   const handleCreate = async () => {
     if (!taskName.trim()) {
@@ -104,9 +112,9 @@ export default function CreateTaskScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Task</Text>
+        <Text style={styles.headerTitle}>{t('createTask')}</Text>
         <TouchableOpacity style={[styles.createButton, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
-          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
+          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>{t('create')}</Text>}
         </TouchableOpacity>
       </View>
 
@@ -220,11 +228,11 @@ export default function CreateTaskScreen() {
                 <View style={[styles.optionIcon, { backgroundColor: '#E8F5E9' }]}>
                   <Paperclip size={18} color={Colors.light.status.completed} />
                 </View>
-                <Text style={styles.optionLabel}>Attachments</Text>
+                  <Text style={styles.optionLabel}>{t('attachments')}</Text>
               </View>
               <View style={styles.optionRight}>
                 <View style={styles.addButton}>
-                  <Text style={styles.addButtonText}>2 files</Text>
+                  <Text style={styles.addButtonText}>{taskAttachments.length} files</Text>
                 </View>
                 <ChevronRight size={18} color={Colors.light.textSecondary} />
               </View>

@@ -1,24 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Menu, Search, Bell, ArrowRight, MessageCircle, Circle, Check } from 'lucide-react-native';
+import { Menu, Search, Bell, ArrowRight, Circle, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
 import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
 import { Project, Task } from '@/constants/types';
 import { useEffect } from 'react';
-
-const homeDays = [
-  { day: 'Fri', date: 11 },
-  { day: 'Sat', date: 12 },
-  { day: 'Sun', date: 14, isSelected: true },
-  { day: 'Mon', date: 14 },
-  { day: 'Tue', date: 15 },
-];
+import { toISODate, useLocalization, weekDates } from '@/utils/localization';
+import { useMemo } from 'react';
 
 export default function HomeScreen() {
-  const [selectedDay, setSelectedDay] = useState(2);
+  const { t, locale, isRTL, formatDate } = useLocalization();
+  const [selectedDate, setSelectedDate] = useState(toISODate(new Date()));
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -59,6 +54,16 @@ export default function HomeScreen() {
     }
   };
 
+  const week = useMemo(() => weekDates(new Date()), []);
+  const tasksForDate = useMemo(
+    () => tasks.filter((task) => toISODate(new Date(task.dueDate)) === selectedDate),
+    [selectedDate, tasks],
+  );
+  const monthLabel = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(selectedDate)),
+    [locale, selectedDate],
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -77,39 +82,42 @@ export default function HomeScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.dateSection}>
-          <Text style={styles.monthText}>Aug 2026</Text>
+          <Text style={styles.monthText}>{monthLabel}</Text>
           <View style={styles.daysRow}>
-            {homeDays.map((day, index) => (
+            {week.map((day) => {
+              const iso = toISODate(day);
+              const isSelected = iso === selectedDate;
+              return (
               <TouchableOpacity
-                key={index}
+                key={iso}
                 style={[
                   styles.dayItem,
-                  index === selectedDay && styles.dayItemSelected,
+                  isSelected && styles.dayItemSelected,
                 ]}
-                onPress={() => setSelectedDay(index)}
+                onPress={() => setSelectedDate(iso)}
               >
                 <Text style={[
                   styles.dayLabel,
-                  index === selectedDay && styles.dayLabelSelected,
+                  isSelected && styles.dayLabelSelected,
                 ]}>
-                  {day.day}
+                  {new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(day)}
                 </Text>
                 <Text style={[
                   styles.dayNumber,
-                  index === selectedDay && styles.dayNumberSelected,
+                  isSelected && styles.dayNumberSelected,
                 ]}>
-                  {day.date}
+                  {day.getDate()}
                 </Text>
               </TouchableOpacity>
-            ))}
+            )})}
           </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Collaboration</Text>
+            <Text style={styles.sectionTitle}>{t('collaboration')}</Text>
             <TouchableOpacity onPress={() => router.push('/collaborations')}>
-              <Text style={styles.seeAllText}>See all</Text>
+              <Text style={styles.seeAllText}>{t('seeAll')}</Text>
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectsScroll}>
@@ -148,13 +156,13 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>All tasks</Text>
+            <Text style={styles.sectionTitle}>{t('allTasks')}</Text>
             <TouchableOpacity onPress={() => router.push('/all-tasks')}>
-              <Text style={styles.seeAllText}>See all</Text>
+              <Text style={styles.seeAllText}>{t('seeAll')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.tasksList}>
-            {tasks.slice(0, 3).map((task) => (
+            {tasksForDate.map((task) => (
               <TouchableOpacity key={task.id} style={styles.taskItem} onPress={() => router.push(`/task/${task.id}`)}>
                 <View style={[styles.taskIndicator, { backgroundColor: getPriorityColor(task.priority) }]} />
                 <TouchableOpacity
@@ -177,19 +185,18 @@ export default function HomeScreen() {
                 </TouchableOpacity>
                 <View style={styles.taskContent}>
                   <Text style={styles.taskTitle}>{task.title}</Text>
-                  <Text style={styles.taskSubtitle}>Projects</Text>
+                  <Text style={styles.taskSubtitle}>{t('due')}: {formatDate(task.dueDate)}</Text>
                 </View>
                 <View style={styles.taskActions}>
-                  <View style={styles.commentBadge}>
-                    <MessageCircle size={14} color={Colors.light.tint} />
-                    <Text style={styles.commentCount}>{task.subtasks}</Text>
-                  </View>
                   <TouchableOpacity style={styles.arrowButton}>
                     <ArrowRight size={18} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             ))}
+            {tasksForDate.length === 0 && (
+              <Text style={[styles.taskSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>{t('noTasksForDate')}</Text>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -408,20 +415,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  commentBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.light.tintDark,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  commentCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   arrowButton: {
     width: 32,

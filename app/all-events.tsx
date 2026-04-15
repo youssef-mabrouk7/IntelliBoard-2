@@ -6,9 +6,11 @@ import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-rea
 import Colors from '@/constants/colors';
 import { CalendarEvent } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
+import { useLocalization } from '@/utils/localization';
 
 export default function AllEventsScreen() {
-  const [currentMonth] = useState('April 2024');
+  const { locale, t } = useLocalization();
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,13 +23,19 @@ export default function AllEventsScreen() {
     load();
   }, []);
 
+  const currentMonth = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(currentMonthDate);
+  const monthEvents = calendarEvents.filter((event) => {
+    const d = new Date(event.date);
+    return d.getMonth() === currentMonthDate.getMonth() && d.getFullYear() === currentMonthDate.getFullYear();
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Events</Text>
+        <Text style={styles.headerTitle}>{t('allEvents')}</Text>
         <TouchableOpacity style={styles.headerIcon}>
           <Calendar size={22} color={Colors.light.text} />
         </TouchableOpacity>
@@ -35,36 +43,36 @@ export default function AllEventsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.monthSelector}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentMonthDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
             <ChevronLeft size={24} color={Colors.light.text} />
           </TouchableOpacity>
           <Text style={styles.monthText}>{currentMonth}</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
             <ChevronRight size={24} color={Colors.light.text} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{calendarEvents.length}</Text>
-            <Text style={styles.statLabel}>Total Events</Text>
+            <Text style={styles.statNumber}>{monthEvents.length}</Text>
+            <Text style={styles.statLabel}>{t('totalEvents')}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{Math.min(7, calendarEvents.length)}</Text>
-            <Text style={styles.statLabel}>This Week</Text>
+            <Text style={styles.statNumber}>{Math.min(7, monthEvents.length)}</Text>
+            <Text style={styles.statLabel}>{t('thisWeek')}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{calendarEvents.length}</Text>
-            <Text style={styles.statLabel}>Upcoming</Text>
+            <Text style={styles.statNumber}>{monthEvents.length}</Text>
+            <Text style={styles.statLabel}>{t('upcoming')}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Events</Text>
+          <Text style={styles.sectionTitle}>{t('upcomingEvents')}</Text>
           <View style={styles.eventsList}>
             {loading && <ActivityIndicator color={Colors.light.tint} />}
-            {calendarEvents.map((event) => (
-              <TouchableOpacity key={event.id} style={styles.eventCard}>
+            {monthEvents.map((event) => (
+              <TouchableOpacity key={event.id} style={styles.eventCard} onPress={() => router.push(`/event/${event.id}` as const)}>
                 <View style={styles.eventTimeColumn}>
                   <Text style={styles.eventTime}>{event.startTime}</Text>
                   <View style={[styles.eventDot, { backgroundColor: event.color }]} />

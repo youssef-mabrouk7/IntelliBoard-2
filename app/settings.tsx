@@ -6,6 +6,7 @@ import { ArrowLeft, User, Bell, Palette, CheckCircle, HelpCircle, Info, Globe, L
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
+import { supabase } from '@/utils/supabase';
 
 const settingsItems = [
   { icon: User, label: 'Account', color: Colors.light.tint, route: '/account' },
@@ -88,7 +89,13 @@ export default function SettingsScreen() {
               <ChevronRight size={20} color={Colors.light.textSecondary} />
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={[styles.settingsItem, styles.logoutItem]}>
+          <TouchableOpacity
+            style={[styles.settingsItem, styles.logoutItem]}
+            onPress={async () => {
+              await supabase.auth.signOut();
+              router.replace('/login');
+            }}
+          >
             <View style={[styles.iconContainer, { backgroundColor: '#FFEBEE' }]}>
               <LogOut size={20} color={Colors.light.error} />
             </View>
@@ -109,7 +116,7 @@ export default function SettingsScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.inviteButton}>
+        <TouchableOpacity style={styles.inviteButton} onPress={() => router.push('/invite-email')}>
           <Mail size={20} color="#FFFFFF" />
           <Plus size={16} color="#FFFFFF" style={styles.plusIcon} />
           <Text style={styles.inviteButtonText}>Invite With Email</Text>
