@@ -18,11 +18,19 @@ export interface User {
     status: 'inProgress' | 'completed' | 'overdue';
     progress: number;
     assignees: User[];
+    attachmentUrls?: string[];
     category?: string;
     subtasks?: number;
     projectId?: string;
     teamId?: string;
   }
+
+export interface TaskSubtask {
+  id: string;
+  taskId: string;
+  title: string;
+  completed: boolean;
+}
   
   export interface Project {
     id: string;

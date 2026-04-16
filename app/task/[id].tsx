@@ -1,11 +1,11 @@
 import { useLocalSearchParams, router } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ArrowLeft, Calendar, Briefcase, Users } from 'lucide-react-native'
+import { ArrowLeft, Calendar, Briefcase, Users, Paperclip, ExternalLink } from 'lucide-react-native'
 
 import Colors from '@/constants/colors'
-import type { Project, Task, Team } from '@/constants/types'
+import type { Project, Task, Team, TaskSubtask } from '@/constants/types'
 import { supabaseService } from '@/services/supabaseService'
 
 export default function TaskDetailsScreen() {
@@ -17,6 +17,7 @@ export default function TaskDetailsScreen() {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [subtasks, setSubtasks] = useState<TaskSubtask[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -24,14 +25,16 @@ export default function TaskDetailsScreen() {
       try {
         setLoading(true)
         setError(null)
-        const [t, ps, ts] = await Promise.all([
+        const [t, ps, ts, sts] = await Promise.all([
           supabaseService.getTaskById(taskId),
           supabaseService.getProjects(),
           supabaseService.getTeams(),
+          supabaseService.getTaskSubtasks(taskId),
         ])
         setTask(t)
         setProjects(ps)
         setTeams(ts)
+        setSubtasks(sts)
       } catch (e: any) {
         setError(e?.message || 'Failed to load task')
       } finally {
@@ -114,6 +117,43 @@ export default function TaskDetailsScreen() {
           </View>
 
           <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            {(task.attachmentUrls || []).length === 0 ? (
+              <Text style={styles.muted}>No attachments</Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {(task.attachmentUrls || []).map((url, idx) => {
+                  const isImage = /\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url);
+                  return (
+                    <TouchableOpacity
+                      key={`${url}_${idx}`}
+                      style={styles.attachmentRow}
+                      onPress={() => void Linking.openURL(url)}
+                    >
+                      <View style={styles.attachmentIcon}>
+                        {isImage ? (
+                          <Image source={{ uri: url }} style={styles.attachmentThumb} />
+                        ) : (
+                          <Paperclip size={18} color={Colors.light.textSecondary} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text numberOfLines={1} style={styles.attachmentName}>
+                          {url.replace(/^https?:\/\//, '')}
+                        </Text>
+                        <Text numberOfLines={1} style={styles.attachmentUrl}>
+                          {url}
+                        </Text>
+                      </View>
+                      <ExternalLink size={16} color={Colors.light.textSecondary} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.card}>
             <Text style={styles.sectionTitle}>Assignees</Text>
             {task.assignees.length === 0 ? (
               <Text style={styles.muted}>Unassigned</Text>
@@ -126,6 +166,27 @@ export default function TaskDetailsScreen() {
                       style={styles.assigneeAvatar}
                     />
                     <Text style={styles.assigneeText}>{u.name || u.email}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Subtasks</Text>
+            {subtasks.length === 0 ? (
+              <Text style={styles.muted}>No subtasks</Text>
+            ) : (
+              <View style={{ gap: 8 }}>
+                {subtasks.map((s) => (
+                  <View key={s.id} style={styles.subtaskRow}>
+                    <View
+                      style={[
+                        styles.subtaskDot,
+                        { backgroundColor: s.completed ? Colors.light.status.completed : Colors.light.border },
+                      ]}
+                    />
+                    <Text style={[styles.subtaskText, s.completed && styles.subtaskTextDone]}>{s.title}</Text>
                   </View>
                 ))}
               </View>
@@ -221,6 +282,63 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     fontSize: 14,
     fontWeight: '600',
+  },
+  attachmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.light.card,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
+    padding: 10,
+  },
+  attachmentIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.light.cardSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  attachmentThumb: {
+    width: 36,
+    height: 36,
+  },
+  attachmentName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  attachmentUrl: {
+    fontSize: 11,
+    color: Colors.light.textSecondary,
+  },
+  subtaskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.light.card,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  subtaskDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  subtaskText: {
+    color: Colors.light.text,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  subtaskTextDone: {
+    textDecorationLine: 'line-through',
+    color: Colors.light.textSecondary,
   },
 })
 

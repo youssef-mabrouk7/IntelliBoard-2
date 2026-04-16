@@ -1,5 +1,5 @@
 import { supabase } from '../utils/supabase';
-import { Project, Task, User, Team, CalendarEvent } from '../constants/types';
+import { Project, Task, User, Team, CalendarEvent, TaskSubtask } from '../constants/types';
 
 const isMissingTableError = (error: { code?: string } | null) => error?.code === 'PGRST205' || error?.code === '42P01';
 const TRANSIENT_ERROR_CODES = new Set(['57014', 'ETIMEDOUT', 'ECONNRESET', 'ENETUNREACH']);
@@ -46,6 +46,7 @@ const mapTask = (t: any): Task => ({
   subtasks: t.subtasks_count ?? 0,
   projectId: t.project_id ?? undefined,
   teamId: t.team_id ?? undefined,
+  attachmentUrls: Array.isArray(t.attachment_urls) ? t.attachment_urls : [],
   assignees: t.assignees?.map((a: any) => a.profiles) || [],
 });
 
@@ -87,6 +88,50 @@ const mapEvent = (e: any): CalendarEvent => ({
   assignee: e.assignee ?? undefined,
   assignees: e.assignees?.map((a: any) => a.profiles) || [],
 });
+
+const mapTaskSubtask = (s: any): TaskSubtask => ({
+  id: s.id,
+  taskId: s.task_id,
+  title: s.title ?? '',
+  completed: Boolean(s.completed),
+});
+
+function toISODateOnly(value: string) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function normalizeTaskStatus(task: Task): Task {
+  if (task.status === 'completed') return { ...task, progress: 100 };
+  const today = new Date().toISOString().slice(0, 10);
+  const due = toISODateOnly(task.dueDate);
+  if (due < today) {
+    return { ...task, status: 'overdue', progress: 0 };
+  }
+  return { ...task, status: 'inProgress', progress: 0 };
+}
+
+function applySubtaskProgress(tasks: Task[], subtasks: TaskSubtask[]): Task[] {
+  const grouped = new Map<string, TaskSubtask[]>();
+  for (const s of subtasks) {
+    const bucket = grouped.get(s.taskId) ?? [];
+    bucket.push(s);
+    grouped.set(s.taskId, bucket);
+  }
+
+  return tasks.map((task) => {
+    const forTask = grouped.get(task.id) ?? [];
+    if (!forTask.length) return normalizeTaskStatus(task);
+    const done = forTask.filter((s) => s.completed).length;
+    const progress = Math.round((done / forTask.length) * 100);
+    const status: Task['status'] = progress >= 100 ? 'completed' : normalizeTaskStatus(task).status;
+    return {
+      ...task,
+      subtasks: forTask.length,
+      progress,
+      status,
+    };
+  });
+}
 
 async function ensureCurrentProfileExists() {
   const { data: authData, error: authError } = await withTimeout(withRetry(() => supabase.auth.getUser()));
@@ -228,7 +273,50 @@ export const supabaseService = {
       throw error;
     }
 
-    return (data || []).map(mapTask);
+    const mapped = (data || []).map(mapTask);
+    if (!mapped.length) return mapped;
+    const { data: subtasksData, error: subtasksError } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('task_subtasks')
+          .select('*')
+          .in('task_id', mapped.map((t) => t.id)),
+      ),
+    );
+    if (subtasksError && !isMissingTableError(subtasksError)) throw subtasksError;
+    return applySubtaskProgress(mapped, (subtasksData || []).map(mapTaskSubtask));
+  },
+
+  async getTasksByTeamId(teamId: string) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('tasks')
+          .select(
+            `
+        *,
+        assignees:task_assignees(profiles(*))
+      `,
+          )
+          .eq('team_id', teamId),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return [];
+      throw error;
+    }
+    const mapped = (data || []).map(mapTask);
+    if (!mapped.length) return mapped;
+    const { data: subtasksData, error: subtasksError } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('task_subtasks')
+          .select('*')
+          .in('task_id', mapped.map((t) => t.id)),
+      ),
+    );
+    if (subtasksError && !isMissingTableError(subtasksError)) throw subtasksError;
+    return applySubtaskProgress(mapped, (subtasksData || []).map(mapTaskSubtask));
   },
 
   async createTask(task: Partial<Task>) {
@@ -243,6 +331,7 @@ export const supabaseService = {
       progress: task.progress,
       category: task.category,
       subtasks_count: task.subtasks,
+      attachment_urls: task.attachmentUrls ?? [],
     };
     const attemptInsert = (p: any) =>
       withTimeout(
@@ -274,7 +363,63 @@ export const supabaseService = {
       if (!res.error) return mapTask(res.data);
     }
 
+    // If the DB schema doesn't have `attachment_urls`, retry without it.
+    const missingAttachmentUrls =
+      combined.includes("could not find the 'attachment_urls' column") ||
+      (combined.includes('attachment_urls') && (combined.includes('schema cache') || combined.includes('column'))) ||
+      res.error?.code === 'PGRST204';
+    if (missingAttachmentUrls) {
+      const { attachment_urls: _omit, ...withoutAttachments } = payload;
+      res = await attemptInsert(withoutAttachments);
+      if (!res.error) return mapTask(res.data);
+    }
+
     throw res.error;
+  },
+
+  async getTaskSubtasks(taskId: string) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('task_subtasks')
+          .select('*')
+          .eq('task_id', taskId)
+          .order('created_at', { ascending: true }),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return [];
+      throw error;
+    }
+    return (data || []).map(mapTaskSubtask);
+  },
+
+  async createTaskSubtasks(
+    taskId: string,
+    subtasks: Array<{ title: string; completed?: boolean }>,
+  ) {
+    if (!subtasks.length) return [];
+    const payload = subtasks
+      .filter((s) => s.title.trim().length > 0)
+      .map((s) => ({
+        task_id: taskId,
+        title: s.title.trim(),
+        completed: Boolean(s.completed),
+      }));
+    if (!payload.length) return [];
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('task_subtasks')
+          .insert(payload)
+          .select('*'),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return [];
+      throw error;
+    }
+    return (data || []).map(mapTaskSubtask);
   },
 
   async getTaskById(taskId: string) {
@@ -293,7 +438,9 @@ export const supabaseService = {
       ),
     );
     if (error) throw error;
-    return mapTask(data);
+    const mapped = mapTask(data);
+    const subtasks = await this.getTaskSubtasks(taskId);
+    return applySubtaskProgress([mapped], subtasks)[0];
   },
 
   async updateTaskStatus(taskId: string, status: Task['status'], progress: number) {
@@ -307,6 +454,25 @@ export const supabaseService = {
     );
     if (error) throw error;
     return mapTask(data);
+  },
+
+  async getTeamById(teamId: string) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('teams')
+          .select(
+            `
+        *,
+        members:team_members(profiles(*))
+      `,
+          )
+          .eq('id', teamId)
+          .single(),
+      ),
+    );
+    if (error) throw error;
+    return mapTeam(data);
   },
 
   // --- Profiles / Users ---

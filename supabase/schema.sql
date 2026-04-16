@@ -51,6 +51,7 @@ create table if not exists public.teams (
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
   project_id uuid references public.projects(id) on delete cascade,
+  team_id uuid references public.teams(id) on delete set null,
   title text not null,
   description text,
   due_date date,
@@ -59,8 +60,15 @@ create table if not exists public.tasks (
   progress integer not null default 0 check (progress between 0 and 100),
   category text,
   subtasks_count integer not null default 0,
+  attachment_urls text[] not null default '{}'::text[],
   created_at timestamptz not null default now()
 );
+
+alter table public.tasks
+  add column if not exists team_id uuid references public.teams(id) on delete set null;
+
+alter table public.tasks
+  add column if not exists attachment_urls text[] not null default '{}'::text[];
 
 -- 5) Calendar Events
 create table if not exists public.calendar_events (
@@ -79,6 +87,14 @@ create table if not exists public.task_assignees (
   task_id uuid references public.tasks(id) on delete cascade,
   user_id uuid references public.profiles(id) on delete cascade,
   primary key (task_id, user_id)
+);
+
+create table if not exists public.task_subtasks (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid not null references public.tasks(id) on delete cascade,
+  title text not null,
+  completed boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 create table if not exists public.project_members (
@@ -101,6 +117,8 @@ create table if not exists public.event_assignees (
 
 -- Helpful indexes
 create index if not exists idx_tasks_project_id on public.tasks(project_id);
+create index if not exists idx_tasks_team_id on public.tasks(team_id);
+create index if not exists idx_task_subtasks_task_id on public.task_subtasks(task_id);
 create index if not exists idx_project_members_user_id on public.project_members(user_id);
 create index if not exists idx_task_assignees_user_id on public.task_assignees(user_id);
 create index if not exists idx_team_members_user_id on public.team_members(user_id);
@@ -112,6 +130,7 @@ alter table public.tasks enable row level security;
 alter table public.teams enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.task_assignees enable row level security;
+alter table public.task_subtasks enable row level security;
 alter table public.project_members enable row level security;
 alter table public.team_members enable row level security;
 alter table public.event_assignees enable row level security;
@@ -121,6 +140,8 @@ drop policy if exists "Public profiles are viewable by everyone." on public.prof
 drop policy if exists "Users can update their own profile." on public.profiles;
 drop policy if exists "Projects are viewable by members." on public.projects;
 drop policy if exists "Tasks are viewable by project members." on public.tasks;
+drop policy if exists task_subtasks_select on public.task_subtasks;
+drop policy if exists task_subtasks_insert on public.task_subtasks;
 
 -- Profiles policies
 create policy profiles_select_authenticated
@@ -244,6 +265,19 @@ using (true);
 
 create policy task_assignees_insert
 on public.task_assignees
+for insert
+to authenticated
+with check (true);
+
+-- Task subtasks
+create policy task_subtasks_select
+on public.task_subtasks
+for select
+to authenticated
+using (true);
+
+create policy task_subtasks_insert
+on public.task_subtasks
 for insert
 to authenticated
 with check (true);

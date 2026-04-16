@@ -46,7 +46,7 @@ export default function HomeScreen() {
     try {
       setUpdatingTaskId(task.id);
       const nextStatus = task.status === 'completed' ? 'inProgress' : 'completed';
-      const nextProgress = nextStatus === 'completed' ? 100 : Math.min(task.progress || 0, 99);
+      const nextProgress = nextStatus === 'completed' ? 100 : 0;
       await supabaseService.updateTaskStatus(task.id, nextStatus as any, nextProgress);
       await refreshTasks();
     } finally {

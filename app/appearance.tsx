@@ -4,11 +4,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Moon, Sun, Smartphone } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
 export default function AppearanceScreen() {
-  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>('light');
+  const selectedTheme = useAppPreferencesStore((s) => s.themeMode) as ThemeMode;
+  const setThemeMode = useAppPreferencesStore((s) => s.setThemeMode);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
 
@@ -29,7 +31,7 @@ export default function AppearanceScreen() {
           <View style={styles.themeGrid}>
             <TouchableOpacity
               style={[styles.themeCard, selectedTheme === 'light' && styles.themeCardSelected]}
-              onPress={() => setSelectedTheme('light')}
+              onPress={() => void setThemeMode('light')}
             >
               <View style={[styles.themeIcon, { backgroundColor: '#FFF8E1' }]}>
                 <Sun size={24} color={Colors.light.warning} />
@@ -40,7 +42,7 @@ export default function AppearanceScreen() {
 
             <TouchableOpacity
               style={[styles.themeCard, selectedTheme === 'dark' && styles.themeCardSelected]}
-              onPress={() => setSelectedTheme('dark')}
+              onPress={() => void setThemeMode('dark')}
             >
               <View style={[styles.themeIcon, { backgroundColor: '#E3F2FD' }]}>
                 <Moon size={24} color={Colors.light.tint} />
@@ -51,7 +53,7 @@ export default function AppearanceScreen() {
 
             <TouchableOpacity
               style={[styles.themeCard, selectedTheme === 'system' && styles.themeCardSelected]}
-              onPress={() => setSelectedTheme('system')}
+              onPress={() => void setThemeMode('system')}
             >
               <View style={[styles.themeIcon, { backgroundColor: '#E8F5E9' }]}>
                 <Smartphone size={24} color={Colors.light.status.completed} />

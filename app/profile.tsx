@@ -115,7 +115,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.teamsList}>
             {teams.slice(0, 1).map((team) => (
-              <TouchableOpacity key={team.id} style={styles.teamItem} onPress={() => router.push('/(tabs)/teams')}>
+              <TouchableOpacity key={team.id} style={styles.teamItem} onPress={() => router.push(`/team/${team.id}`)}>
                 <View>
                   <Text style={styles.teamName}>{team.name}</Text>
                   <Text style={styles.teamEmail}>{profile?.email || 'No email'}</Text>

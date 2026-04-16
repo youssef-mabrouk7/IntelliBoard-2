@@ -21,19 +21,27 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!hydrated) return;
 
-    const resolveTargetPath = (hasSession: boolean) => {
-      if (hasSession) return "/(tabs)/home";
-      return onboardingCompleted ? "/login" : "/onboarding";
-    };
-
     const navigateIfNeeded = (hasSession: boolean) => {
-      const target = resolveTargetPath(hasSession);
       const onTabs = pathname.startsWith("/(tabs)") || ["/home", "/tasks", "/teams", "/calendar", "/analytics", "/projects"].includes(pathname);
       const onPublicAuth = ["/login", "/register", "/onboarding", "/"].includes(pathname);
 
-      // Only redirect when user is in the wrong route group.
-      if (hasSession && !onTabs) router.replace("/(tabs)/home");
-      if (!hasSession && !onPublicAuth) router.replace(target);
+      // Authenticated users should only be redirected away from public auth screens.
+      // Internal stack screens like task details, settings, profile, and create flows must remain accessible.
+      if (hasSession && onPublicAuth) {
+        router.replace("/(tabs)/home");
+        return;
+      }
+
+      // Unauthenticated users should see onboarding first, then login/register.
+      if (!hasSession) {
+        if (!onboardingCompleted && pathname !== "/onboarding") {
+          router.replace("/onboarding");
+          return;
+        }
+        if (onboardingCompleted && !onPublicAuth) {
+          router.replace("/login");
+        }
+      }
     };
 
     let isActive = true;
@@ -51,7 +59,7 @@ function RootLayoutNav() {
       isActive = false;
       authListener.subscription.unsubscribe();
     };
-  }, [hydrated, onboardingCompleted]);
+  }, [hydrated, pathname, onboardingCompleted]);
 
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
@@ -76,6 +84,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const hydrate = useAppPreferencesStore((s) => s.hydrate);
   const isRTL = useAppPreferencesStore((s) => s.language === "ar");
+  const themeMode = useAppPreferencesStore((s) => s.themeMode);
 
   useEffect(() => {
     hydrate();
@@ -84,7 +93,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}>
+      <GestureHandlerRootView key={themeMode} style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}>
         <RootLayoutNav />
       </GestureHandlerRootView>
     </QueryClientProvider>

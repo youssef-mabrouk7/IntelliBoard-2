@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, Check, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useSubtaskDraftStore } from '@/stores/subtaskDraftStore';
 
 interface Subtask {
   id: string;
@@ -12,11 +13,11 @@ interface Subtask {
 }
 
 export default function SelectSubtasksScreen() {
-  const [subtasks, setSubtasks] = useState<Subtask[]>([
-    { id: '1', title: 'Research competitor designs', completed: true },
-    { id: '2', title: 'Create wireframes', completed: false },
-    { id: '3', title: 'Design high-fidelity mockups', completed: false },
-  ]);
+  const draftSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
+  const setDraftSubtasks = useSubtaskDraftStore((s) => s.setSubtasks);
+  const [subtasks, setSubtasks] = useState<Subtask[]>(
+    draftSubtasks.length > 0 ? draftSubtasks : [],
+  );
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
   const toggleSubtask = (id: string) => {
@@ -41,6 +42,7 @@ export default function SelectSubtasksScreen() {
   };
 
   const handleSave = () => {
+    setDraftSubtasks('task', subtasks);
     router.back();
   };
 

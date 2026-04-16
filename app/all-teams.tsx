@@ -78,7 +78,7 @@ export default function AllTeamsScreen() {
           {loading && <ActivityIndicator color={Colors.light.tint} />}
           {!!error && <Text style={styles.viewDetailsText}>{error}</Text>}
           {filteredTeams.map((team) => (
-            <TouchableOpacity key={team.id} style={styles.teamCard} onPress={() => router.push('/(tabs)/teams')}>
+            <TouchableOpacity key={team.id} style={styles.teamCard} onPress={() => router.push(`/team/${team.id}`)}>
               <View style={styles.teamHeader}>
                 <View style={[styles.teamIcon, { backgroundColor: team.color }]}>
                   <Text style={styles.teamIconText}>{team.name.charAt(0)}</Text>

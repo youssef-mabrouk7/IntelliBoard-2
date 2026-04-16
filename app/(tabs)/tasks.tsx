@@ -9,10 +9,12 @@ import { supabaseService } from '@/services/supabaseService';
 import type { Task } from '@/constants/types';
 import { useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { useLocalization } from '@/utils/localization';
 
 type FilterType = 'All' | 'In Progress' | 'Completed' | 'Overdue';
 
 export default function TasksScreen() {
+  const { t, isRTL, formatDate } = useLocalization();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -58,7 +60,7 @@ export default function TasksScreen() {
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
           <Menu size={24} color={Colors.light.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tasks</Text>
+        <Text style={styles.headerTitle}>{t('tasks')}</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon}>
             <Search size={22} color={Colors.light.text} />
@@ -72,37 +74,37 @@ export default function TasksScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.dropdown} onPress={() => router.push('/all-tasks')}>
           <View style={styles.dropdownButton}>
-            <Text style={styles.dropdownText}>All Tasks</Text>
+            <Text style={styles.dropdownText}>{t('filterAllTasks')}</Text>
           </View>
         </TouchableOpacity>
 
-        <Text style={styles.activeTasksText}>8 Active Tasks</Text>
+        <Text style={styles.activeTasksText}>{`${filteredTasks.length} ${t('activeTasks')}`}</Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <Clock size={20} color="#4CAF50" />
             </View>
-            <Text style={styles.statLabel}>In Progress</Text>
-            <Text style={styles.statCount}>{inProgressCount} Tasks</Text>
+            <Text style={styles.statLabel}>{t('inProgress')}</Text>
+            <Text style={styles.statCount}>{`${inProgressCount} ${t('taskPlural')}`}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <CheckCircle size={20} color="#4A7C9B" />
             </View>
-            <Text style={styles.statLabel}>Completed</Text>
-            <Text style={styles.statCount}>{completedCount} Tasks</Text>
+            <Text style={styles.statLabel}>{t('completed')}</Text>
+            <Text style={styles.statCount}>{`${completedCount} ${t('taskPlural')}`}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <AlertCircle size={20} color="#F44336" />
             </View>
-            <Text style={styles.statLabel}>Overdue</Text>
-            <Text style={styles.statCount}>{overdueCount} Task</Text>
+            <Text style={styles.statLabel}>{t('overdue')}</Text>
+            <Text style={styles.statCount}>{`${overdueCount} ${overdueCount === 1 ? t('taskSingular') : t('taskPlural')}`}</Text>
           </View>
         </View>
 
-        <View style={styles.filterRow}>
+        <View style={[styles.filterRow, isRTL && { flexDirection: 'row-reverse' }]}>
           {(['All', 'In Progress', 'Completed', 'Overdue'] as FilterType[]).map((filter) => (
             <TouchableOpacity
               key={filter}
@@ -110,15 +112,16 @@ export default function TasksScreen() {
               onPress={() => setActiveFilter(filter)}
             >
               <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
-                {filter}
+                {filter === 'All' ? t('all') : filter === 'In Progress' ? t('inProgress') : filter === 'Completed' ? t('completed') : t('overdue')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.tasksList}>
+          {!loading && filteredTasks.length === 0 && <Text style={styles.filterText}>{t('noTasksFound')}</Text>}
           {filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onChanged={fetchTasks} />
+            <TaskCard key={task.id} task={task} onChanged={fetchTasks} formatDate={formatDate} t={t} />
           ))}
         </View>
       </ScrollView>
@@ -132,7 +135,17 @@ export default function TasksScreen() {
   );
 }
 
-function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
+function TaskCard({
+  task,
+  onChanged,
+  formatDate,
+  t,
+}: {
+  task: Task;
+  onChanged: () => void;
+  formatDate: (value: string | Date) => string;
+  t: (key: any) => string;
+}) {
   const [updating, setUpdating] = React.useState(false);
 
   const toggleComplete = async (e: any) => {
@@ -141,7 +154,7 @@ function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
     try {
       setUpdating(true);
       const nextStatus = task.status === 'completed' ? 'inProgress' : 'completed';
-      const nextProgress = nextStatus === 'completed' ? 100 : Math.min(task.progress || 0, 99);
+      const nextProgress = nextStatus === 'completed' ? 100 : 0;
       await supabaseService.updateTaskStatus(task.id, nextStatus as any, nextProgress);
       onChanged();
     } finally {
@@ -176,14 +189,14 @@ function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
               <Circle size={22} color={Colors.light.border} />
             )}
           </TouchableOpacity>
-          <View style={[styles.progressCircle, { borderColor: getStatusColor() }]}>
-            <Text style={[styles.progressTextCircle, { color: getStatusColor() }]}>
-              {task.progress}%
+          <View style={[styles.statusPill, { borderColor: getStatusColor() }]}>
+            <Text style={[styles.statusPillText, { color: getStatusColor() }]}>
+              {task.status === 'completed' ? t('done') : t('notDone')}
             </Text>
           </View>
           <View>
             <Text style={styles.taskTitle}>{task.title}</Text>
-            <Text style={styles.taskDueDate}>Due: {formatDate(task.dueDate)}</Text>
+            <Text style={styles.taskDueDate}>{`${t('dueLabel')}: ${formatDate(task.dueDate)}`}</Text>
           </View>
         </View>
         <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
@@ -202,9 +215,14 @@ function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
         </View>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${task.progress}%`, backgroundColor: getStatusColor() }]} />
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${task.status === 'completed' ? 100 : 0}%`, backgroundColor: getStatusColor() },
+              ]}
+            />
           </View>
-          <Text style={styles.progressPercent}>{task.progress}%</Text>
+          <Text style={styles.progressPercent}>{task.status === 'completed' ? t('done') : t('notDone')}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -222,11 +240,6 @@ function getPriorityColor(priority: string) {
     default:
       return Colors.light.tint;
   }
-}
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 const styles = StyleSheet.create({
@@ -258,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dropdownButton: {
-    backgroundColor: '#C5D5E0',
+    backgroundColor: Colors.light.cardSecondary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -336,17 +349,17 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   taskCard: {
-    backgroundColor: '#C5D5E0',
+    backgroundColor: Colors.light.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
   taskCardCompleted: {
-    backgroundColor: '#C8F6D8',
+    backgroundColor: `${Colors.light.status.completed}22`,
     borderRadius: 16,
     padding: 16,
   },
   taskCardOverdue: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: `${Colors.light.status.overdue}22`,
     borderRadius: 16,
     padding: 16,
   },
@@ -375,19 +388,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  progressCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 3,
+  statusPill: {
+    borderWidth: 2,
+    paddingHorizontal: 10,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
     backgroundColor: 'rgba(255,255,255,0.8)',
   },
-  progressTextCircle: {
+  statusPillText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   taskTitle: {
     fontSize: 15,
@@ -444,7 +457,7 @@ const styles = StyleSheet.create({
   progressPercent: {
     fontSize: 12,
     color: Colors.light.textSecondary,
-    minWidth: 32,
+    minWidth: 60,
   },
   fab: {
     position: 'absolute',

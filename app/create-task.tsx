@@ -6,9 +6,11 @@ import { ArrowLeft, Calendar, Flag, Tag, Paperclip, List, ChevronRight, Briefcas
 import Colors from '@/constants/colors';
 import { Project, Team, User } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
+import { uploadToStorage } from '@/services/uploadService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
 import { useAttachmentDraftStore } from '@/stores/attachmentDraftStore';
 import type { DraftAttachment } from '@/stores/attachmentDraftStore';
+import { useSubtaskDraftStore } from '@/stores/subtaskDraftStore';
 import { useLocalization } from '@/utils/localization';
 
 const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
@@ -22,7 +24,7 @@ export default function CreateTaskScreen() {
   const dueDate = dueDraft?.dateISO ?? todayISO;
   const [priority] = useState('High');
   const [category] = useState('Upload');
-  const [subtasksCount] = useState(3);
+  const taskSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -75,6 +77,8 @@ export default function CreateTaskScreen() {
   const [creating, setCreating] = useState(false);
   const taskAttachmentsState = useAttachmentDraftStore((s) => s.byContext.task);
   const taskAttachments = taskAttachmentsState ?? EMPTY_ATTACHMENTS;
+  const setDraftAttachments = useAttachmentDraftStore((s) => s.setAttachments);
+  const clearDraftSubtasks = useSubtaskDraftStore((s) => s.clearSubtasks);
 
   const handleCreate = async () => {
     if (!taskName.trim()) {
@@ -84,7 +88,26 @@ export default function CreateTaskScreen() {
     try {
       setCreating(true);
       const dbPriority = priority.toLowerCase() as 'high' | 'medium' | 'low';
-      await supabaseService.createTask({
+
+      const attachmentUrls: string[] = [];
+      for (const a of taskAttachments) {
+        if (a.type === 'link') {
+          attachmentUrls.push(a.uri);
+          continue;
+        }
+        const uploaded = await uploadToStorage({
+          bucket: 'attachments',
+          file: {
+            uri: a.uri,
+            name: a.name,
+            mimeType: 'image/jpeg',
+          },
+          folder: 'tasks',
+        });
+        attachmentUrls.push(uploaded.url);
+      }
+
+      const createdTask = await supabaseService.createTask({
         title: taskName.trim(),
         description: description.trim(),
         dueDate,
@@ -92,11 +115,20 @@ export default function CreateTaskScreen() {
         status: 'inProgress',
         progress: 0,
         category,
-        subtasks: subtasksCount,
+        subtasks: taskSubtasks.length,
         projectId: selectedProject?.id ?? undefined,
         teamId: assignedTeam?.id ?? undefined,
         assignees: assignedUser ? [assignedUser] : [],
+        attachmentUrls,
       });
+      if (taskSubtasks.length > 0) {
+        await supabaseService.createTaskSubtasks(
+          createdTask.id,
+          taskSubtasks.map((s) => ({ title: s.title, completed: s.completed })),
+        );
+      }
+      setDraftAttachments('task', []);
+      clearDraftSubtasks('task');
       Alert.alert('Success', 'Task created successfully.');
       router.back();
     } catch (error: any) {
@@ -245,7 +277,7 @@ export default function CreateTaskScreen() {
                 </View>
                 <View>
                   <Text style={styles.optionLabel}>Subtasks</Text>
-                  <Text style={styles.subtaskCount}>{subtasksCount} subtasks added</Text>
+                  <Text style={styles.subtaskCount}>{taskSubtasks.length} subtasks added</Text>
                 </View>
               </View>
               <ChevronRight size={18} color={Colors.light.textSecondary} />
