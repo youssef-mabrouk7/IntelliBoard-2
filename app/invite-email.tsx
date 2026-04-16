@@ -1,17 +1,23 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronRight, X, Shield } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { User } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
+import { AttachmentComposer, type AttachmentItem } from '@/components/AttachmentComposer';
+import { uploadToStorage } from '@/services/uploadService';
 
 export default function InviteEmailScreen() {
   const [emails, setEmails] = useState(['John@example.com', 'sarah@example.com', 'alice@example.com']);
   const [role] = useState('Member');
   const [message, setMessage] = useState('');
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [uploadState, setUploadState] = useState<'idle' | 'selected' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadError, setUploadError] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     const load = async () => setSuggestedUsers((await supabaseService.getProfiles()).slice(0, 3));
@@ -22,8 +28,53 @@ export default function InviteEmailScreen() {
     setEmails(emails.filter(e => e !== email));
   };
 
-  const handleSend = () => {
-    router.back();
+  const uploadAttachments = async () => {
+    if (attachments.length === 0) return [] as string[];
+    setUploadState('uploading');
+    setUploadError('');
+    try {
+      const urls: string[] = [];
+      for (const a of attachments) {
+        const uploaded = await uploadToStorage({
+          bucket: 'attachments',
+          folder: 'invite-message',
+          file: {
+            uri: a.uri,
+            name: a.name,
+            mimeType: a.mimeType ?? undefined,
+            size: a.size ?? undefined,
+          },
+        });
+        urls.push(uploaded.url);
+      }
+      setUploadState('success');
+      return urls;
+    } catch (e: any) {
+      setUploadState('error');
+      setUploadError(e?.message || 'Attachment upload failed');
+      throw e;
+    }
+  };
+
+  const handleSend = async () => {
+    try {
+      setSending(true);
+      const attachmentUrls = await uploadAttachments();
+      await supabaseService.createInvites({
+        emails,
+        role,
+        message,
+        attachmentUrls,
+      });
+      Alert.alert('Success', 'Invitations sent successfully.');
+      router.back();
+    } catch {
+      if (uploadState !== 'error') {
+        Alert.alert('Send failed', 'Could not send invitations, please try again.');
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -33,8 +84,8 @@ export default function InviteEmailScreen() {
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Invite Via Email</Text>
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-          <Text style={styles.sendButtonText}>Send</Text>
+        <TouchableOpacity style={[styles.sendButton, sending && { opacity: 0.7 }]} onPress={handleSend} disabled={sending}>
+          {sending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.sendButtonText}>Send</Text>}
         </TouchableOpacity>
       </View>
 
@@ -72,6 +123,30 @@ export default function InviteEmailScreen() {
               value={message}
               onChangeText={setMessage}
               multiline
+            />
+            <AttachmentComposer
+              value={attachments}
+              onChange={(next) => {
+                setAttachments(next);
+                setUploadState(next.length ? 'selected' : 'idle');
+                setUploadError('');
+              }}
+              validationRules={{
+                maxBytes: 10 * 1024 * 1024,
+                allowedMimeTypes: [
+                  'image/jpeg',
+                  'image/png',
+                  'application/pdf',
+                  'application/msword',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ],
+              }}
+              uploadState={uploadState}
+              errorMessage={uploadError}
+              onRetry={() => {
+                void handleSend();
+              }}
+              disabled={sending}
             />
           </View>
         </View>

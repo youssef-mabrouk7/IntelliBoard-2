@@ -364,6 +364,26 @@ export const supabaseService = {
     } as User;
   },
 
+  async createInvites(payload: { emails: string[]; role: string; message?: string; attachmentUrls?: string[] }) {
+    const { error } = await withTimeout(
+      withRetry(() =>
+        supabase.from('invites').insert([
+          {
+            emails: payload.emails,
+            role: payload.role,
+            message: payload.message ?? '',
+            attachment_urls: payload.attachmentUrls ?? [],
+          },
+        ]),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return { ok: true };
+      throw error;
+    }
+    return { ok: true };
+  },
+
   // --- Teams ---
   async getTeams() {
     const { data, error } = await withTimeout(

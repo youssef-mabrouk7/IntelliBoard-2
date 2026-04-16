@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Switch, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
-import * as ImagePicker from 'expo-image-picker';
 import { useLocalization } from '@/utils/localization';
+import { EditableAvatar } from '@/components/EditableAvatar';
 
 export default function EditProfileScreen() {
   const { t } = useLocalization();
@@ -69,13 +69,6 @@ export default function EditProfileScreen() {
     run();
   };
 
-  const changePhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
-    if (result.canceled || result.assets.length === 0) return;
-    const uri = result.assets[0].uri;
-    setProfile((prev) => (prev ? { ...prev, avatar: uri } : prev));
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -90,10 +83,20 @@ export default function EditProfileScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.avatarSection}>
-          <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/120' }} style={styles.avatar} />
-          <TouchableOpacity style={styles.changePhotoButton} onPress={changePhoto}>
-            <Text style={styles.changePhotoText}>Change Photo</Text>
-          </TouchableOpacity>
+          <EditableAvatar
+            value={profile?.avatar}
+            disabled={saving}
+            onUploaded={async (url) => {
+              const previous = profile?.avatar ?? null;
+              setProfile((p) => (p ? { ...p, avatar: url } : p));
+              try {
+                await supabaseService.updateCurrentProfile({ avatar: url });
+              } catch (e) {
+                setProfile((p) => (p ? { ...p, avatar: previous } : p));
+                throw e;
+              }
+            }}
+          />
         </View>
 
         <View style={styles.section}>
@@ -231,23 +234,6 @@ const styles = StyleSheet.create({
   avatarSection: {
     alignItems: 'center',
     paddingVertical: 20,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
-  },
-  changePhotoButton: {
-    backgroundColor: Colors.light.tint,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  changePhotoText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   section: {
     backgroundColor: Colors.light.cardSecondary,
