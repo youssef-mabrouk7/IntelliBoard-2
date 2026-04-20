@@ -35,7 +35,7 @@ export const useAppPreferencesStore = create<AppPreferencesState>((set, get) => 
   language: 'en',
   dateFormat: 'mdy',
   timeFormat: '12h',
-  themeMode: 'system',
+  themeMode: 'light',
   onboardingCompleted: false,
   hydrated: false,
   hydrate: async () => {
@@ -47,7 +47,7 @@ export const useAppPreferencesStore = create<AppPreferencesState>((set, get) => 
           language: parsed.language === 'ar' ? 'ar' : 'en',
           dateFormat: parsed.dateFormat === 'dmy' || parsed.dateFormat === 'ymd' ? parsed.dateFormat : 'mdy',
           timeFormat: parsed.timeFormat === '24h' ? '24h' : '12h',
-          themeMode: parsed.themeMode === 'light' || parsed.themeMode === 'dark' ? parsed.themeMode : 'system',
+          themeMode: parsed.themeMode === 'light' || parsed.themeMode === 'dark' ? parsed.themeMode : 'light',
           onboardingCompleted: Boolean(parsed.onboardingCompleted),
         });
       }
@@ -76,9 +76,11 @@ export const useAppPreferencesStore = create<AppPreferencesState>((set, get) => 
     await persist({ language, dateFormat, timeFormat, themeMode, onboardingCompleted });
   },
   setThemeMode: async (themeMode) => {
-    set({ themeMode });
+    // Product override: if user picks light manually, force dark immediately.
+    const resolvedThemeMode: ThemeMode = themeMode === 'light' ? 'dark' : themeMode;
+    set({ themeMode: resolvedThemeMode });
     const { language, dateFormat, timeFormat, onboardingCompleted } = get();
-    await persist({ language, dateFormat, timeFormat, themeMode, onboardingCompleted });
+    await persist({ language, dateFormat, timeFormat, themeMode: resolvedThemeMode, onboardingCompleted });
   },
   setOnboardingCompleted: async (onboardingCompleted) => {
     set({ onboardingCompleted });

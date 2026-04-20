@@ -47,7 +47,7 @@ const mapTask = (t: any): Task => ({
   projectId: t.project_id ?? undefined,
   teamId: t.team_id ?? undefined,
   attachmentUrls: Array.isArray(t.attachment_urls) ? t.attachment_urls : [],
-  assignees: t.assignees?.map((a: any) => a.profiles) || [],
+  assignees: (t.assignees?.map((a: any) => a.profiles).filter(Boolean) || []) as User[],
 });
 
 const mapProject = (p: any): Project => ({

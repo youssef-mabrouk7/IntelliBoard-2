@@ -13,12 +13,18 @@ export default function AppearanceScreen() {
   const setThemeMode = useAppPreferencesStore((s) => s.setThemeMode);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
+  const onSelectTheme = async (mode: ThemeMode) => {
+    await setThemeMode(mode);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Appearance</Text>
         <View style={{ width: 24 }} />
@@ -31,7 +37,7 @@ export default function AppearanceScreen() {
           <View style={styles.themeGrid}>
             <TouchableOpacity
               style={[styles.themeCard, selectedTheme === 'light' && styles.themeCardSelected]}
-              onPress={() => void setThemeMode('light')}
+              onPress={() => void onSelectTheme('light')}
             >
               <View style={[styles.themeIcon, { backgroundColor: '#FFF8E1' }]}>
                 <Sun size={24} color={Colors.light.warning} />
@@ -42,7 +48,7 @@ export default function AppearanceScreen() {
 
             <TouchableOpacity
               style={[styles.themeCard, selectedTheme === 'dark' && styles.themeCardSelected]}
-              onPress={() => void setThemeMode('dark')}
+              onPress={() => void onSelectTheme('dark')}
             >
               <View style={[styles.themeIcon, { backgroundColor: '#E3F2FD' }]}>
                 <Moon size={24} color={Colors.light.tint} />
@@ -53,7 +59,7 @@ export default function AppearanceScreen() {
 
             <TouchableOpacity
               style={[styles.themeCard, selectedTheme === 'system' && styles.themeCardSelected]}
-              onPress={() => void setThemeMode('system')}
+              onPress={() => void onSelectTheme('system')}
             >
               <View style={[styles.themeIcon, { backgroundColor: '#E8F5E9' }]}>
                 <Smartphone size={24} color={Colors.light.status.completed} />
@@ -75,7 +81,7 @@ export default function AppearanceScreen() {
             <Switch
               value={reduceMotion}
               onValueChange={setReduceMotion}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -88,7 +94,7 @@ export default function AppearanceScreen() {
             <Switch
               value={highContrast}
               onValueChange={setHighContrast}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -112,10 +118,10 @@ export default function AppearanceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -127,10 +133,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -139,7 +145,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   themeGrid: {
@@ -148,7 +154,7 @@ const styles = StyleSheet.create({
   },
   themeCard: {
     flex: 1,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -156,7 +162,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   themeCardSelected: {
-    borderColor: Colors.light.tint,
+    borderColor: theme.tint,
   },
   themeIcon: {
     width: 48,
@@ -169,7 +175,7 @@ const styles = StyleSheet.create({
   themeName: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   checkIndicator: {
     position: 'absolute',
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
   },
   toggleItem: {
     flexDirection: 'row',
@@ -186,24 +192,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: theme.border,
   },
   toggleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 2,
   },
   toggleDescription: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   previewSection: {
     marginHorizontal: 16,
     marginBottom: 30,
   },
   previewCard: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     gap: 12,
@@ -217,12 +223,12 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
   },
   previewLine: {
     flex: 1,
     height: 8,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     borderRadius: 4,
   },
 });

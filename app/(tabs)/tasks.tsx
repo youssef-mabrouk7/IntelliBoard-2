@@ -233,13 +233,30 @@ function TaskCard({
           {updating ? <ActivityIndicator size="small" color={theme.tintDark} /> : <Text style={styles.doneButtonText}>Task Done</Text>}
         </TouchableOpacity>
         <View style={styles.assigneesRow}>
-          {task.assignees.slice(0, 3).map((assignee, idx) => (
-            <Image
-              key={idx}
-              source={{ uri: assignee.avatar || 'https://via.placeholder.com/60' }}
-              style={[styles.assigneeAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
-            />
-          ))}
+          {task.assignees.length === 0 ? (
+            <Text style={styles.unassignedText}>Unassigned</Text>
+          ) : (
+            task.assignees.slice(0, 3).map((assignee, idx) => {
+              const label = (assignee?.name || assignee?.email || 'User').trim();
+              const initial = label.charAt(0).toUpperCase();
+              return assignee?.avatar ? (
+                <Image
+                  key={assignee.id || idx}
+                  source={{ uri: assignee.avatar }}
+                  accessibilityLabel={`Assigned member ${label}`}
+                  style={[styles.assigneeAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
+                />
+              ) : (
+                <View
+                  key={assignee.id || idx}
+                  accessibilityLabel={`Assigned member ${label}`}
+                  style={[styles.assigneeFallback, { marginLeft: idx > 0 ? -8 : 0 }]}
+                >
+                  <Text style={styles.assigneeFallbackText}>{initial || 'U'}</Text>
+                </View>
+              );
+            })
+          )}
         </View>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBar}>
@@ -466,6 +483,26 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
     borderRadius: 14,
     borderWidth: 2,
     borderColor: theme.card,
+  },
+  assigneeFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: theme.card,
+    backgroundColor: theme.tint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assigneeFallbackText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  unassignedText: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    fontWeight: '600',
   },
   progressBarContainer: {
     flex: 1,
