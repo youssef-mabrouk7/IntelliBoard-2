@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Building2, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { friendlyAuthNetworkMessage, isSupabaseConfigured, supabase } from '@/utils/supabase';
 
@@ -11,10 +11,45 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companyOptions, setCompanyOptions] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
+  const [companiesError, setCompaniesError] = useState<string | null>(null);
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        setCompaniesLoading(true);
+        const { data, error } = await supabase
+          .from('companies')
+          .select('name')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Error loading companies:', error);
+          setCompaniesError(error.message || 'Unable to load companies');
+          setCompanyOptions([]);
+          return;
+        }
+
+        const names = (data || [])
+          .map((item: any) => String(item?.name || '').trim())
+          .filter((value: string) => value.length > 0);
+        setCompanyOptions(names);
+        setCompaniesError(null);
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+
+    void loadCompanies();
+  }, []);
 
   const getFriendlySignUpError = (error: { message?: string; code?: string } | null) => {
     const message = (error?.message || '').toLowerCase();
@@ -36,11 +71,11 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !companyName) {
       alert('Please fill all fields');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       alert('Passwords do not match');
       return;
@@ -55,44 +90,69 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+      const {
+        data: { user },
+        error: signUpError,
+      } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: name,
-          }
-        }
+            company_name: companyName,
+          },
+        },
       });
 
       if (signUpError) throw signUpError;
 
       if (user) {
-        // Create public profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: user.id,
-              name: name,
-              email: email,
-            }
-          ]);
-        
+        const baseProfile = {
+          id: user.id,
+          name,
+          email,
+        } as Record<string, any>;
+
+        const attemptInsertProfile = async (payload: Record<string, any>) =>
+          supabase.from('profiles').insert([payload]);
+
+        let { error: profileError } = await attemptInsertProfile({
+          ...baseProfile,
+          company_name: companyName,
+        });
+
+        // Backward compatibility for DBs that still use `company`.
+        if (profileError && String(profileError.message || '').includes("Could not find the 'company_name' column")) {
+          const retry = await attemptInsertProfile({
+            ...baseProfile,
+            company: companyName,
+          });
+          profileError = retry.error;
+        }
+
+        // Last fallback for DBs without company columns yet.
+        if (
+          profileError &&
+          (String(profileError.message || '').includes("Could not find the 'company' column") ||
+            String(profileError.message || '').includes("Could not find the 'company_name' column"))
+        ) {
+          const retry = await attemptInsertProfile(baseProfile);
+          profileError = retry.error;
+        }
+
         if (profileError) {
           console.error('Error creating profile:', profileError);
-          // Don't block the user if only the profile creation fails, they can fix it later
         }
       }
 
       alert('Registration successful! Please check your email for verification if needed.');
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      const msg = error?.message as string | undefined
+      const msg = error?.message as string | undefined;
       if ((msg ?? '').toLowerCase().includes('network request failed')) {
-        alert(friendlyAuthNetworkMessage(msg))
+        alert(friendlyAuthNetworkMessage(msg));
       } else {
-        alert(getFriendlySignUpError(error))
+        alert(getFriendlySignUpError(error));
       }
     } finally {
       setLoading(false);
@@ -101,19 +161,10 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color={Colors.light.text} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
 
           <View style={styles.content}>
@@ -132,22 +183,16 @@ export default function RegisterScreen() {
 
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
-                <User size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  placeholderTextColor={Colors.light.textSecondary}
-                  value={name}
-                  onChangeText={setName}
-                />
+                <User size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                <TextInput style={styles.input} placeholder="Name" placeholderTextColor={theme.textSecondary} value={name} onChangeText={setName} />
               </View>
 
               <View style={styles.inputWrapper}>
-                <Mail size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                <Mail size={20} color={theme.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
-                  placeholderTextColor={Colors.light.textSecondary}
+                  placeholderTextColor={theme.textSecondary}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -156,54 +201,42 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.inputWrapper}>
-                <Lock size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                <Lock size={20} color={theme.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
-                  placeholderTextColor={Colors.light.textSecondary}
+                  placeholderTextColor={theme.textSecondary}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  {showPassword ? (
-                    <EyeOff size={20} color={Colors.light.textSecondary} />
-                  ) : (
-                    <Eye size={20} color={Colors.light.textSecondary} />
-                  )}
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                  {showPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputWrapper}>
-                <Lock size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                <Lock size={20} color={theme.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Re Password"
-                  placeholderTextColor={Colors.light.textSecondary}
+                  placeholderTextColor={theme.textSecondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={20} color={Colors.light.textSecondary} />
-                  ) : (
-                    <Eye size={20} color={Colors.light.textSecondary} />
-                  )}
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                  {showConfirmPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity 
-                style={[styles.registerButton, loading && styles.disabledButton]} 
-                onPress={handleRegister}
-                disabled={loading}
-              >
+              <TouchableOpacity style={styles.inputWrapper} onPress={() => setCompanyModalVisible(true)}>
+                <Building2 size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                <Text style={[styles.selectText, !companyName && styles.selectPlaceholder]}>{companyName || 'Company Name'}</Text>
+                <ChevronDown size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.registerButton, loading && styles.disabledButton]} onPress={handleRegister} disabled={loading}>
                 <Text style={styles.registerButtonText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
               </TouchableOpacity>
 
@@ -213,156 +246,223 @@ export default function RegisterScreen() {
                   <Text style={styles.loginLink}>Login</Text>
                 </TouchableOpacity>
               </View>
-
-              <View style={styles.languageContainer}>
-                <TouchableOpacity style={styles.languageButton}>
-                  <Text style={styles.languageText}>🇺🇸</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.languageButton}>
-                  <Text style={styles.languageText}>🇪🇬</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={companyModalVisible} transparent animationType="fade" onRequestClose={() => setCompanyModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Select Company Name</Text>
+            {companiesLoading ? (
+              <Text style={styles.modalItemText}>Loading companies...</Text>
+            ) : companiesError ? (
+              <Text style={styles.modalErrorText}>{companiesError}</Text>
+            ) : companyOptions.length === 0 ? (
+              <Text style={styles.modalItemText}>No companies found in database.</Text>
+            ) : (
+              companyOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.modalItem, companyName === option && styles.modalItemSelected]}
+                  onPress={() => {
+                    setCompanyName(option);
+                    setCompanyModalVisible(false);
+                  }}
+                >
+                  <Text style={[styles.modalItemText, companyName === option && styles.modalItemTextSelected]}>{option}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+            <TouchableOpacity style={styles.modalClose} onPress={() => setCompanyModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  backButton: {
-    padding: 16,
-    marginTop: 8,
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  lightbulb: {
-    width: 60,
-    height: 80,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  bulbTop: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.light.tintDark,
-  },
-  bulbBottom: {
-    width: 24,
-    height: 16,
-    backgroundColor: Colors.light.tintDark,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    marginTop: -2,
-  },
-  chain: {
-    position: 'absolute',
-    top: 12,
-    flexDirection: 'column',
-    gap: 4,
-  },
-  chainLink: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: Colors.light.tint,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.light.tintDark,
-  },
-  inputContainer: {
-    gap: 16,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.light.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.light.text,
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  registerButton: {
-    backgroundColor: Colors.light.tintDark,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  registerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  loginText: {
-    fontSize: 14,
-    color: Colors.light.textSecondary,
-  },
-  loginLink: {
-    fontSize: 14,
-    color: Colors.light.tint,
-    fontWeight: '600',
-    fontStyle: 'italic',
-  },
-  languageContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 24,
-  },
-  languageButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.card,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  languageText: {
-    fontSize: 20,
-  },
-});
+const createStyles = (theme: typeof Colors.light) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    backButton: {
+      padding: 16,
+      marginTop: 8,
+    },
+    content: {
+      paddingHorizontal: 24,
+      paddingBottom: 40,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    lightbulb: {
+      width: 60,
+      height: 80,
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    bulbTop: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: theme.tintDark,
+    },
+    bulbBottom: {
+      width: 24,
+      height: 16,
+      backgroundColor: theme.tintDark,
+      borderBottomLeftRadius: 4,
+      borderBottomRightRadius: 4,
+      marginTop: -2,
+    },
+    chain: {
+      position: 'absolute',
+      top: 12,
+      flexDirection: 'column',
+      gap: 4,
+    },
+    chainLink: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.tint,
+    },
+    logoText: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: theme.tintDark,
+    },
+    inputContainer: {
+      gap: 16,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.border,
+      paddingHorizontal: 16,
+      height: 56,
+    },
+    inputIcon: {
+      marginRight: 12,
+    },
+    input: {
+      flex: 1,
+      fontSize: 16,
+      color: theme.text,
+    },
+    eyeIcon: {
+      padding: 4,
+    },
+    selectText: {
+      flex: 1,
+      fontSize: 16,
+      color: theme.text,
+    },
+    selectPlaceholder: {
+      color: theme.textSecondary,
+    },
+    registerButton: {
+      backgroundColor: theme.tintDark,
+      borderRadius: 12,
+      height: 56,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    disabledButton: {
+      opacity: 0.7,
+    },
+    registerButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    loginContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: 8,
+    },
+    loginText: {
+      fontSize: 14,
+      color: theme.textSecondary,
+    },
+    loginLink: {
+      fontSize: 14,
+      color: theme.tint,
+      fontWeight: '600',
+      fontStyle: 'italic',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    modalCard: {
+      backgroundColor: theme.card,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 16,
+      padding: 16,
+      gap: 10,
+    },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 6,
+    },
+    modalItem: {
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: theme.cardSecondary,
+    },
+    modalItemSelected: {
+      borderColor: theme.tint,
+      backgroundColor: `${theme.tint}1F`,
+    },
+    modalItemText: {
+      color: theme.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    modalItemTextSelected: {
+      color: theme.tint,
+    },
+    modalErrorText: {
+      color: theme.error,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    modalClose: {
+      alignSelf: 'flex-end',
+      marginTop: 4,
+    },
+    modalCloseText: {
+      color: theme.tint,
+      fontWeight: '700',
+      fontSize: 14,
+    },
+  });

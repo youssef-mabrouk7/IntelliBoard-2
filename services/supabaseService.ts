@@ -54,6 +54,7 @@ const mapProject = (p: any): Project => ({
   id: p.id,
   name: p.name,
   description: p.description ?? '',
+  companyName: p.company_name ?? p.company ?? '',
   dueDate: p.due_date ?? new Date().toISOString().slice(0, 10),
   progress: p.progress ?? 0,
   status: p.status ?? 'active',
@@ -95,6 +96,14 @@ const mapTaskSubtask = (s: any): TaskSubtask => ({
   title: s.title ?? '',
   completed: Boolean(s.completed),
 });
+
+function getStatusFromProgress(task: Task, progress: number): Task['status'] {
+  if (progress >= 100) return 'completed';
+  const today = new Date().toISOString().slice(0, 10);
+  const due = toISODateOnly(task.dueDate);
+  if (due < today) return 'overdue';
+  return 'inProgress';
+}
 
 function toISODateOnly(value: string) {
   return new Date(value).toISOString().slice(0, 10);
@@ -422,6 +431,32 @@ export const supabaseService = {
     return (data || []).map(mapTaskSubtask);
   },
 
+  async updateTaskSubtaskStatus(taskId: string, subtaskId: string, completed: boolean) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('task_subtasks')
+          .update({ completed })
+          .eq('id', subtaskId)
+          .eq('task_id', taskId)
+          .select('*')
+          .single(),
+      ),
+    );
+    if (error) throw error;
+
+    const mappedSubtask = mapTaskSubtask(data);
+    const subtasks = await this.getTaskSubtasks(taskId);
+    const task = await this.getTaskById(taskId);
+    const total = subtasks.length;
+    const done = subtasks.filter((s) => s.completed).length;
+    const progress = total > 0 ? Math.round((done / total) * 100) : task.progress;
+    const status = getStatusFromProgress(task, progress);
+
+    await this.updateTaskStatus(taskId, status, progress);
+    return mappedSubtask;
+  },
+
   async getTaskById(taskId: string) {
     const { data, error } = await withTimeout(
       withRetry(() =>
@@ -513,6 +548,7 @@ export const supabaseService = {
       email: patch.email,
       avatar: patch.avatar,
       role: patch.role,
+      company_name: patch.companyName,
       department: patch.department,
       job_title: patch.jobTitle,
       phone: patch.phone,
@@ -526,6 +562,7 @@ export const supabaseService = {
     if (error) throw error;
     return {
       ...(data as any),
+      companyName: (data as any)?.company_name ?? (data as any)?.company,
       jobTitle: (data as any)?.job_title,
     } as User;
   },

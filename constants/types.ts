@@ -4,6 +4,7 @@ export interface User {
     email: string;
     avatar: string;
     role: string;
+    companyName?: string;
     department?: string;
     jobTitle?: string;
     phone?: string;
@@ -36,6 +37,7 @@ export interface TaskSubtask {
     id: string;
     name: string;
     description?: string;
+    companyName?: string;
     dueDate: string;
     progress: number;
     status: 'active' | 'completed' | 'onHold';

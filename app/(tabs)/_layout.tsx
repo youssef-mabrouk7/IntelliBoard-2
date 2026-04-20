@@ -7,16 +7,17 @@ import { useLocalization } from '@/utils/localization';
 
 export default function TabLayout() {
   const { t } = useLocalization();
+  const theme = Colors.current;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.light.tint,
-        tabBarInactiveTintColor: Colors.light.tabIconDefault,
+        tabBarActiveTintColor: theme.tint,
+        tabBarInactiveTintColor: theme.tabIconDefault,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.light.card,
-          borderTopColor: Colors.light.border,
+          backgroundColor: theme.card,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {

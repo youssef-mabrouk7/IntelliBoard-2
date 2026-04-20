@@ -6,7 +6,7 @@ import { Menu, Search, Bell, Plus, Clock, CheckCircle, AlertCircle, Circle, Chec
 import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
-import type { Task } from '@/constants/types';
+import type { Project, Task } from '@/constants/types';
 import { useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalization } from '@/utils/localization';
@@ -18,13 +18,18 @@ export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const theme = Colors.current;
+  const styles = createStyles(theme);
 
   const fetchTasks = React.useCallback(async () => {
     try {
       setLoading(true);
       const data = await supabaseService.getTasks();
+      const projectsData = await supabaseService.getProjects();
       setTasks(data);
+      setProjects(projectsData);
     } catch (err) {
       console.error('Error fetching tasks:', err);
     } finally {
@@ -58,15 +63,15 @@ export default function TasksScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
-          <Menu size={24} color={Colors.light.text} />
+          <Menu size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('tasks')}</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Search size={22} color={Colors.light.text} />
+            <Search size={22} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Bell size={22} color={Colors.light.text} />
+            <Bell size={22} color={theme.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -121,7 +126,14 @@ export default function TasksScreen() {
         <View style={styles.tasksList}>
           {!loading && filteredTasks.length === 0 && <Text style={styles.filterText}>{t('noTasksFound')}</Text>}
           {filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onChanged={fetchTasks} formatDate={formatDate} t={t} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              project={projects.find((project) => project.id === task.projectId)}
+              onChanged={fetchTasks}
+              formatDate={formatDate}
+              t={t}
+            />
           ))}
         </View>
       </ScrollView>
@@ -137,16 +149,20 @@ export default function TasksScreen() {
 
 function TaskCard({
   task,
+  project,
   onChanged,
   formatDate,
   t,
 }: {
   task: Task;
+  project?: Project;
   onChanged: () => void;
   formatDate: (value: string | Date) => string;
   t: (key: any) => string;
 }) {
   const [updating, setUpdating] = React.useState(false);
+  const theme = Colors.current;
+  const styles = createStyles(theme);
 
   const toggleComplete = async (e: any) => {
     e?.stopPropagation?.();
@@ -163,8 +179,8 @@ function TaskCard({
   };
 
   const getStatusColor = () => {
-    if (task.status === 'completed') return Colors.light.status.completed;
-    if (task.status === 'overdue') return Colors.light.status.overdue;
+    if (task.status === 'completed') return theme.status.completed;
+    if (task.status === 'overdue') return theme.status.overdue;
     return getPriorityColor(task.priority);
   };
 
@@ -180,13 +196,13 @@ function TaskCard({
         <View style={styles.taskLeft}>
           <TouchableOpacity style={styles.checkButton} onPress={toggleComplete} disabled={updating}>
             {updating ? (
-              <ActivityIndicator size="small" color={Colors.light.tint} />
+              <ActivityIndicator size="small" color={theme.tint} />
             ) : task.status === 'completed' ? (
-              <View style={[styles.checkCircle, { backgroundColor: Colors.light.status.completed }]}>
+              <View style={[styles.checkCircle, { backgroundColor: theme.status.completed }]}>
                 <Check size={16} color="#FFFFFF" />
               </View>
             ) : (
-              <Circle size={22} color={Colors.light.border} />
+              <Circle size={22} color={theme.border} />
             )}
           </TouchableOpacity>
           <View style={[styles.statusPill, { borderColor: getStatusColor() }]}>
@@ -197,6 +213,11 @@ function TaskCard({
           <View>
             <Text style={styles.taskTitle}>{task.title}</Text>
             <Text style={styles.taskDueDate}>{`${t('dueLabel')}: ${formatDate(task.dueDate)}`}</Text>
+            {!!project?.name && (
+              <View style={styles.projectTag}>
+                <Text style={styles.projectTagText}>{project.name}</Text>
+              </View>
+            )}
           </View>
         </View>
         <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
@@ -204,6 +225,13 @@ function TaskCard({
         </View>
       </View>
       <View style={styles.taskFooter}>
+        <TouchableOpacity
+          style={[styles.doneButton, task.status === 'completed' && styles.doneButtonCompleted]}
+          onPress={toggleComplete}
+          disabled={updating}
+        >
+          {updating ? <ActivityIndicator size="small" color={theme.tintDark} /> : <Text style={styles.doneButtonText}>Task Done</Text>}
+        </TouchableOpacity>
         <View style={styles.assigneesRow}>
           {task.assignees.slice(0, 3).map((assignee, idx) => (
             <Image
@@ -230,22 +258,23 @@ function TaskCard({
 }
 
 function getPriorityColor(priority: string) {
+  const theme = Colors.current;
   switch (priority) {
     case 'high':
-      return Colors.light.priority.high;
+      return theme.priority.high;
     case 'medium':
-      return Colors.light.priority.medium;
+      return theme.priority.medium;
     case 'low':
-      return Colors.light.priority.low;
+      return theme.priority.low;
     default:
-      return Colors.light.tint;
+      return theme.tint;
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -257,7 +286,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerRight: {
     flexDirection: 'row',
@@ -271,19 +300,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dropdownButton: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   dropdownText: {
     fontSize: 14,
-    color: Colors.light.text,
+    color: theme.text,
   },
   activeTasksText: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.light.text,
+    color: theme.text,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -295,7 +324,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 12,
     padding: 12,
     alignItems: 'flex-start',
@@ -324,7 +353,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   filterButton: {
     paddingVertical: 12,
@@ -333,14 +362,14 @@ const styles = StyleSheet.create({
   },
   filterButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.light.tintDark,
+    borderBottomColor: theme.tintDark,
   },
   filterText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   filterTextActive: {
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
     fontWeight: '600',
   },
   tasksList: {
@@ -349,17 +378,17 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   taskCard: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
   taskCardCompleted: {
-    backgroundColor: `${Colors.light.status.completed}22`,
+    backgroundColor: `${theme.status.completed}22`,
     borderRadius: 16,
     padding: 16,
   },
   taskCardOverdue: {
-    backgroundColor: `${Colors.light.status.overdue}22`,
+    backgroundColor: `${theme.status.overdue}22`,
     borderRadius: 16,
     padding: 16,
   },
@@ -396,7 +425,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: theme.card,
   },
   statusPillText: {
     fontSize: 12,
@@ -405,12 +434,12 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   taskDueDate: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   priorityBadge: {
     paddingHorizontal: 16,
@@ -436,7 +465,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.card,
   },
   progressBarContainer: {
     flex: 1,
@@ -447,7 +476,7 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: theme.border,
     borderRadius: 3,
   },
   progressFill: {
@@ -456,7 +485,7 @@ const styles = StyleSheet.create({
   },
   progressPercent: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     minWidth: 60,
   },
   fab: {
@@ -466,7 +495,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -474,5 +503,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  projectTag: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    backgroundColor: `${theme.tint}1A`,
+    borderWidth: 1,
+    borderColor: `${theme.tint}4D`,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  projectTagText: {
+    color: theme.tint,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  doneButton: {
+    height: 30,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginRight: 10,
+    minWidth: 92,
+  },
+  doneButtonCompleted: {
+    borderColor: theme.status.completed,
+    backgroundColor: `${theme.status.completed}22`,
+  },
+  doneButtonText: {
+    color: theme.text,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

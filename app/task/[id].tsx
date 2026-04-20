@@ -18,6 +18,24 @@ export default function TaskDetailsScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [subtasks, setSubtasks] = useState<TaskSubtask[]>([])
+  const [updatingSubtaskId, setUpdatingSubtaskId] = useState<string | null>(null)
+  const theme = Colors.current
+  const styles = createStyles(theme)
+  const toggleSubtask = async (subtask: TaskSubtask) => {
+    if (!taskId || updatingSubtaskId) return
+    try {
+      setUpdatingSubtaskId(subtask.id)
+      await supabaseService.updateTaskSubtaskStatus(taskId, subtask.id, !subtask.completed)
+      setSubtasks((prev) => prev.map((item) => (item.id === subtask.id ? { ...item, completed: !item.completed } : item)))
+      const refreshedTask = await supabaseService.getTaskById(taskId)
+      setTask(refreshedTask)
+    } catch (e) {
+      console.error('Failed to update subtask', e)
+    } finally {
+      setUpdatingSubtaskId(null)
+    }
+  }
+
 
   useEffect(() => {
     const load = async () => {
@@ -58,13 +76,13 @@ export default function TaskDetailsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color={Colors.light.text} />
+            <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Task</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: Colors.light.error }}>Missing task id.</Text>
+          <Text style={{ color: theme.error }}>Missing task id.</Text>
         </View>
       </SafeAreaView>
     )
@@ -74,7 +92,7 @@ export default function TaskDetailsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Task</Text>
         <View style={{ width: 24 }} />
@@ -82,12 +100,12 @@ export default function TaskDetailsScreen() {
 
       {loading && (
         <View style={{ padding: 16 }}>
-          <ActivityIndicator color={Colors.light.tint} />
+          <ActivityIndicator color={theme.tint} />
         </View>
       )}
       {!!error && (
         <View style={{ padding: 16 }}>
-          <Text style={{ color: Colors.light.error }}>{error}</Text>
+          <Text style={{ color: theme.error }}>{error}</Text>
         </View>
       )}
 
@@ -100,7 +118,7 @@ export default function TaskDetailsScreen() {
 
           <View style={styles.card}>
             <View style={styles.row}>
-              <Calendar size={18} color={Colors.light.tint} />
+              <Calendar size={18} color={theme.tint} />
               <Text style={styles.rowLabel}>Due</Text>
               <Text style={styles.rowValue}>{task.dueDate}</Text>
             </View>
@@ -109,6 +127,11 @@ export default function TaskDetailsScreen() {
               <Text style={styles.rowLabel}>Project</Text>
               <Text style={styles.rowValue}>{project?.name || 'None'}</Text>
             </View>
+            {!!project?.companyName && (
+              <View style={styles.companyTag}>
+                <Text style={styles.companyTagText}>{`Company: ${project.companyName}`}</Text>
+              </View>
+            )}
             <View style={styles.row}>
               <Users size={18} color="#FFB74D" />
               <Text style={styles.rowLabel}>Team</Text>
@@ -134,7 +157,7 @@ export default function TaskDetailsScreen() {
                         {isImage ? (
                           <Image source={{ uri: url }} style={styles.attachmentThumb} />
                         ) : (
-                          <Paperclip size={18} color={Colors.light.textSecondary} />
+                          <Paperclip size={18} color={theme.textSecondary} />
                         )}
                       </View>
                       <View style={{ flex: 1 }}>
@@ -145,7 +168,7 @@ export default function TaskDetailsScreen() {
                           {url}
                         </Text>
                       </View>
-                      <ExternalLink size={16} color={Colors.light.textSecondary} />
+                      <ExternalLink size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
                   );
                 })}
@@ -183,10 +206,21 @@ export default function TaskDetailsScreen() {
                     <View
                       style={[
                         styles.subtaskDot,
-                        { backgroundColor: s.completed ? Colors.light.status.completed : Colors.light.border },
+                        { backgroundColor: s.completed ? theme.status.completed : theme.border },
                       ]}
                     />
                     <Text style={[styles.subtaskText, s.completed && styles.subtaskTextDone]}>{s.title}</Text>
+                    <TouchableOpacity
+                      style={[styles.subtaskButton, s.completed && styles.subtaskButtonDone]}
+                      onPress={() => void toggleSubtask(s)}
+                      disabled={updatingSubtaskId === s.id}
+                    >
+                      {updatingSubtaskId === s.id ? (
+                        <ActivityIndicator size="small" color={theme.tintDark} />
+                      ) : (
+                        <Text style={styles.subtaskButtonText}>Task Done</Text>
+                      )}
+                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
@@ -200,10 +234,10 @@ export default function TaskDetailsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -215,10 +249,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   card: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 12,
@@ -227,12 +261,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 8,
   },
   description: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     lineHeight: 20,
   },
   row: {
@@ -244,23 +278,23 @@ const styles = StyleSheet.create({
   rowLabel: {
     width: 70,
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '600',
   },
   rowValue: {
     flex: 1,
     fontSize: 14,
-    color: Colors.light.text,
+    color: theme.text,
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 12,
   },
   muted: {
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -276,10 +310,10 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
   },
   assigneeText: {
-    color: Colors.light.text,
+    color: theme.text,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -287,9 +321,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 10,
   },
@@ -297,7 +331,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -309,19 +343,19 @@ const styles = StyleSheet.create({
   attachmentName: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
   },
   attachmentUrl: {
     fontSize: 11,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   subtaskRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -332,13 +366,49 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   subtaskText: {
-    color: Colors.light.text,
+    color: theme.text,
     fontSize: 13,
     fontWeight: '600',
   },
   subtaskTextDone: {
     textDecorationLine: 'line-through',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
+  },
+  companyTag: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: `${theme.tint}66`,
+    backgroundColor: `${theme.tint}1A`,
+  },
+  companyTagText: {
+    color: theme.tint,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  subtaskButton: {
+    marginLeft: 'auto',
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.cardSecondary,
+    borderRadius: 10,
+    minWidth: 88,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  subtaskButtonDone: {
+    borderColor: theme.status.completed,
+    backgroundColor: `${theme.status.completed}22`,
+  },
+  subtaskButtonText: {
+    color: theme.text,
+    fontWeight: '700',
+    fontSize: 11,
   },
 })
 

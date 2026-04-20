@@ -19,17 +19,13 @@ export default function ProjectsScreen() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const fetchProjects = React.useCallback(async () => {
     try {
-      setLoading(true);
       const data = await supabaseService.getProjects();
       setProjects(data);
     } catch (err) {
       console.error('Error fetching projects:', err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -171,6 +167,11 @@ export default function ProjectsScreen() {
             <TouchableOpacity key={project.id} style={styles.projectCard} onPress={() => router.push(`/project/${project.id}`)}>
               <Text style={styles.projectName}>{project.name}</Text>
               <View style={styles.tagsRow}>
+                {!!project.companyName && (
+                  <View style={styles.companyBadge}>
+                    <Text style={styles.companyText}>{project.companyName}</Text>
+                  </View>
+                )}
                 {project.tags.map((tag, idx) => (
                   <View
                     key={idx}
@@ -396,6 +397,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  companyBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: Colors.light.info + '22',
+    borderWidth: 1,
+    borderColor: Colors.light.info + '77',
+  },
+  companyText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.light.info,
   },
   progressSection: {
     flexDirection: 'row',

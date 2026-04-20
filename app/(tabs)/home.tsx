@@ -18,6 +18,8 @@ export default function HomeScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const theme = Colors.current;
+  const styles = createStyles(theme);
 
   useEffect(() => {
     async function loadData() {
@@ -68,14 +70,14 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
-          <Menu size={24} color={Colors.light.text} />
+          <Menu size={24} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Search size={22} color={Colors.light.text} />
+            <Search size={22} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Bell size={22} color={Colors.light.text} />
+            <Bell size={22} color={theme.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -174,13 +176,13 @@ export default function HomeScreen() {
                   disabled={updatingTaskId === task.id}
                 >
                   {updatingTaskId === task.id ? (
-                    <ActivityIndicator size="small" color={Colors.light.tint} />
+                    <ActivityIndicator size="small" color={theme.tint} />
                   ) : task.status === 'completed' ? (
-                    <View style={[styles.checkCircle, { backgroundColor: Colors.light.status.completed }]}>
+                    <View style={[styles.checkCircle, { backgroundColor: theme.status.completed }]}>
                       <Check size={14} color="#FFFFFF" />
                     </View>
                   ) : (
-                    <Circle size={20} color={Colors.light.border} />
+                    <Circle size={20} color={theme.border} />
                   )}
                 </TouchableOpacity>
                 <View style={styles.taskContent}>
@@ -207,22 +209,23 @@ export default function HomeScreen() {
 }
 
 function getPriorityColor(priority: string) {
+  const theme = Colors.current;
   switch (priority) {
     case 'high':
-      return Colors.light.priority.high;
+      return theme.priority.high;
     case 'medium':
-      return Colors.light.priority.medium;
+      return theme.priority.medium;
     case 'low':
-      return Colors.light.priority.low;
+      return theme.priority.low;
     default:
-      return Colors.light.tint;
+      return theme.tint;
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -245,7 +248,7 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 12,
   },
   daysRow: {
@@ -257,18 +260,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     minWidth: 50,
   },
   dayItemSelected: {
-    backgroundColor: Colors.light.tintDark,
-    borderColor: Colors.light.tintDark,
+    backgroundColor: theme.tintDark,
+    borderColor: theme.tintDark,
   },
   dayLabel: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 4,
   },
   dayLabelSelected: {
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
   dayNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   dayNumberSelected: {
     color: '#FFFFFF',
@@ -295,11 +298,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   seeAllText: {
     fontSize: 14,
-    color: Colors.light.tint,
+    color: theme.tint,
     fontWeight: '500',
   },
   projectsScroll: {
@@ -369,7 +372,7 @@ const styles = StyleSheet.create({
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -404,12 +407,12 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   taskSubtitle: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   taskActions: {
     flexDirection: 'row',
@@ -420,7 +423,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.light.tintDark,
+    backgroundColor: theme.tintDark,
     justifyContent: 'center',
     alignItems: 'center',
   },

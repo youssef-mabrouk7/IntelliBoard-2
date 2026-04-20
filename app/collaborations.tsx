@@ -10,6 +10,8 @@ import { supabaseService } from '@/services/supabaseService';
 export default function CollaborationsScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   useEffect(() => {
     const load = async () => {
       const data = await supabaseService.getProjects();
@@ -22,11 +24,11 @@ export default function CollaborationsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Collaborations</Text>
         <TouchableOpacity style={styles.headerIcon}>
-          <Search size={22} color={Colors.light.text} />
+          <Search size={22} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -37,7 +39,7 @@ export default function CollaborationsScreen() {
         </View>
 
         <View style={styles.projectsList}>
-          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {loading && <ActivityIndicator color={theme.tint} />}
           {projects.map((project) => (
             <TouchableOpacity
               key={project.id}
@@ -78,10 +80,10 @@ export default function CollaborationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -93,7 +95,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerIcon: {
     padding: 4,
@@ -104,13 +106,13 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
   },
   projectsList: {
     paddingHorizontal: 16,
@@ -179,7 +181,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

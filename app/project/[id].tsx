@@ -83,6 +83,11 @@ export default function ProjectDetailsScreen() {
           <View style={styles.card}>
             <Text style={styles.title}>{project.name}</Text>
             {!!project.description && <Text style={styles.description}>{project.description}</Text>}
+            {!!project.companyName && (
+              <View style={styles.companyTag}>
+                <Text style={styles.companyTagText}>{`Company: ${project.companyName}`}</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.card}>
@@ -170,6 +175,21 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: '700', color: Colors.light.text, marginBottom: 8 },
   description: { fontSize: 14, color: Colors.light.textSecondary, lineHeight: 20 },
+  companyTag: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.info + '66',
+    backgroundColor: Colors.light.info + '1F',
+  },
+  companyTagText: {
+    color: Colors.light.info,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
   rowLabel: { width: 70, fontSize: 14, color: Colors.light.textSecondary, fontWeight: '600' },
   rowValue: { flex: 1, fontSize: 14, color: Colors.light.text, fontWeight: '600' },
