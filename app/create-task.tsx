@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, Flag, Tag, Paperclip, List, ChevronRight, Briefcase, Users as UsersIcon } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Flag, Tag, Paperclip, List, ChevronRight, Briefcase, Users as UsersIcon, Sparkles } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { Project, Team, User } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
@@ -20,10 +20,11 @@ export default function CreateTaskScreen() {
   const [taskName, setTaskName] = useState('Design New Dashboard UI');
   const [description, setDescription] = useState('');
   const dueDraft = useDateDraftStore((s) => s.byContext.task);
+  const setDateDraft = useDateDraftStore((s) => s.setDateDraft);
   const todayISO = new Date().toISOString().slice(0, 10);
   const dueDate = dueDraft?.dateISO ?? todayISO;
-  const [priority] = useState('High');
-  const [category] = useState('Upload');
+  const [priority, setPriority] = useState('High');
+  const [category, setCategory] = useState('Upload');
   const taskSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -34,6 +35,7 @@ export default function CreateTaskScreen() {
   const [teamPickerOpen, setTeamPickerOpen] = useState(false);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -79,6 +81,14 @@ export default function CreateTaskScreen() {
   const taskAttachments = taskAttachmentsState ?? EMPTY_ATTACHMENTS;
   const setDraftAttachments = useAttachmentDraftStore((s) => s.setAttachments);
   const clearDraftSubtasks = useSubtaskDraftStore((s) => s.clearSubtasks);
+  const setDraftSubtasks = useSubtaskDraftStore((s) => s.setSubtasks);
+
+  const toUiPriority = (value: string | undefined) => {
+    const normalized = String(value ?? '').toLowerCase();
+    if (normalized === 'high') return 'High';
+    if (normalized === 'low') return 'Low';
+    return 'Medium';
+  };
 
   const handleCreate = async () => {
     if (!taskName.trim()) {
@@ -138,6 +148,58 @@ export default function CreateTaskScreen() {
     }
   };
 
+  const handleSuggestWithAI = async () => {
+    if (!taskName.trim() && !description.trim()) {
+      Alert.alert('Missing details', 'Please add a task name or description first.');
+      return;
+    }
+    try {
+      setSuggesting(true);
+      const suggestion = await supabaseService.getTaskSuggestion({
+        title: taskName.trim(),
+        description: description.trim(),
+        category,
+        priority: priority.toLowerCase(),
+      });
+
+      if (suggestion.title?.trim() && !taskName.trim()) {
+        setTaskName(suggestion.title.trim());
+      }
+      if (suggestion.description?.trim()) {
+        setDescription(suggestion.description.trim());
+      }
+      if (suggestion.priority) {
+        setPriority(toUiPriority(suggestion.priority));
+      }
+      if (suggestion.category?.trim()) {
+        setCategory(suggestion.category.trim());
+      }
+      if (suggestion.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(suggestion.dueDate)) {
+        setDateDraft('task', { dateISO: suggestion.dueDate });
+      }
+      if (suggestion.subtasks?.length) {
+        setDraftSubtasks(
+          'task',
+          suggestion.subtasks.map((title, idx) => ({
+            id: `${Date.now()}-${idx}`,
+            title: title.trim(),
+            completed: false,
+          })),
+        );
+      }
+
+      if (suggestion.subtasks?.length) {
+        Alert.alert('AI Suggestion', `Updated task with random due date, priority, category, and ${suggestion.subtasks.length} subtasks.`);
+      } else {
+        Alert.alert('AI Suggestion', 'Task details updated from AI suggestion.');
+      }
+    } catch (error: any) {
+      Alert.alert('AI Suggestion Failed', error?.message || 'Could not get suggestion.');
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -152,6 +214,16 @@ export default function CreateTaskScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.inputSection}>
+          <TouchableOpacity style={[styles.aiButton, suggesting && { opacity: 0.7 }]} onPress={handleSuggestWithAI} disabled={suggesting}>
+            {suggesting ? (
+              <ActivityIndicator color={Colors.light.tint} />
+            ) : (
+              <>
+                <Sparkles size={16} color={Colors.light.tint} />
+                <Text style={styles.aiButtonText}>Suggest with AI</Text>
+              </>
+            )}
+          </TouchableOpacity>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Task Name</Text>
             <TextInput
@@ -446,6 +518,24 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 16,
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    backgroundColor: Colors.light.card,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  aiButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.light.tint,
   },
   inputLabel: {
     fontSize: 14,

@@ -165,6 +165,45 @@ async function ensureCurrentProfileExists() {
 }
 
 export const supabaseService = {
+  async getTaskSuggestion(input: {
+    title: string;
+    description: string;
+    category?: string;
+    priority?: 'high' | 'medium' | 'low' | string;
+  }) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase.functions.invoke('ai-task-suggestion', {
+          body: {
+            title: input.title,
+            description: input.description,
+            category: input.category ?? '',
+            priority: input.priority ?? 'medium',
+          },
+        }),
+      ),
+      12000,
+    );
+    if (error) {
+      const status = (error as any)?.context?.status ?? (error as any)?.status;
+      const details =
+        (error as any)?.context?.statusText ||
+        (error as any)?.context?.message ||
+        (error as any)?.message ||
+        'Unknown Edge Function error';
+      throw new Error(`AI suggestion request failed${status ? ` (${status})` : ''}: ${details}`);
+    }
+    return data as {
+      title?: string;
+      description?: string;
+      dueDate?: string;
+      priority?: 'high' | 'medium' | 'low' | string;
+      category?: string;
+      subtasks?: string[];
+      notes?: string;
+    };
+  },
+
   async testConnection() {
     const { error } = await withTimeout(
       withRetry(() => supabase.from('projects').select('id').limit(1)),
