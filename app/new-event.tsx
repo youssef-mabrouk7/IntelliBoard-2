@@ -1,21 +1,46 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, Clock, Users, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, Users, ChevronRight, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
 
+const TIME_SLOTS = [
+  '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+  '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
+  '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM',
+  '08:00 PM',
+];
+
 export default function NewEventScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const dateDraft = useDateDraftStore((s) => s.byContext.event);
+  const clearDateDraft = useDateDraftStore((s) => s.clearDateDraft);
   const todayISO = new Date().toISOString().slice(0, 10);
   const date = dateDraft?.dateISO ?? todayISO;
-  const [startTime] = useState('10:00 AM');
-  const [endTime] = useState('11:00 AM');
+
+  const [startTime, setStartTime] = useState('10:00 AM');
+  const [endTime, setEndTime] = useState('11:00 AM');
   const [creating, setCreating] = useState(false);
+
+  // 'start' | 'end' | null
+  const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end' | null>(null);
 
   const handleCreate = async () => {
     if (!eventName.trim()) {
@@ -29,9 +54,11 @@ export default function NewEventScreen() {
         date,
         startTime,
         endTime,
-        color: Colors.light.tint,
+        color: theme.tint,
         status: description.trim() ? description.trim() : undefined,
       });
+      // Clear the date draft so the next event starts fresh
+      clearDateDraft('event');
       Alert.alert('Success', 'Event created successfully.');
       router.back();
     } catch (error: any) {
@@ -41,15 +68,32 @@ export default function NewEventScreen() {
     }
   };
 
+  const handleSelectTime = (slot: string) => {
+    if (timePickerTarget === 'start') {
+      setStartTime(slot);
+    } else if (timePickerTarget === 'end') {
+      setEndTime(slot);
+    }
+    setTimePickerTarget(null);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Event</Text>
-        <TouchableOpacity style={[styles.createButton, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
-          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
+        <TouchableOpacity
+          style={[styles.createButton, creating && { opacity: 0.7 }]}
+          onPress={handleCreate}
+          disabled={creating}
+        >
+          {creating ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.createButtonText}>Create</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -62,7 +106,7 @@ export default function NewEventScreen() {
               value={eventName}
               onChangeText={setEventName}
               placeholder="Enter event name"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
@@ -72,7 +116,7 @@ export default function NewEventScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder="Add event description..."
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               multiline
             />
           </View>
@@ -80,47 +124,62 @@ export default function NewEventScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Event Details</Text>
-          
+
           <View style={styles.optionsList}>
-            <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'event' } })}>
+            {/* Date picker — navigates to select-due-date */}
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() =>
+                router.push({ pathname: '/select-due-date', params: { context: 'event' } })
+              }
+            >
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
-                  <Calendar size={18} color={Colors.light.tint} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <Calendar size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>Date</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{date}</Text>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionRow}>
+            {/* Start time picker */}
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() => setTimePickerTarget('start')}
+            >
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8F5E9' }]}>
-                  <Clock size={18} color={Colors.light.status.completed} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.status.completed + '20' }]}>
+                  <Clock size={18} color={theme.status.completed} />
                 </View>
                 <Text style={styles.optionLabel}>Start Time</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{startTime}</Text>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionRow}>
+            {/* End time picker */}
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() => setTimePickerTarget('end')}
+            >
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#FFEBEE' }]}>
-                  <Clock size={18} color={Colors.light.priority.high} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.priority.high + '20' }]}>
+                  <Clock size={18} color={theme.priority.high} />
                 </View>
                 <Text style={styles.optionLabel}>End Time</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{endTime}</Text>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
+            {/* Invite participants (future feature placeholder) */}
             <TouchableOpacity style={styles.optionRow}>
               <View style={styles.optionLeft}>
                 <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
@@ -128,7 +187,7 @@ export default function NewEventScreen() {
                 </View>
                 <Text style={styles.optionLabel}>Invite Participants</Text>
               </View>
-              <ChevronRight size={18} color={Colors.light.textSecondary} />
+              <ChevronRight size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -137,18 +196,58 @@ export default function NewEventScreen() {
           <Text style={styles.sectionTitle}>Reminder</Text>
           <View style={styles.reminderRow}>
             <Text style={styles.reminderText}>15 minutes before</Text>
-            <ChevronRight size={18} color={Colors.light.textSecondary} />
+            <ChevronRight size={18} color={theme.textSecondary} />
           </View>
         </View>
       </ScrollView>
+
+      {/* Time picker modal */}
+      <Modal
+        visible={timePickerTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTimePickerTarget(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setTimePickerTarget(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Select {timePickerTarget === 'start' ? 'Start' : 'End'} Time
+              </Text>
+              <TouchableOpacity onPress={() => setTimePickerTarget(null)}>
+                <X size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.timeGrid}>
+                {TIME_SLOTS.map((slot) => {
+                  const isSelected =
+                    timePickerTarget === 'start' ? startTime === slot : endTime === slot;
+                  return (
+                    <TouchableOpacity
+                      key={slot}
+                      style={[styles.timeSlot, isSelected && styles.timeSlotSelected]}
+                      onPress={() => handleSelectTime(slot)}
+                    >
+                      <Text style={[styles.timeSlotText, isSelected && styles.timeSlotTextSelected]}>
+                        {slot}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -160,13 +259,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   createButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
+    minWidth: 70,
+    alignItems: 'center',
   },
   createButtonText: {
     fontSize: 14,
@@ -174,7 +275,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   inputSection: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -185,19 +286,19 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -206,7 +307,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   optionsList: {
@@ -218,7 +319,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   optionLeft: {
     flexDirection: 'row',
@@ -234,7 +335,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   optionRight: {
     flexDirection: 'row',
@@ -243,7 +344,7 @@ const styles = StyleSheet.create({
   },
   optionValue: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   reminderRow: {
     flexDirection: 'row',
@@ -253,6 +354,57 @@ const styles = StyleSheet.create({
   },
   reminderText: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
+  },
+  /* Modal */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: theme.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.text,
+  },
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingBottom: 24,
+  },
+  timeSlot: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: theme.cardSecondary,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  timeSlotSelected: {
+    backgroundColor: theme.tint,
+    borderColor: theme.tint,
+  },
+  timeSlotText: {
+    fontSize: 14,
+    color: theme.text,
+    fontWeight: '500',
+  },
+  timeSlotTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

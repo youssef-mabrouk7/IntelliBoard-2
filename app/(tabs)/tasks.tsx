@@ -263,11 +263,11 @@ function TaskCard({
             <View
               style={[
                 styles.progressFill,
-                { width: `${task.status === 'completed' ? 100 : 0}%`, backgroundColor: getStatusColor() },
+                { width: `${task.progress}%`, backgroundColor: getStatusColor() },
               ]}
             />
           </View>
-          <Text style={styles.progressPercent}>{task.status === 'completed' ? t('done') : t('notDone')}</Text>
+          <Text style={styles.progressPercent}>{`${task.progress}%`}</Text>
         </View>
       </View>
     </TouchableOpacity>

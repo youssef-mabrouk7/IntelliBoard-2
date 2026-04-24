@@ -8,6 +8,8 @@ import { User as AppUser } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
 
 export default function AccountScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(true);
   const [profile, setProfile] = useState<AppUser | null>(null);
@@ -24,7 +26,7 @@ export default function AccountScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Account</Text>
         <View style={{ width: 24 }} />
@@ -42,28 +44,28 @@ export default function AccountScreen() {
           
           <TouchableOpacity style={styles.infoItem}>
             <View style={styles.infoLeft}>
-              <View style={[styles.infoIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Mail size={18} color={Colors.light.tint} />
+              <View style={[styles.infoIcon, { backgroundColor: theme.tint + '20' }]}>
+                <Mail size={18} color={theme.tint} />
               </View>
               <View>
                 <Text style={styles.infoLabel}>Email</Text>
                 <Text style={styles.infoValue}>{profile?.email || 'No email'}</Text>
               </View>
             </View>
-            <ChevronRight size={20} color={Colors.light.textSecondary} />
+            <ChevronRight size={20} color={theme.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.infoItem}>
             <View style={styles.infoLeft}>
-              <View style={[styles.infoIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Phone size={18} color={Colors.light.status.completed} />
+              <View style={[styles.infoIcon, { backgroundColor: theme.status.completed + '20' }]}>
+                <Phone size={18} color={theme.status.completed} />
               </View>
               <View>
                 <Text style={styles.infoLabel}>Phone</Text>
                 <Text style={styles.infoValue}>+1 234 567 890</Text>
               </View>
             </View>
-            <ChevronRight size={20} color={Colors.light.textSecondary} />
+            <ChevronRight size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -72,12 +74,12 @@ export default function AccountScreen() {
           
           <TouchableOpacity style={styles.infoItem}>
             <View style={styles.infoLeft}>
-              <View style={[styles.infoIcon, { backgroundColor: '#FFF8E1' }]}>
-                <Lock size={18} color={Colors.light.warning} />
+              <View style={[styles.infoIcon, { backgroundColor: theme.warning + '20' }]}>
+                <Lock size={18} color={theme.warning} />
               </View>
               <Text style={styles.infoLabel}>Change Password</Text>
             </View>
-            <ChevronRight size={20} color={Colors.light.textSecondary} />
+            <ChevronRight size={20} color={theme.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.toggleItem}>
@@ -90,7 +92,7 @@ export default function AccountScreen() {
             <Switch
               value={twoFactorEnabled}
               onValueChange={setTwoFactorEnabled}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -105,7 +107,7 @@ export default function AccountScreen() {
             <Switch
               value={biometricEnabled}
               onValueChange={setBiometricEnabled}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -119,10 +121,10 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -134,7 +136,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   profileSection: {
     alignItems: 'center',
@@ -149,15 +151,15 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     paddingHorizontal: 16,
     paddingVertical: 12,
     textTransform: 'uppercase',
@@ -179,7 +181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: theme.border,
   },
   infoLeft: {
     flexDirection: 'row',
@@ -195,11 +197,11 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   infoValue: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginTop: 2,
   },
   toggleItem: {
@@ -209,19 +211,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: theme.border,
   },
   deleteButton: {
     marginHorizontal: 16,
     marginVertical: 24,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: Colors.light.error + '15',
+    backgroundColor: theme.error + '15',
     alignItems: 'center',
   },
   deleteButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.error,
+    color: theme.error,
   },
 });

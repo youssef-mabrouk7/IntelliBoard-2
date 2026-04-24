@@ -10,6 +10,9 @@ import { supabaseService } from '@/services/supabaseService';
 import { useFocusEffect } from '@react-navigation/native';
 
 export default function TeamsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,15 +45,15 @@ export default function TeamsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
-          <Menu size={24} color={Colors.light.text} />
+          <Menu size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Teams</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Search size={22} color={Colors.light.text} />
+            <Search size={22} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Bell size={22} color={Colors.light.text} />
+            <Bell size={22} color={theme.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -58,7 +61,7 @@ export default function TeamsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Search size={20} color={Colors.light.textSecondary} />
+            <Search size={20} color={theme.textSecondary} />
             <Text style={styles.searchPlaceholder}>Search Team...</Text>
           </View>
         </View>
@@ -71,35 +74,35 @@ export default function TeamsScreen() {
         </View>
 
         <View style={styles.teamsList}>
-          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
           {!loading && !error && teams.map((team) => (
             <TouchableOpacity key={team.id} style={styles.teamCard} onPress={() => router.push(`/team/${team.id}`)}>
+              {/* Team header row — icon + name + member count */}
               <View style={styles.teamHeader}>
-                <Text style={styles.teamName}>{team.name}</Text>
-                <Text style={styles.memberCount}>{team.memberCount} Members</Text>
-              </View>
-              <View style={styles.progressSection}>
-                <Text style={styles.progressLabel}>Progress: {team.progress}%</Text>
-                <View style={styles.progressRow}>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${team.progress}%` }]} />
-                  </View>
-                  <View style={styles.membersRow}>
-                    {team.members.slice(0, 3).map((member, idx) => (
-                      <Image
-                        key={idx}
-                        source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
-                        style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
-                      />
-                    ))}
-                    {team.memberCount > 3 && (
-                      <View style={styles.moreBadge}>
-                        <Text style={styles.moreText}>+{team.memberCount - 3}</Text>
-                      </View>
-                    )}
-                  </View>
+                <View style={[styles.teamIconCircle, { backgroundColor: team.color || theme.tint }]}>
+                  <Text style={styles.teamIconText}>{team.name.charAt(0).toUpperCase()}</Text>
                 </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.teamName}>{team.name}</Text>
+                  <Text style={styles.memberCount}>{team.memberCount} Members</Text>
+                </View>
+              </View>
+
+              {/* Member avatars */}
+              <View style={styles.membersRow}>
+                {team.members.slice(0, 4).map((member, idx) => (
+                  <Image
+                    key={idx}
+                    source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
+                    style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
+                  />
+                ))}
+                {team.memberCount > 4 && (
+                  <View style={styles.moreBadge}>
+                    <Text style={styles.moreText}>+{team.memberCount - 4}</Text>
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           ))}
@@ -115,10 +118,10 @@ export default function TeamsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerRight: {
     flexDirection: 'row',
@@ -146,7 +149,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -154,7 +157,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: 15,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -166,90 +169,80 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   seeAllText: {
     fontSize: 14,
-    color: Colors.light.tint,
+    color: theme.tint,
     fontWeight: '500',
   },
   teamsList: {
     paddingHorizontal: 16,
-    gap: 16,
+    gap: 14,
     paddingBottom: 100,
   },
   teamCard: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
+    gap: 12,
   },
   teamHeader: {
-    marginBottom: 12,
-  },
-  teamName: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: Colors.light.tintDark,
-    marginBottom: 4,
-  },
-  memberCount: {
-    fontSize: 14,
-    color: Colors.light.textSecondary,
-  },
-  progressSection: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-    paddingTop: 12,
-  },
-  progressLabel: {
-    fontSize: 14,
-    color: Colors.light.textSecondary,
-    marginBottom: 8,
-  },
-  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
   },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: Colors.light.border,
-    borderRadius: 3,
-    marginRight: 12,
+  teamIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  progressFill: {
-    height: 6,
-    backgroundColor: '#7B8CDE',
-    borderRadius: 3,
+  teamIconText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 18,
+  },
+  teamName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.text,
+    marginBottom: 2,
+  },
+  memberCount: {
+    fontSize: 13,
+    color: theme.textSecondary,
   },
   membersRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   memberAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 2,
-    borderColor: Colors.light.cardSecondary,
+    borderColor: theme.cardSecondary,
   },
   moreBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.light.card,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: -8,
   },
   moreText: {
     fontSize: 11,
-    color: Colors.light.textSecondary,
-    fontWeight: '500',
+    color: theme.textSecondary,
+    fontWeight: '700',
   },
   errorText: {
-    color: Colors.light.error,
+    color: theme.error,
     fontSize: 14,
   },
   fab: {
@@ -259,7 +252,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

@@ -9,6 +9,8 @@ import { Task, Team, User } from '@/constants/types';
 import { useLocalization } from '@/utils/localization';
 
 export default function ProfileScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { t } = useLocalization();
   const [profile, setProfile] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -33,11 +35,11 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('profile')}</Text>
         <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Settings size={24} color={Colors.light.text} />
+          <Settings size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -57,22 +59,22 @@ export default function ProfileScreen() {
 
         <View style={styles.statsRow}>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/(tabs)/projects')}>
-            <View style={[styles.statIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Folder size={20} color={Colors.light.tint} />
+            <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
+              <Folder size={20} color={theme.tint} />
             </View>
             <Text style={styles.statNumber}>{Math.max(0, teams.length)}</Text>
             <Text style={styles.statLabel}>{t('projects')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-tasks')}>
-            <View style={[styles.statIcon, { backgroundColor: '#E8F5E9' }]}>
-              <CheckCircle size={20} color={Colors.light.status.completed} />
+            <View style={[styles.statIcon, { backgroundColor: theme.status.completed + '20' }]}>
+              <CheckCircle size={20} color={theme.status.completed} />
             </View>
             <Text style={styles.statNumber}>{tasks.length}</Text>
             <Text style={styles.statLabel}>{t('tasks')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-teams')}>
-            <View style={[styles.statIcon, { backgroundColor: '#FFEBEE' }]}>
-              <Users size={20} color={Colors.light.priority.high} />
+            <View style={[styles.statIcon, { backgroundColor: theme.priority.high + '20' }]}>
+              <Users size={20} color={theme.priority.high} />
             </View>
             <Text style={styles.statNumber}>{teams.length}</Text>
             <Text style={styles.statLabel}>{t('teams')}</Text>
@@ -95,11 +97,11 @@ export default function ProfileScreen() {
                     <View style={[styles.progressFill, { width: `${task.progress}%` }]} />
                   </View>
                 </View>
-                <View style={[styles.timeBadge, getTimeBadgeStyle(index)]}>
-                  <Text style={[styles.timeText, getTimeTextStyle(index)]}>
+                <View style={[styles.timeBadge, getTimeBadgeStyle(index, theme)]}>
+                  <Text style={[styles.timeText, getTimeTextStyle(index, theme)]}>
                     {getTimeLabel(index)}
                   </Text>
-                  <ChevronRight size={16} color={getTimeColor(index)} />
+                  <ChevronRight size={16} color={getTimeColor(index, theme)} />
                 </View>
               </TouchableOpacity>
             ))}
@@ -146,22 +148,22 @@ export default function ProfileScreen() {
   );
 }
 
-function getTimeBadgeStyle(index: number) {
-  if (index === 0) return { backgroundColor: '#FFEBEE' };
-  if (index === 1) return { backgroundColor: '#FFF8E1' };
-  return { backgroundColor: '#E8F5E9' };
+function getTimeBadgeStyle(index: number, theme: typeof Colors.light) {
+  if (index === 0) return { backgroundColor: theme.priority.high + '20' };
+  if (index === 1) return { backgroundColor: theme.warning + '20' };
+  return { backgroundColor: theme.status.completed + '20' };
 }
 
-function getTimeTextStyle(index: number) {
-  if (index === 0) return { color: Colors.light.priority.high };
-  if (index === 1) return { color: Colors.light.warning };
-  return { color: Colors.light.status.completed };
+function getTimeTextStyle(index: number, theme: typeof Colors.light) {
+  if (index === 0) return { color: theme.priority.high };
+  if (index === 1) return { color: theme.warning };
+  return { color: theme.status.completed };
 }
 
-function getTimeColor(index: number) {
-  if (index === 0) return Colors.light.priority.high;
-  if (index === 1) return Colors.light.warning;
-  return Colors.light.status.completed;
+function getTimeColor(index: number, theme: typeof Colors.light) {
+  if (index === 0) return theme.priority.high;
+  if (index === 1) return theme.warning;
+  return theme.status.completed;
 }
 
 function getTimeLabel(index: number) {
@@ -170,10 +172,10 @@ function getTimeLabel(index: number) {
   return '60%';
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -185,10 +187,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   profileCard: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
@@ -211,16 +213,16 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   roleBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -254,12 +256,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   section: {
     marginBottom: 24,
@@ -274,15 +276,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   seeAllText: {
     fontSize: 14,
-    color: Colors.light.tint,
+    color: theme.tint,
     fontWeight: '500',
   },
   tasksList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     gap: 16,
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 12,
   },
@@ -300,17 +302,17 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 8,
   },
   progressBar: {
     height: 6,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     borderRadius: 3,
   },
   progressFill: {
     height: 6,
-    backgroundColor: '#7B8CDE',
+    backgroundColor: theme.tint,
     borderRadius: 3,
   },
   timeBadge: {
@@ -327,7 +329,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   teamsList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
@@ -337,17 +339,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   teamName: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   teamEmail: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   membersRow: {
     flexDirection: 'row',
@@ -358,27 +360,27 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: Colors.light.cardSecondary,
+    borderColor: theme.cardSecondary,
   },
   moreBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: -8,
   },
   moreText: {
     fontSize: 11,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '500',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     marginHorizontal: 16,
     marginBottom: 30,
     paddingVertical: 14,

@@ -8,17 +8,19 @@ import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
 import { supabase } from '@/utils/supabase';
 
-const settingsItems = [
-  { icon: User, label: 'Account', color: Colors.light.tint, route: '/account' },
-  { icon: Bell, label: 'Notifications', color: '#FF9800', route: '/notifications-settings' },
-  { icon: Palette, label: 'Appearance', color: '#9C27B0', route: '/appearance' },
-  { icon: CheckCircle, label: 'Preferences', color: '#4CAF50', route: '/preferences' },
-  { icon: HelpCircle, label: 'Help & Support', color: Colors.light.tint, route: '/help-support' },
-  { icon: Info, label: 'About', color: Colors.light.tint, route: '/about' },
-  { icon: Globe, label: 'Language & Date', color: Colors.light.text, route: '/language-date' },
-];
-
 export default function SettingsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
+  const settingsItems = [
+    { icon: User, label: 'Account', color: theme.tint, route: '/account' },
+    { icon: Bell, label: 'Notifications', color: '#FF9800', route: '/notifications-settings' },
+    { icon: Palette, label: 'Appearance', color: '#9C27B0', route: '/appearance' },
+    { icon: CheckCircle, label: 'Preferences', color: '#4CAF50', route: '/preferences' },
+    { icon: HelpCircle, label: 'Help & Support', color: theme.tint, route: '/help-support' },
+    { icon: Info, label: 'About', color: theme.tint, route: '/about' },
+    { icon: Globe, label: 'Language & Date', color: theme.text, route: '/language-date' },
+  ];
   const [testingConnection, setTestingConnection] = React.useState(false);
   const [profile, setProfile] = React.useState<AppUser | null>(null);
 
@@ -56,7 +58,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 24 }} />
@@ -86,7 +88,7 @@ export default function SettingsScreen() {
                 <item.icon size={20} color={item.color} />
               </View>
               <Text style={styles.itemLabel}>{item.label}</Text>
-              <ChevronRight size={20} color={Colors.light.textSecondary} />
+              <ChevronRight size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           ))}
           <TouchableOpacity
@@ -97,10 +99,10 @@ export default function SettingsScreen() {
             }}
           >
             <View style={[styles.iconContainer, { backgroundColor: '#FFEBEE' }]}>
-              <LogOut size={20} color={Colors.light.error} />
+              <LogOut size={20} color={theme.error} />
             </View>
-            <Text style={[styles.itemLabel, { color: Colors.light.error }]}>Logout</Text>
-            <ChevronRight size={20} color={Colors.light.error} />
+            <Text style={[styles.itemLabel, { color: theme.error }]}>Logout</Text>
+            <ChevronRight size={20} color={theme.error} />
           </TouchableOpacity>
         </View>
 
@@ -126,10 +128,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -141,12 +143,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 16,
@@ -164,17 +166,17 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   email: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   editProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   settingsList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     paddingVertical: 8,
@@ -197,7 +199,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   logoutItem: {
     borderBottomWidth: 0,
@@ -213,13 +215,13 @@ const styles = StyleSheet.create({
   itemLabel: {
     flex: 1,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   inviteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 12,
     paddingVertical: 14,
     marginHorizontal: 16,
@@ -229,7 +231,7 @@ const styles = StyleSheet.create({
   testConnectionButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.tintDark,
+    backgroundColor: theme.tintDark,
     borderRadius: 12,
     paddingVertical: 14,
     marginHorizontal: 16,

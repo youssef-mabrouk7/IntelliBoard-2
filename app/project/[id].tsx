@@ -9,6 +9,8 @@ import type { Project, Task } from '@/constants/types'
 import { supabaseService } from '@/services/supabaseService'
 
 export default function ProjectDetailsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { id } = useLocalSearchParams<{ id: string }>()
   const projectId = Array.isArray(id) ? id[0] : id
 
@@ -40,18 +42,24 @@ export default function ProjectDetailsScreen() {
 
   const completedCount = useMemo(() => tasks.filter((t) => t.status === 'completed').length, [tasks])
 
+  // Compute progress live from tasks so it always reflects current state.
+  // Fall back to the stored DB value when no tasks are loaded yet.
+  const liveProgress = tasks.length > 0
+    ? Math.round((completedCount / tasks.length) * 100)
+    : (project?.progress ?? 0)
+
   if (!projectId) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color={Colors.light.text} />
+            <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Project</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: Colors.light.error }}>Missing project id.</Text>
+          <Text style={{ color: theme.error }}>Missing project id.</Text>
         </View>
       </SafeAreaView>
     )
@@ -61,7 +69,7 @@ export default function ProjectDetailsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Project</Text>
         <View style={{ width: 24 }} />
@@ -69,12 +77,12 @@ export default function ProjectDetailsScreen() {
 
       {loading && (
         <View style={{ padding: 16 }}>
-          <ActivityIndicator color={Colors.light.tint} />
+          <ActivityIndicator color={theme.tint} />
         </View>
       )}
       {!!error && (
         <View style={{ padding: 16 }}>
-          <Text style={{ color: Colors.light.error }}>{error}</Text>
+          <Text style={{ color: theme.error }}>{error}</Text>
         </View>
       )}
 
@@ -92,7 +100,7 @@ export default function ProjectDetailsScreen() {
 
           <View style={styles.card}>
             <View style={styles.row}>
-              <Calendar size={18} color={Colors.light.tint} />
+              <Calendar size={18} color={theme.tint} />
               <Text style={styles.rowLabel}>Due</Text>
               <Text style={styles.rowValue}>{project.dueDate || '-'}</Text>
             </View>
@@ -104,9 +112,9 @@ export default function ProjectDetailsScreen() {
               </Text>
             </View>
             <View style={styles.row}>
-              <CheckCircle size={18} color={Colors.light.status.completed} />
+              <CheckCircle size={18} color={theme.status.completed} />
               <Text style={styles.rowLabel}>Progress</Text>
-              <Text style={styles.rowValue}>{project.progress}%</Text>
+              <Text style={styles.rowValue}>{liveProgress}%</Text>
             </View>
           </View>
 
@@ -136,7 +144,7 @@ export default function ProjectDetailsScreen() {
                 {tasks.map((t) => (
                   <TouchableOpacity key={t.id} style={styles.taskRow} onPress={() => router.push(`/task/${t.id}`)}>
                     <View style={styles.taskLeft}>
-                      <View style={[styles.dot, { backgroundColor: t.status === 'completed' ? Colors.light.status.completed : Colors.light.tint }]} />
+                      <View style={[styles.dot, { backgroundColor: t.status === 'completed' ? theme.status.completed : theme.tint }]} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.taskTitle}>{t.title}</Text>
                         <Text style={styles.taskMeta}>Due: {t.dueDate}</Text>
@@ -156,8 +164,8 @@ export default function ProjectDetailsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -165,16 +173,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  headerTitle: { fontSize: 20, fontWeight: '600', color: Colors.light.tintDark },
+  headerTitle: { fontSize: 20, fontWeight: '600', color: theme.tintDark },
   card: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
   },
-  title: { fontSize: 18, fontWeight: '700', color: Colors.light.text, marginBottom: 8 },
-  description: { fontSize: 14, color: Colors.light.textSecondary, lineHeight: 20 },
+  title: { fontSize: 18, fontWeight: '700', color: theme.text, marginBottom: 8 },
+  description: { fontSize: 14, color: theme.textSecondary, lineHeight: 20 },
   companyTag: {
     marginTop: 10,
     alignSelf: 'flex-start',
@@ -182,33 +190,33 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.light.info + '66',
-    backgroundColor: Colors.light.info + '1F',
+    borderColor: theme.info + '66',
+    backgroundColor: theme.info + '1F',
   },
   companyTagText: {
-    color: Colors.light.info,
+    color: theme.info,
     fontSize: 12,
     fontWeight: '700',
   },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
-  rowLabel: { width: 70, fontSize: 14, color: Colors.light.textSecondary, fontWeight: '600' },
-  rowValue: { flex: 1, fontSize: 14, color: Colors.light.text, fontWeight: '600' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.light.text, marginBottom: 12 },
-  muted: { color: Colors.light.textSecondary, fontSize: 14, fontWeight: '600' },
+  rowLabel: { width: 70, fontSize: 14, color: theme.textSecondary, fontWeight: '600' },
+  rowValue: { flex: 1, fontSize: 14, color: theme.text, fontWeight: '600' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 12 },
+  muted: { color: theme.textSecondary, fontSize: 14, fontWeight: '600' },
   membersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  memberAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.light.border },
+  memberAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.border },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   taskLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  taskTitle: { fontSize: 15, fontWeight: '700', color: Colors.light.text },
-  taskMeta: { fontSize: 12, fontWeight: '600', color: Colors.light.textSecondary, marginTop: 2 },
-  taskArrow: { fontSize: 22, color: Colors.light.textSecondary, paddingLeft: 10 },
+  taskTitle: { fontSize: 15, fontWeight: '700', color: theme.text },
+  taskMeta: { fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginTop: 2 },
+  taskArrow: { fontSize: 22, color: theme.textSecondary, paddingLeft: 10 },
 })
 

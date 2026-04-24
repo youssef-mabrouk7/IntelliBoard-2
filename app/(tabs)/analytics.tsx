@@ -10,6 +10,8 @@ import { supabaseService } from '@/services/supabaseService';
 import { Project, Task, Team } from '@/constants/types';
 
 export default function AnalyticsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [timeRange, setTimeRange] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [overviewRange, setOverviewRange] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -46,7 +48,7 @@ export default function AnalyticsScreen() {
     const overdue = tasks.filter((t) => t.status === 'overdue').length;
     const ongoing = tasks.filter((t) => t.status === 'inProgress').length;
     const totalProjects = projects.length;
-    const activeProjects = projects.filter((p) => p.status !== 'archived').length;
+    const activeProjects = projects.filter((p) => p.status === 'active').length;
     const totalTeams = teams.length;
     const avgTeamProgress =
       totalTeams === 0 ? 0 : Math.round(teams.reduce((sum, t) => sum + (t.progress ?? 0), 0) / totalTeams);
@@ -77,12 +79,12 @@ export default function AnalyticsScreen() {
     datasets: [
       {
         data: analyticsData.weeklyData.map(d => d.completed),
-        color: () => Colors.light.tint,
+        color: () => theme.tint,
         strokeWidth: 2,
       },
       {
         data: analyticsData.weeklyData.map(d => d.overdue),
-        color: () => Colors.light.priority.high,
+        color: () => theme.priority.high,
         strokeWidth: 2,
       },
     ],
@@ -92,11 +94,11 @@ export default function AnalyticsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
-          <Menu size={24} color={Colors.light.text} />
+          <Menu size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Analytics</Text>
         <TouchableOpacity style={styles.filterButton}>
-          <Filter size={16} color={Colors.light.textSecondary} />
+          <Filter size={16} color={theme.textSecondary} />
           <Text style={styles.filterText}>This Week</Text>
         </TouchableOpacity>
       </View>
@@ -104,12 +106,12 @@ export default function AnalyticsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {loading && (
           <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-            <ActivityIndicator color={Colors.light.tint} />
+            <ActivityIndicator color={theme.tint} />
           </View>
         )}
         {!!error && (
           <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-            <Text style={{ color: Colors.light.error }}>{error}</Text>
+            <Text style={{ color: theme.error }}>{error}</Text>
           </View>
         )}
 
@@ -154,8 +156,8 @@ export default function AnalyticsScreen() {
               style={styles.legendItem}
               onPress={() => router.push('/all-tasks' as const)}
             >
-              <View style={[styles.legendIcon, { backgroundColor: Colors.light.tint + '20' }]}>
-                <Check size={16} color={Colors.light.tint} />
+              <View style={[styles.legendIcon, { backgroundColor: theme.tint + '20' }]}>
+                <Check size={16} color={theme.tint} />
               </View>
               <Text style={styles.legendText}>Completed</Text>
             </TouchableOpacity>
@@ -163,8 +165,8 @@ export default function AnalyticsScreen() {
               style={styles.legendItem}
               onPress={() => router.push('/all-tasks' as const)}
             >
-              <View style={[styles.legendIcon, { backgroundColor: Colors.light.priority.high + '20' }]}>
-                <AlertCircle size={16} color={Colors.light.priority.high} />
+              <View style={[styles.legendIcon, { backgroundColor: theme.priority.high + '20' }]}>
+                <AlertCircle size={16} color={theme.priority.high} />
               </View>
               <Text style={styles.legendText}>Overdue</Text>
             </TouchableOpacity>
@@ -177,12 +179,12 @@ export default function AnalyticsScreen() {
                 width={Dimensions.get('window').width - 32}
                 height={220}
                 chartConfig={{
-                  backgroundColor: Colors.light.card,
-                  backgroundGradientFrom: Colors.light.card,
-                  backgroundGradientTo: Colors.light.card,
+                  backgroundColor: theme.card,
+                  backgroundGradientFrom: theme.card,
+                  backgroundGradientTo: theme.card,
                   decimalPlaces: 0,
                   color: (opacity = 1) => `rgba(74, 124, 155, ${opacity})`,
-                  labelColor: () => Colors.light.textSecondary,
+                  labelColor: () => theme.textSecondary,
                   style: {
                     borderRadius: 16,
                   },
@@ -205,22 +207,22 @@ export default function AnalyticsScreen() {
 
         <View style={styles.statsGrid}>
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
-            <View style={[styles.statIcon, { backgroundColor: '#E8F5E9' }]}>
-              <FileText size={24} color={Colors.light.status.completed} />
+            <View style={[styles.statIcon, { backgroundColor: theme.status.completed + '20' }]}>
+              <FileText size={24} color={theme.status.completed} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.totalTasks}</Text>
             <Text style={styles.statLabel}>Total Tasks</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
-            <View style={[styles.statIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Check size={24} color={Colors.light.tint} />
+            <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
+              <Check size={24} color={theme.tint} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.completed}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
-            <View style={[styles.statIcon, { backgroundColor: '#FFEBEE' }]}>
-              <AlertCircle size={24} color={Colors.light.priority.high} />
+            <View style={[styles.statIcon, { backgroundColor: theme.priority.high + '20' }]}>
+              <AlertCircle size={24} color={theme.priority.high} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.overdue}</Text>
             <Text style={styles.statLabel}>Overdue</Text>
@@ -229,8 +231,8 @@ export default function AnalyticsScreen() {
 
         <View style={styles.bottomStatsRow}>
           <View style={[styles.bottomStatCard, { flex: 1 }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Clock size={24} color={Colors.light.tint} />
+            <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
+              <Clock size={24} color={theme.tint} />
             </View>
             <View>
               <Text style={styles.statNumber}>{analyticsData.ongoing}</Text>
@@ -263,10 +265,10 @@ export default function AnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -278,22 +280,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 6,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
   filterText: {
     fontSize: 13,
-    color: Colors.light.text,
+    color: theme.text,
   },
   timeRangeTabs: {
     flexDirection: 'row',
@@ -307,12 +309,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   timeTabActive: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
   },
   timeTabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   timeTabTextActive: {
     color: '#FFFFFF',
@@ -330,11 +332,11 @@ const styles = StyleSheet.create({
   overviewTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   moreOptions: {
     fontSize: 20,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '600',
   },
   overviewTabs: {
@@ -346,15 +348,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     marginRight: 8,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
   },
   overviewTabActive: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
   },
   overviewTabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   overviewTabTextActive: {
     color: '#FFFFFF',
@@ -378,10 +380,10 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 14,
-    color: Colors.light.text,
+    color: theme.text,
   },
   chartContainer: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -393,12 +395,12 @@ const styles = StyleSheet.create({
     height: 220,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
   },
   webChartText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -408,7 +410,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     alignItems: 'flex-start',
@@ -424,12 +426,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   bottomStatsRow: {
     flexDirection: 'row',
@@ -440,7 +442,7 @@ const styles = StyleSheet.create({
   bottomStatCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     gap: 12,

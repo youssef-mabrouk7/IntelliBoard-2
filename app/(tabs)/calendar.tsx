@@ -11,6 +11,8 @@ import { monthGrid, toISODate, useLocalization } from '@/utils/localization';
 import type { Task } from '@/constants/types';
 
 export default function CalendarScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,7 +58,7 @@ export default function CalendarScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
-          <Menu size={24} color={Colors.light.text} />
+          <Menu size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('calendar')}</Text>
         <View style={styles.headerAvatarPlaceholder} />
@@ -65,11 +67,11 @@ export default function CalendarScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
-            <ChevronLeft size={24} color={Colors.light.text} />
+            <ChevronLeft size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.monthText}>{monthLabel}</Text>
           <TouchableOpacity onPress={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
-            <ChevronRight size={24} color={Colors.light.text} />
+            <ChevronRight size={24} color={theme.text} />
           </TouchableOpacity>
         </View>
 
@@ -93,7 +95,7 @@ export default function CalendarScreen() {
                 <Text style={[styles.dayNumber, !inCurrentMonth && { opacity: 0.4 }, isSelected && styles.dayNumberToday]}>
                   {date.getDate()}
                 </Text>
-                {isSelected && <View style={styles.todayDot} />}
+                <View style={[styles.todayDot, !isSelected && { backgroundColor: 'transparent' }]} />
               </TouchableOpacity>
             );
           })}
@@ -107,7 +109,7 @@ export default function CalendarScreen() {
         </View>
 
         <View style={styles.eventsList}>
-          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
           {!loading && !error && eventsForDate.map((event) => (
             <TouchableOpacity key={event.id} style={styles.eventCard} onPress={() => router.push(`/event/${event.id}` as const)}>
@@ -165,7 +167,7 @@ export default function CalendarScreen() {
             <TouchableOpacity key={task.id} style={styles.eventCard} onPress={() => router.push(`/task/${task.id}` as const)}>
               <View style={styles.eventTimeColumn}>
                 <Text style={styles.eventTime}>Task</Text>
-                <View style={[styles.eventDot, { backgroundColor: Colors.light.tint }]} />
+                <View style={[styles.eventDot, { backgroundColor: theme.tint }]} />
               </View>
               <View style={styles.eventContent}>
                 <Text style={styles.eventTitle}>{task.title}</Text>
@@ -186,10 +188,10 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -201,7 +203,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerAvatar: {
     width: 36,
@@ -222,7 +224,7 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   weekDaysRow: {
     flexDirection: 'row',
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
   },
   weekDayLabel: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '500',
   },
   daysRow: {
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
   dayNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   dayNumberToday: {
     color: '#2196F3',
@@ -272,18 +274,18 @@ const styles = StyleSheet.create({
   selectedDateText: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   seeAllButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: Colors.light.tint + '20',
+    backgroundColor: theme.tint + '20',
     borderRadius: 12,
   },
   seeAllText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.light.tint,
+    color: theme.tint,
   },
   eventsList: {
     paddingHorizontal: 16,
@@ -291,7 +293,7 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 12,
     padding: 12,
   },
@@ -324,12 +326,12 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   eventTimeRange: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
   },
   taskProgress: {
@@ -339,23 +341,23 @@ const styles = StyleSheet.create({
   },
   taskProgressText: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   miniProgressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     borderRadius: 2,
     maxWidth: 80,
   },
   miniProgressFill: {
     height: 4,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 2,
   },
   assigneeText: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginTop: 4,
   },
   eventRightSection: {
@@ -371,20 +373,20 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: Colors.light.cardSecondary,
+    borderColor: theme.cardSecondary,
   },
   moreBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: -8,
   },
   moreText: {
     fontSize: 11,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '500',
   },
   eventArrow: {
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
   },
   arrowText: {
     fontSize: 20,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   statusBadge: {
     alignSelf: 'flex-start',
@@ -405,13 +407,13 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.light.status.completed,
+    color: theme.status.completed,
   },
   newEventButton: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -426,7 +428,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   errorText: {
-    color: Colors.light.error,
+    color: theme.error,
     fontSize: 14,
   },
 });

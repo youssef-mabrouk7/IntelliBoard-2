@@ -1,24 +1,41 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  TextInput, Alert, ActivityIndicator, Modal, Pressable,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, Users, Check } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Users, Check, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
+import type { Team } from '@/constants/types';
 
-const projectColors = [
-  '#4A7C9B', '#9C7BB8', '#4CAF90', '#E57373', '#FFB74D', '#7B8CDE', '#64B5F6'
+const PROJECT_COLORS = [
+  '#4A7C9B', '#9C7BB8', '#4CAF90', '#E57373', '#FFB74D', '#7B8CDE', '#64B5F6',
 ];
 
 export default function NewProjectScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const dueDraft = useDateDraftStore((s) => s.byContext.project);
   const todayISO = new Date().toISOString().slice(0, 10);
   const dueDate = dueDraft?.dateISO ?? todayISO;
-  const [selectedColor, setSelectedColor] = useState(projectColors[0]);
+  const [selectedColor, setSelectedColor] = useState(PROJECT_COLORS[0]);
   const [creating, setCreating] = useState(false);
+
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [teamPickerOpen, setTeamPickerOpen] = useState(false);
+
+  useEffect(() => {
+    supabaseService.getTeams().then(setTeams).catch(() => {});
+  }, []);
+
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
   const handleCreate = async () => {
     if (!projectName.trim()) {
@@ -50,15 +67,20 @@ export default function NewProjectScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Project</Text>
-        <TouchableOpacity style={[styles.createButton, creating && styles.createButtonDisabled]} onPress={handleCreate} disabled={creating}>
+        <TouchableOpacity
+          style={[styles.createButton, creating && styles.createButtonDisabled]}
+          onPress={handleCreate}
+          disabled={creating}
+        >
           {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Name + Description */}
         <View style={styles.inputSection}>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Project Name</Text>
@@ -67,7 +89,7 @@ export default function NewProjectScreen() {
               value={projectName}
               onChangeText={setProjectName}
               placeholder="Enter project name"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
@@ -77,17 +99,18 @@ export default function NewProjectScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder="Describe your project..."
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               multiline
               numberOfLines={4}
             />
           </View>
         </View>
 
+        {/* Color picker */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Project Color</Text>
           <View style={styles.colorRow}>
-            {projectColors.map((color) => (
+            {PROJECT_COLORS.map((color) => (
               <TouchableOpacity
                 key={color}
                 style={[
@@ -103,36 +126,81 @@ export default function NewProjectScreen() {
           </View>
         </View>
 
+        {/* Due date */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Due Date</Text>
-          <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'project' } })}>
-            <View style={styles.optionLeft}>
-              <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Calendar size={20} color={Colors.light.tint} />
-              </View>
-              <Text style={styles.optionValue}>{dueDate}</Text>
+          <TouchableOpacity
+            style={styles.optionRow}
+            onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'project' } })}
+          >
+            <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Calendar size={20} color={theme.tint} />
             </View>
+            <Text style={styles.optionValue}>{dueDate}</Text>
+            <ChevronRight size={18} color={theme.textSecondary} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
 
+        {/* Team picker — replaces member selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Team Members</Text>
-          <TouchableOpacity style={styles.addMembersButton}>
-            <View style={styles.addMembersIcon}>
-              <Users size={20} color={Colors.light.tint} />
+          <Text style={styles.sectionTitle}>Team</Text>
+          <TouchableOpacity style={styles.optionRow} onPress={() => setTeamPickerOpen(true)}>
+            <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
+              <Users size={20} color="#7B8CDE" />
             </View>
-            <Text style={styles.addMembersText}>Add team members</Text>
+            <Text style={styles.optionValue}>
+              {selectedTeam ? selectedTeam.name : 'Select a team (optional)'}
+            </Text>
+            <ChevronRight size={18} color={theme.textSecondary} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Team picker modal */}
+      <Modal
+        visible={teamPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTeamPickerOpen(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setTeamPickerOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Team</Text>
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={styles.modalRow}
+                onPress={() => { setSelectedTeamId(null); setTeamPickerOpen(false); }}
+              >
+                <Text style={[styles.modalRowText, !selectedTeamId && { color: theme.tint }]}>
+                  None
+                </Text>
+                {!selectedTeamId && <Check size={16} color={theme.tint} />}
+              </TouchableOpacity>
+              {teams.map((t) => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={styles.modalRow}
+                  onPress={() => { setSelectedTeamId(t.id); setTeamPickerOpen(false); }}
+                >
+                  <View style={[styles.modalTeamDot, { backgroundColor: t.color || theme.tint }]} />
+                  <Text style={[styles.modalRowText, selectedTeamId === t.id && { color: theme.tint }]}>
+                    {t.name}{t.memberCount ? ` (${t.memberCount} members)` : ''}
+                  </Text>
+                  {selectedTeamId === t.id && <Check size={16} color={theme.tint} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -144,51 +212,48 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   createButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
+    minWidth: 70,
+    alignItems: 'center',
   },
   createButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  createButtonDisabled: {
-    opacity: 0.7,
-  },
+  createButtonDisabled: { opacity: 0.7 },
   inputSection: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,
   },
-  inputGroup: {
-    marginBottom: 16,
-  },
+  inputGroup: { marginBottom: 16 },
   inputLabel: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
+  textArea: { height: 100, textAlignVertical: 'top' },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -197,7 +262,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   colorRow: {
@@ -224,10 +289,7 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    gap: 12,
   },
   optionIcon: {
     width: 40,
@@ -235,60 +297,48 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   optionValue: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
+    flex: 1,
   },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    padding: 24,
   },
-  tagButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  modalCard: {
+    backgroundColor: theme.card,
     borderRadius: 20,
-    backgroundColor: Colors.light.card,
+    padding: 20,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
-  tagButtonSelected: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.text,
+    marginBottom: 14,
   },
-  tagButtonText: {
-    fontSize: 14,
-    color: Colors.light.text,
-  },
-  tagButtonTextSelected: {
-    color: '#FFFFFF',
-  },
-  addMembersButton: {
+  modalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderWidth: 2,
-    borderColor: Colors.light.border,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
   },
-  addMembersIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.light.tint + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
+  modalTeamDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
-  addMembersText: {
+  modalRowText: {
+    flex: 1,
     fontSize: 15,
-    color: Colors.light.tint,
-    fontWeight: '500',
+    color: theme.text,
+    fontWeight: '600',
   },
 });

@@ -11,6 +11,8 @@ import { useLocalization } from '@/utils/localization';
 type FilterType = 'All' | 'In Progress' | 'Completed' | 'Overdue';
 
 export default function AllTasksScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { t, isRTL, formatDate } = useLocalization();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -50,11 +52,11 @@ export default function AllTasksScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('allTasksTitle')}</Text>
         <TouchableOpacity style={styles.headerIcon}>
-          <Search size={22} color={Colors.light.text} />
+          <Search size={22} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -98,13 +100,13 @@ export default function AllTasksScreen() {
         </View>
 
         <View style={styles.tasksList}>
-          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
           {!loading && !error && filteredTasks.length === 0 && (
             <Text style={styles.errorText}>{t('noTasksFound')}</Text>
           )}
           {!loading && !error && filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} formatDate={formatDate} t={t} />
+            <TaskCard key={task.id} task={task} formatDate={formatDate} t={t} theme={theme} styles={styles} />
           ))}
         </View>
       </ScrollView>
@@ -116,15 +118,19 @@ function TaskCard({
   task,
   formatDate,
   t,
+  theme,
+  styles,
 }: {
   task: Task;
   formatDate: (value: string | Date) => string;
   t: (key: any) => string;
+  theme: typeof Colors.light;
+  styles: any;
 }) {
   const getStatusColor = () => {
-    if (task.status === 'completed') return Colors.light.status.completed;
-    if (task.status === 'overdue') return Colors.light.status.overdue;
-    return getPriorityColor(task.priority);
+    if (task.status === 'completed') return theme.status.completed;
+    if (task.status === 'overdue') return theme.status.overdue;
+    return getPriorityColor(task.priority, theme);
   };
 
   const getCardStyle = () => {
@@ -147,7 +153,7 @@ function TaskCard({
             <Text style={styles.taskDueDate}>{`${t('dueLabel')}: ${formatDate(task.dueDate)}`}</Text>
           </View>
         </View>
-        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
+        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority, theme) }]}>
           <Text style={styles.priorityText}>{task.priority}</Text>
         </View>
       </View>
@@ -177,23 +183,23 @@ function TaskCard({
   );
 }
 
-function getPriorityColor(priority: string) {
+function getPriorityColor(priority: string, theme: typeof Colors.light) {
   switch (priority) {
     case 'high':
-      return Colors.light.priority.high;
+      return theme.priority.high;
     case 'medium':
-      return Colors.light.priority.medium;
+      return theme.priority.medium;
     case 'low':
-      return Colors.light.priority.low;
+      return theme.priority.low;
     default:
-      return Colors.light.tint;
+      return theme.tint;
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -205,7 +211,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerIcon: {
     padding: 4,
@@ -218,7 +224,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 12,
     padding: 12,
     alignItems: 'flex-start',
@@ -247,7 +253,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   filterButton: {
     paddingVertical: 12,
@@ -256,14 +262,14 @@ const styles = StyleSheet.create({
   },
   filterButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.light.tintDark,
+    borderBottomColor: theme.tintDark,
   },
   filterText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   filterTextActive: {
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
     fontWeight: '600',
   },
   tasksList: {
@@ -272,17 +278,17 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   taskCard: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
   taskCardCompleted: {
-    backgroundColor: `${Colors.light.status.completed}22`,
+    backgroundColor: `${theme.status.completed}22`,
     borderRadius: 16,
     padding: 16,
   },
   taskCardOverdue: {
-    backgroundColor: `${Colors.light.status.overdue}22`,
+    backgroundColor: `${theme.status.overdue}22`,
     borderRadius: 16,
     padding: 16,
   },
@@ -314,12 +320,12 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   taskDueDate: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   priorityBadge: {
     paddingHorizontal: 16,
@@ -365,11 +371,11 @@ const styles = StyleSheet.create({
   },
   progressPercent: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     minWidth: 60,
   },
   errorText: {
-    color: Colors.light.error,
+    color: theme.error,
     fontSize: 14,
   },
 });

@@ -5,33 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, HelpCircle, MessageCircle, FileText, Mail, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
-const supportOptions = [
-  {
-    icon: HelpCircle,
-    title: 'FAQs',
-    description: 'Find answers to common questions',
-    color: Colors.light.tint,
-  },
-  {
-    icon: MessageCircle,
-    title: 'Live Chat',
-    description: 'Chat with our support team',
-    color: '#4CAF90',
-  },
-  {
-    icon: FileText,
-    title: 'Documentation',
-    description: 'Browse our help articles',
-    color: '#9C7BB8',
-  },
-  {
-    icon: Mail,
-    title: 'Email Support',
-    description: 'Send us an email',
-    color: '#FFB74D',
-  },
-];
-
 const quickLinks = [
   'Getting Started',
   'Managing Tasks',
@@ -41,11 +14,41 @@ const quickLinks = [
 ];
 
 export default function HelpSupportScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
+  const supportOptions = [
+    {
+      icon: HelpCircle,
+      title: 'FAQs',
+      description: 'Find answers to common questions',
+      color: theme.tint,
+    },
+    {
+      icon: MessageCircle,
+      title: 'Live Chat',
+      description: 'Chat with our support team',
+      color: '#4CAF90',
+    },
+    {
+      icon: FileText,
+      title: 'Documentation',
+      description: 'Browse our help articles',
+      color: '#9C7BB8',
+    },
+    {
+      icon: Mail,
+      title: 'Email Support',
+      description: 'Send us an email',
+      color: '#FFB74D',
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help & Support</Text>
         <View style={{ width: 24 }} />
@@ -70,7 +73,7 @@ export default function HelpSupportScreen() {
             {quickLinks.map((link, index) => (
               <TouchableOpacity key={index} style={styles.linkItem}>
                 <Text style={styles.linkText}>{link}</Text>
-                <ChevronRight size={20} color={Colors.light.textSecondary} />
+                <ChevronRight size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -90,10 +93,10 @@ export default function HelpSupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -105,7 +108,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   optionsGrid: {
     flexDirection: 'row',
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     width: '47%',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -132,12 +135,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     textAlign: 'center',
   },
   section: {
@@ -147,11 +150,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 12,
   },
   linksList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -162,34 +165,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   linkText: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   contactSection: {
     marginHorizontal: 16,
     marginBottom: 30,
     padding: 24,
-    backgroundColor: Colors.light.tint + '10',
+    backgroundColor: theme.tint + '10',
     borderRadius: 16,
     alignItems: 'center',
   },
   contactTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 8,
   },
   contactDescription: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
   },
   contactButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,

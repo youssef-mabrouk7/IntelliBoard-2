@@ -76,11 +76,9 @@ export const useAppPreferencesStore = create<AppPreferencesState>((set, get) => 
     await persist({ language, dateFormat, timeFormat, themeMode, onboardingCompleted });
   },
   setThemeMode: async (themeMode) => {
-    // Product override: if user picks light manually, force dark immediately.
-    const resolvedThemeMode: ThemeMode = themeMode === 'light' ? 'dark' : themeMode;
-    set({ themeMode: resolvedThemeMode });
+    set({ themeMode });
     const { language, dateFormat, timeFormat, onboardingCompleted } = get();
-    await persist({ language, dateFormat, timeFormat, themeMode: resolvedThemeMode, onboardingCompleted });
+    await persist({ language, dateFormat, timeFormat, themeMode, onboardingCompleted });
   },
   setOnboardingCompleted: async (onboardingCompleted) => {
     set({ onboardingCompleted });

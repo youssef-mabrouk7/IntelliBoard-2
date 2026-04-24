@@ -24,6 +24,8 @@ const timeFormats = [
 ];
 
 export default function LanguageDateScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { t, isRTL } = useLocalization();
   const selectedLanguage = useAppPreferencesStore((s) => s.language);
   const selectedDateFormat = useAppPreferencesStore((s) => s.dateFormat);
@@ -45,7 +47,7 @@ export default function LanguageDateScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('languageAndDate')}</Text>
         <View style={{ width: 24 }} />
@@ -54,7 +56,7 @@ export default function LanguageDateScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Globe size={20} color={Colors.light.tint} />
+            <Globe size={20} color={theme.tint} />
             <Text style={styles.sectionTitle}>{t('language')}</Text>
           </View>
           <View style={styles.optionsList}>
@@ -67,7 +69,7 @@ export default function LanguageDateScreen() {
                 <Text style={[styles.optionText, { textAlign: isRTL ? 'right' : 'left' }]}>{lang.name}</Text>
                 {selectedLanguage === lang.code && (
                   <View style={styles.checkIcon}>
-                    <Check size={18} color={Colors.light.tint} />
+                    <Check size={18} color={theme.tint} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -77,7 +79,7 @@ export default function LanguageDateScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Calendar size={20} color={Colors.light.tint} />
+            <Calendar size={20} color={theme.tint} />
             <Text style={styles.sectionTitle}>{t('dateFormat')}</Text>
           </View>
           <View style={styles.optionsList}>
@@ -93,7 +95,7 @@ export default function LanguageDateScreen() {
                 </View>
                 {selectedDateFormat === format.id && (
                   <View style={styles.checkIcon}>
-                    <Check size={18} color={Colors.light.tint} />
+                    <Check size={18} color={theme.tint} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -103,7 +105,7 @@ export default function LanguageDateScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Calendar size={20} color={Colors.light.tint} />
+            <Calendar size={20} color={theme.tint} />
             <Text style={styles.sectionTitle}>{t('timeFormat')}</Text>
           </View>
           <View style={styles.optionsList}>
@@ -119,7 +121,7 @@ export default function LanguageDateScreen() {
                 </View>
                 {selectedTimeFormat === format.id && (
                   <View style={styles.checkIcon}>
-                    <Check size={18} color={Colors.light.tint} />
+                    <Check size={18} color={theme.tint} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -135,10 +137,10 @@ export default function LanguageDateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   section: {
     marginHorizontal: 16,
@@ -165,10 +167,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   optionsList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -179,11 +181,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   optionText: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   formatItem: {
     flexDirection: 'row',
@@ -192,16 +194,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   formatLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 2,
   },
   formatExample: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   checkIcon: {
     width: 24,
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
   saveButton: {
     marginHorizontal: 16,
     marginVertical: 24,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

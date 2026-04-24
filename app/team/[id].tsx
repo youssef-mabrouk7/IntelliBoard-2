@@ -9,6 +9,9 @@ import type { Task, Team } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
 
 export default function TeamDetailsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const teamId = Array.isArray(id) ? id[0] : id;
 
@@ -45,13 +48,13 @@ export default function TeamDetailsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color={Colors.light.text} />
+            <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Team</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: Colors.light.error }}>Missing team id.</Text>
+          <Text style={{ color: theme.error }}>Missing team id.</Text>
         </View>
       </SafeAreaView>
     );
@@ -61,7 +64,7 @@ export default function TeamDetailsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Team</Text>
         <View style={{ width: 24 }} />
@@ -69,12 +72,12 @@ export default function TeamDetailsScreen() {
 
       {loading && (
         <View style={{ padding: 16 }}>
-          <ActivityIndicator color={Colors.light.tint} />
+          <ActivityIndicator color={theme.tint} />
         </View>
       )}
       {!!error && (
         <View style={{ padding: 16 }}>
-          <Text style={{ color: Colors.light.error }}>{error}</Text>
+          <Text style={{ color: theme.error }}>{error}</Text>
         </View>
       )}
 
@@ -93,14 +96,12 @@ export default function TeamDetailsScreen() {
 
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <Users size={16} color={Colors.light.textSecondary} />
+                <Users size={16} color={theme.textSecondary} />
                 <Text style={styles.metaText}>{team.memberCount} members</Text>
               </View>
               <View style={styles.metaItem}>
-                <ClipboardList size={16} color={Colors.light.textSecondary} />
-                <Text style={styles.metaText}>
-                  {doneCount}/{tasks.length} tasks done
-                </Text>
+                <ClipboardList size={16} color={theme.textSecondary} />
+                <Text style={styles.metaText}>{doneCount}/{tasks.length} tasks done</Text>
               </View>
             </View>
           </View>
@@ -132,17 +133,10 @@ export default function TeamDetailsScreen() {
               <View style={{ gap: 10 }}>
                 {tasks.map((t) => (
                   <TouchableOpacity key={t.id} style={styles.taskRow} onPress={() => router.push(`/task/${t.id}`)}>
-                    <View
-                      style={[
-                        styles.taskStatusDot,
-                        { backgroundColor: t.status === 'completed' ? Colors.light.status.completed : Colors.light.border },
-                      ]}
-                    />
+                    <View style={[styles.taskStatusDot, { backgroundColor: t.status === 'completed' ? theme.status.completed : theme.border }]} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.taskTitle}>{t.title}</Text>
-                      <Text style={styles.taskSub}>
-                        {t.status === 'completed' ? 'Done' : 'Not Done'} · Due {t.dueDate}
-                      </Text>
+                      <Text style={styles.taskSub}>{t.status === 'completed' ? 'Done' : 'Not Done'} · Due {t.dueDate}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -157,143 +151,27 @@ export default function TeamDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.light.tintDark,
-  },
-  card: {
-    backgroundColor: Colors.light.cardSecondary,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 16,
-  },
-  teamTitleRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  teamIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  teamIconText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 20,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.light.text,
-  },
-  description: {
-    marginTop: 4,
-    fontSize: 13,
-    color: Colors.light.textSecondary,
-    lineHeight: 18,
-  },
-  metaRow: {
-    marginTop: 14,
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.light.card,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  metaText: {
-    color: Colors.light.text,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.light.text,
-    marginBottom: 12,
-  },
-  muted: {
-    color: Colors.light.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.light.card,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: 12,
-    padding: 10,
-  },
-  memberAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.light.border,
-  },
-  memberName: {
-    color: Colors.light.text,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  memberEmail: {
-    color: Colors.light.textSecondary,
-    fontWeight: '600',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.light.card,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: 12,
-    padding: 10,
-  },
-  taskStatusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  taskTitle: {
-    color: Colors.light.text,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  taskSub: {
-    color: Colors.light.textSecondary,
-    fontWeight: '600',
-    fontSize: 12,
-    marginTop: 2,
-  },
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '600', color: theme.tintDark },
+  card: { backgroundColor: theme.cardSecondary, borderRadius: 16, marginHorizontal: 16, marginTop: 12, padding: 16 },
+  teamTitleRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  teamIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  teamIconText: { color: '#FFFFFF', fontWeight: '800', fontSize: 20 },
+  title: { fontSize: 18, fontWeight: '800', color: theme.text },
+  description: { marginTop: 4, fontSize: 13, color: theme.textSecondary, lineHeight: 18 },
+  metaRow: { marginTop: 14, flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  metaText: { color: theme.text, fontWeight: '700', fontSize: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 12 },
+  muted: { color: theme.textSecondary, fontSize: 14, fontWeight: '600' },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 10 },
+  memberAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.border },
+  memberName: { color: theme.text, fontWeight: '800', fontSize: 13 },
+  memberEmail: { color: theme.textSecondary, fontWeight: '600', fontSize: 12, marginTop: 2 },
+  taskRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 10 },
+  taskStatusDot: { width: 10, height: 10, borderRadius: 5 },
+  taskTitle: { color: theme.text, fontWeight: '800', fontSize: 13 },
+  taskSub: { color: theme.textSecondary, fontWeight: '600', fontSize: 12, marginTop: 2 },
 });
-

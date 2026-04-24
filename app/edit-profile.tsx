@@ -10,6 +10,8 @@ import { useLocalization } from '@/utils/localization';
 import { EditableAvatar } from '@/components/EditableAvatar';
 
 export default function EditProfileScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { t } = useLocalization();
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('editProfile')}</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -92,7 +94,7 @@ export default function EditProfileScreen() {
               try {
                 await supabaseService.updateCurrentProfile({ avatar: url });
               } catch (e) {
-                setProfile((p) => (p ? { ...p, avatar: previous } : p));
+                setProfile((p) => (p ? { ...p, avatar: previous || '' } : p));
                 throw e;
               }
             }}
@@ -106,7 +108,7 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter your full name"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               value={formData.fullName}
               onChangeText={(text) => setFormData({ ...formData, fullName: text })}
             />
@@ -158,7 +160,7 @@ export default function EditProfileScreen() {
             <Switch
               value={formData.emailNotification}
               onValueChange={(value) => setFormData({ ...formData, emailNotification: value })}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -167,7 +169,7 @@ export default function EditProfileScreen() {
             <Switch
               value={formData.taskAssignmentAlerts}
               onValueChange={(value) => setFormData({ ...formData, taskAssignmentAlerts: value })}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -176,7 +178,7 @@ export default function EditProfileScreen() {
             <Switch
               value={formData.deadlineReminder}
               onValueChange={(value) => setFormData({ ...formData, deadlineReminder: value })}
-              trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+              trackColor={{ false: theme.border, true: theme.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -187,14 +189,14 @@ export default function EditProfileScreen() {
             <Text style={styles.inputLabel}>Time Zone</Text>
             <TouchableOpacity style={styles.selectButton}>
               <Text style={styles.selectText}>{formData.timeZone}</Text>
-              <ChevronDown size={18} color={Colors.light.textSecondary} />
+              <ChevronDown size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>Language</Text>
             <TouchableOpacity style={styles.selectButton}>
               <Text style={styles.selectText}>{formData.language}</Text>
-              <ChevronDown size={18} color={Colors.light.textSecondary} />
+              <ChevronDown size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -203,10 +205,10 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -218,10 +220,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -245,7 +247,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   inputRow: {
@@ -254,17 +256,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   inputLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
     flex: 1,
   },
   input: {
     flex: 1.5,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
     textAlign: 'right',
     paddingVertical: 4,
   },
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontSize: 15,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -283,10 +285,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   toggleLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
 });

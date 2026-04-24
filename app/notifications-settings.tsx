@@ -14,12 +14,14 @@ interface NotificationSetting {
 }
 
 export default function NotificationsSettingsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [settings, setSettings] = useState<NotificationSetting[]>([
     {
       id: 'push',
       title: 'Push Notifications',
       description: 'Receive push notifications on your device',
-      icon: <Bell size={18} color={Colors.light.tint} />,
+      icon: <Bell size={18} color={theme.tint} />,
       enabled: true,
     },
     {
@@ -62,7 +64,7 @@ export default function NotificationsSettingsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         <View style={{ width: 24 }} />
@@ -79,7 +81,7 @@ export default function NotificationsSettingsScreen() {
           {settings.map((setting, index) => (
             <View key={setting.id} style={[styles.settingItem, index === settings.length - 1 && styles.settingItemLast]}>
               <View style={styles.settingLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: Colors.light.card }]}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.card }]}>
                   {setting.icon}
                 </View>
                 <View style={styles.settingText}>
@@ -90,7 +92,7 @@ export default function NotificationsSettingsScreen() {
               <Switch
                 value={setting.enabled}
                 onValueChange={() => toggleSetting(setting.id)}
-                trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+                trackColor={{ false: theme.border, true: theme.tint }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -108,10 +110,10 @@ export default function NotificationsSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   descriptionSection: {
     paddingHorizontal: 16,
@@ -131,11 +133,11 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     lineHeight: 20,
   },
   settingsList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     paddingVertical: 8,
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   settingItemLast: {
     borderBottomWidth: 0,
@@ -172,28 +174,28 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   quietHoursButton: {
     marginHorizontal: 16,
     marginTop: 20,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
   quietHoursTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   quietHoursDescription: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
 });

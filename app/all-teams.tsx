@@ -8,6 +8,8 @@ import { Team } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
 
 export default function AllTeamsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [activeFilter, setActiveFilter] = useState<'All' | 'Active' | 'Archived'>('All');
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,11 +40,11 @@ export default function AllTeamsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Teams</Text>
         <TouchableOpacity style={styles.headerIcon}>
-          <Search size={22} color={Colors.light.text} />
+          <Search size={22} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -75,7 +77,7 @@ export default function AllTeamsScreen() {
         </View>
 
         <View style={styles.teamsList}>
-          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.viewDetailsText}>{error}</Text>}
           {filteredTeams.map((team) => (
             <TouchableOpacity key={team.id} style={styles.teamCard} onPress={() => router.push(`/team/${team.id}`)}>
@@ -121,10 +123,10 @@ export default function AllTeamsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -136,7 +138,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerIcon: {
     padding: 4,
@@ -149,7 +151,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -169,7 +171,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   filterButton: {
     paddingVertical: 12,
@@ -178,14 +180,14 @@ const styles = StyleSheet.create({
   },
   filterButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.light.tintDark,
+    borderBottomColor: theme.tintDark,
   },
   filterText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   filterTextActive: {
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
     fontWeight: '600',
   },
   teamsList: {
@@ -194,7 +196,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   teamCard: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
@@ -222,12 +224,12 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
     marginBottom: 2,
   },
   memberCount: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   progressSection: {
     marginBottom: 16,
@@ -240,16 +242,16 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   progressValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   progressBar: {
     height: 6,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     borderRadius: 3,
   },
   progressFill: {
@@ -261,7 +263,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: theme.border,
     paddingTop: 12,
   },
   membersRow: {
@@ -273,11 +275,11 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: Colors.light.cardSecondary,
+    borderColor: theme.cardSecondary,
   },
   viewDetailsText: {
     fontSize: 13,
-    color: Colors.light.tint,
+    color: theme.tint,
     fontWeight: '500',
   },
   fab: {
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

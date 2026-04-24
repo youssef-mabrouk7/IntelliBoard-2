@@ -18,11 +18,14 @@ const legalLinks = [
 ];
 
 export default function AboutScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>About</Text>
         <View style={{ width: 24 }} />
@@ -55,7 +58,7 @@ export default function AboutScreen() {
             {legalLinks.map((link, index) => (
               <TouchableOpacity key={index} style={styles.linkItem}>
                 <Text style={styles.linkText}>{link}</Text>
-                <ChevronRight size={20} color={Colors.light.textSecondary} />
+                <ChevronRight size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -65,20 +68,20 @@ export default function AboutScreen() {
           <Text style={styles.sectionTitle}>Connect</Text>
           <View style={styles.socialLinks}>
             <TouchableOpacity style={styles.socialButton}>
-              <Globe size={24} color={Colors.light.tint} />
+              <Globe size={24} color={theme.tint} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
-              <Github size={24} color={Colors.light.tint} />
+              <Github size={24} color={theme.tint} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
-              <Heart size={24} color={Colors.light.error} />
+              <Heart size={24} color={theme.error} />
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Made with <Heart size={14} color={Colors.light.error} fill={Colors.light.error} /> by IntelliBoard Team
+            Made with <Heart size={14} color={theme.error} fill={theme.error} /> by IntelliBoard Team
           </Text>
           <Text style={styles.copyright}>2024 IntelliBoard. All rights reserved.</Text>
         </View>
@@ -87,10 +90,10 @@ export default function AboutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   logoSection: {
     alignItems: 'center',
@@ -112,7 +115,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 20,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -125,12 +128,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   tagline: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   section: {
     marginHorizontal: 16,
@@ -139,13 +142,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   infoList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -156,18 +159,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   infoLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   infoValue: {
     fontSize: 15,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   linksList: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -178,11 +181,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   linkText: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   socialLinks: {
     flexDirection: 'row',
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -202,13 +205,13 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
   copyright: {
     fontSize: 12,
-    color: Colors.light.textMuted,
+    color: theme.textMuted,
   },
 });

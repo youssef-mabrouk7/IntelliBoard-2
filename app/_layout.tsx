@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAppPreferencesStore } from "@/stores/appPreferencesStore";
 
@@ -18,21 +19,25 @@ function RootLayoutNav() {
   const onboardingCompleted = useAppPreferencesStore((s) => s.onboardingCompleted);
   const pathname = usePathname();
 
+  // ✅ ALL hooks are declared unconditionally at the top level.
+  // The hydration guard is applied inside the JSX return, NOT as an early return
+  // before useEffect — an early return there would violate React's rules of hooks
+  // and cause "Rendered more hooks than during the previous render".
   useEffect(() => {
+    // If preferences haven't loaded from AsyncStorage yet, skip navigation.
     if (!hydrated) return;
 
     const navigateIfNeeded = (hasSession: boolean) => {
-      const onTabs = pathname.startsWith("/(tabs)") || ["/home", "/tasks", "/teams", "/calendar", "/analytics", "/projects"].includes(pathname);
       const onPublicAuth = ["/login", "/register", "/onboarding", "/"].includes(pathname);
 
       // Authenticated users should only be redirected away from public auth screens.
-      // Internal stack screens like task details, settings, profile, and create flows must remain accessible.
+      // Internal stack screens (task details, settings, profile, create flows) stay accessible.
       if (hasSession && onPublicAuth) {
         router.replace("/(tabs)/home");
         return;
       }
 
-      // Unauthenticated users should see onboarding first, then login/register.
+      // Unauthenticated users see onboarding first, then login/register.
       if (!hasSession) {
         if (!onboardingCompleted && pathname !== "/onboarding") {
           router.replace("/onboarding");
@@ -61,6 +66,13 @@ function RootLayoutNav() {
     };
   }, [hydrated, pathname, onboardingCompleted]);
 
+  // While preferences are loading from AsyncStorage, render a blank screen.
+  // This prevents the WelcomeScreen from being tappable before the onboarding
+  // check runs (which was causing onboarding to be skipped after cache clear).
+  if (!hydrated) {
+    return <View style={{ flex: 1 }} />;
+  }
+
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -76,7 +88,28 @@ function RootLayoutNav() {
       <Stack.Screen name="nvite-members" options={{ headerShown: false }} />
       <Stack.Screen name="invite-email" options={{ headerShown: false }} />
       <Stack.Screen name="role-permissions" options={{ headerShown: false }} />
-
+      <Stack.Screen name="task/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="project/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="team/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="new-project" options={{ headerShown: false }} />
+      <Stack.Screen name="new-event" options={{ headerShown: false }} />
+      <Stack.Screen name="select-due-date" options={{ headerShown: false }} />
+      <Stack.Screen name="select-priority" options={{ headerShown: false }} />
+      <Stack.Screen name="select-category" options={{ headerShown: false }} />
+      <Stack.Screen name="select-subtasks" options={{ headerShown: false }} />
+      <Stack.Screen name="select-attachment" options={{ headerShown: false }} />
+      <Stack.Screen name="appearance" options={{ headerShown: false }} />
+      <Stack.Screen name="language-date" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications-settings" options={{ headerShown: false }} />
+      <Stack.Screen name="preferences" options={{ headerShown: false }} />
+      <Stack.Screen name="about" options={{ headerShown: false }} />
+      <Stack.Screen name="help-support" options={{ headerShown: false }} />
+      <Stack.Screen name="account" options={{ headerShown: false }} />
+      <Stack.Screen name="all-tasks" options={{ headerShown: false }} />
+      <Stack.Screen name="all-projects" options={{ headerShown: false }} />
+      <Stack.Screen name="all-events" options={{ headerShown: false }} />
+      <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="all-teams" options={{ headerShown: false }} />
     </Stack>
   );
 }

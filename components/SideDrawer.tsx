@@ -37,16 +37,10 @@ interface MenuItemProps {
   onPress: () => void;
 }
 
-function MenuItem({ icon, label, onPress }: MenuItemProps) {
-  return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <View style={styles.menuIcon}>{icon}</View>
-      <Text style={styles.menuLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
 
 export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const slideAnim = React.useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -113,28 +107,28 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
           <View style={styles.drawerHeader}>
             <Text style={styles.drawerTitle}>Menu</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color={Colors.light.text} />
+              <X size={24} color={theme.text} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.menuContainer}>
             <MenuItem
-              icon={<Home size={22} color={Colors.light.tint} />}
+              icon={<Home size={22} color={theme.tint} />}
               label="Home"
               onPress={() => handleNavigation('/(tabs)/home')}
             />
             <MenuItem
-              icon={<Folder size={22} color={Colors.light.tint} />}
+              icon={<Folder size={22} color={theme.tint} />}
               label="Tasks"
               onPress={() => handleNavigation('/(tabs)/tasks')}
             />
             <MenuItem
-              icon={<Briefcase size={22} color={Colors.light.tint} />}
+              icon={<Briefcase size={22} color={theme.tint} />}
               label="Projects"
               onPress={() => handleNavigation('/(tabs)/projects')}
             />
             <MenuItem
-              icon={<Users size={22} color={Colors.light.tint} />}
+              icon={<Users size={22} color={theme.tint} />}
               label="Teams"
               onPress={() => handleNavigation('/(tabs)/teams')}
             />
@@ -142,12 +136,12 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
             <View style={styles.divider} />
 
             <MenuItem
-              icon={<Calendar size={22} color={Colors.light.tint} />}
+              icon={<Calendar size={22} color={theme.tint} />}
               label="Calendar"
               onPress={() => handleNavigation('/(tabs)/calendar')}
             />
             <MenuItem
-              icon={<BarChart3 size={22} color={Colors.light.tint} />}
+              icon={<BarChart3 size={22} color={theme.tint} />}
               label="Analytics"
               onPress={() => handleNavigation('/(tabs)/analytics')}
             />
@@ -155,12 +149,12 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
             <View style={styles.divider} />
 
             <MenuItem
-              icon={<User size={22} color={Colors.light.tint} />}
+              icon={<User size={22} color={theme.tint} />}
               label="Profile"
               onPress={() => handleNavigation('/profile')}
             />
             <MenuItem
-              icon={<Settings size={22} color={Colors.light.tint} />}
+              icon={<Settings size={22} color={theme.tint} />}
               label="Settings"
               onPress={() => handleNavigation('/settings')}
             />
@@ -171,7 +165,18 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function MenuItem({ icon, label, onPress }: MenuItemProps) {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+  return (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <View style={styles.menuIcon}>{icon}</View>
+      <Text style={styles.menuLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   overlay: {
     flex: 1,
     flexDirection: 'row',
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
   drawer: {
     width: DRAWER_WIDTH,
     height: '100%',
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
@@ -201,12 +206,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   drawerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
   },
   closeButton: {
     padding: 4,
@@ -224,7 +229,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -232,11 +237,11 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.light.text,
+    color: theme.text,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     marginVertical: 16,
     marginHorizontal: 20,
   },

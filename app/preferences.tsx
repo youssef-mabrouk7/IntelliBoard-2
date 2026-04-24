@@ -17,6 +17,8 @@ interface PreferenceSection {
 }
 
 export default function PreferencesScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [autoSave, setAutoSave] = useState(true);
   const [compactView, setCompactView] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -51,7 +53,7 @@ export default function PreferencesScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Preferences</Text>
         <View style={{ width: 24 }} />
@@ -75,13 +77,13 @@ export default function PreferencesScreen() {
                     <Switch
                       value={item.switchValue}
                       onValueChange={(value) => handleSwitchChange(item.id, value)}
-                      trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+                      trackColor={{ false: theme.border, true: theme.tint }}
                       thumbColor="#FFFFFF"
                     />
                   ) : (
                     <TouchableOpacity style={styles.valueContainer}>
                       <Text style={styles.itemValue}>{item.value}</Text>
-                      <ChevronRight size={18} color={Colors.light.textSecondary} />
+                      <ChevronRight size={18} color={theme.textSecondary} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -100,10 +102,10 @@ export default function PreferencesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   section: {
     marginHorizontal: 16,
@@ -124,13 +126,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   sectionContent: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -141,14 +143,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   itemLast: {
     borderBottomWidth: 0,
   },
   itemLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   valueContainer: {
     flexDirection: 'row',
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
   },
   itemValue: {
     fontSize: 15,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   resetSection: {
     marginHorizontal: 16,
@@ -166,12 +168,12 @@ const styles = StyleSheet.create({
   resetButton: {
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     alignItems: 'center',
   },
   resetButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.error,
+    color: theme.error,
   },
 });

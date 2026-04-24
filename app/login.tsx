@@ -1,16 +1,30 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { friendlyAuthNetworkMessage, isSupabaseConfigured, supabase } from '@/utils/supabase';
+import { useLocalization } from '@/utils/localization';
+import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
 
 export default function LoginScreen() {
+  const { t, isRTL, language } = useLocalization();
+  const setLanguage = useAppPreferencesStore((s) => s.setLanguage);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -25,16 +39,11 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         alert(error.message);
         return;
       }
-
       router.replace('/(tabs)/home');
     } catch (error: any) {
       alert(friendlyAuthNetworkMessage(error?.message));
@@ -58,25 +67,27 @@ export default function LoginScreen() {
               <View style={styles.inputWrapper}>
                 <Mail size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
-                  placeholder="Email"
+                  style={[styles.input, isRTL && styles.inputRTL]}
+                  placeholder={t('emailLabel')}
                   placeholderTextColor={Colors.light.textSecondary}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  textAlign={isRTL ? 'right' : 'left'}
                 />
               </View>
 
               <View style={styles.inputWrapper}>
                 <Lock size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
-                  placeholder="Password"
+                  style={[styles.input, isRTL && styles.inputRTL]}
+                  placeholder={t('passwordLabel')}
                   placeholderTextColor={Colors.light.textSecondary}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  textAlign={isRTL ? 'right' : 'left'}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -90,28 +101,32 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forget Password?</Text>
+              <TouchableOpacity
+                style={[styles.forgotPassword, isRTL && { alignSelf: 'flex-start' }]}
+              >
+                <Text style={styles.forgotPasswordText}>{t('forgotPassword')}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.loginButton, loading && styles.disabledButton]} 
+              <TouchableOpacity
+                style={[styles.loginButton, loading && styles.disabledButton]}
                 onPress={handleLogin}
                 disabled={loading}
               >
-                <Text style={styles.loginButtonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+                <Text style={styles.loginButtonText}>
+                  {loading ? t('loggingIn') : t('loginTitle')}
+                </Text>
               </TouchableOpacity>
 
-              <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>Don&apos;t Have Account ? </Text>
+              <View style={[styles.signupContainer, isRTL && { flexDirection: 'row-reverse' }]}>
+                <Text style={styles.signupText}>{t('dontHaveAccount')} </Text>
                 <TouchableOpacity onPress={() => router.push('/register')}>
-                  <Text style={styles.signupLink}>Create Account</Text>
+                  <Text style={styles.signupLink}>{t('createAccount')}</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Or</Text>
+                <Text style={styles.dividerText}>{t('orDivider')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -120,14 +135,27 @@ export default function LoginScreen() {
                   source={{ uri: 'https://www.google.com/favicon.ico' }}
                   style={styles.googleIcon}
                 />
-                <Text style={styles.googleButtonText}>Login With Google</Text>
+                <Text style={styles.googleButtonText}>{t('loginWithGoogle')}</Text>
               </TouchableOpacity>
 
+              {/* Language switcher — wired to setLanguage */}
               <View style={styles.languageContainer}>
-                <TouchableOpacity style={styles.languageButton}>
+                <TouchableOpacity
+                  style={[
+                    styles.languageButton,
+                    language === 'en' && styles.languageButtonActive,
+                  ]}
+                  onPress={() => setLanguage('en')}
+                >
                   <Text style={styles.languageText}>🇺🇸</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.languageButton}>
+                <TouchableOpacity
+                  style={[
+                    styles.languageButton,
+                    language === 'ar' && styles.languageButtonActive,
+                  ]}
+                  onPress={() => setLanguage('ar')}
+                >
                   <Text style={styles.languageText}>🇪🇬</Text>
                 </TouchableOpacity>
               </View>
@@ -175,6 +203,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: Colors.light.text,
+  },
+  inputRTL: {
+    textAlign: 'right',
   },
   eyeIcon: {
     padding: 4,
@@ -260,14 +291,19 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   languageButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.light.card,
     borderWidth: 1,
     borderColor: Colors.light.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  languageButtonActive: {
+    borderColor: Colors.light.tint,
+    borderWidth: 2,
+    backgroundColor: Colors.light.tint + '15',
   },
   languageText: {
     fontSize: 20,

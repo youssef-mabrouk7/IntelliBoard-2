@@ -1,8 +1,19 @@
 import { translations, type TranslationKey } from '@/constants/i18n';
 import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
 
+/**
+ * Parse a date value into a JS Date.
+ * ISO date-only strings (YYYY-MM-DD) are intentionally parsed as LOCAL midnight
+ * to avoid the timezone-shift bug: `new Date("2026-05-01")` is UTC midnight,
+ * which in UTC+3 renders as Apr 30 when formatted with Intl.DateTimeFormat.
+ */
 function toDate(value: string | Date) {
-  return value instanceof Date ? value : new Date(value);
+  if (value instanceof Date) return value;
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (isoDate) {
+    return new Date(Number(isoDate[1]), Number(isoDate[2]) - 1, Number(isoDate[3]));
+  }
+  return new Date(value);
 }
 
 export function useLocalization() {

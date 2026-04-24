@@ -8,6 +8,8 @@ import { Project } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
 
 export default function AllProjectsScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [activeFilter, setActiveFilter] = useState<'All' | 'Active' | 'Completed'>('All');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -42,7 +44,7 @@ export default function AllProjectsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Projects</Text>
         <View style={styles.headerRight}>
@@ -50,13 +52,13 @@ export default function AllProjectsScreen() {
             style={[styles.viewModeButton, viewMode === 'list' && styles.viewModeButtonActive]}
             onPress={() => setViewMode('list')}
           >
-            <List size={20} color={viewMode === 'list' ? Colors.light.tint : Colors.light.textSecondary} />
+            <List size={20} color={viewMode === 'list' ? theme.tint : theme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.viewModeButton, viewMode === 'grid' && styles.viewModeButtonActive]}
             onPress={() => setViewMode('grid')}
           >
-            <Grid3X3 size={20} color={viewMode === 'grid' ? Colors.light.tint : Colors.light.textSecondary} />
+            <Grid3X3 size={20} color={viewMode === 'grid' ? theme.tint : theme.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -92,7 +94,7 @@ export default function AllProjectsScreen() {
         </View>
 
         <View style={viewMode === 'grid' ? styles.projectsGrid : styles.projectsList}>
-          {loading && <ActivityIndicator color={Colors.light.tint} />}
+          {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
           {!loading && !error && filteredProjects.map((project) => (
             <TouchableOpacity 
@@ -107,7 +109,7 @@ export default function AllProjectsScreen() {
                 <Text style={styles.projectName}>{project.name}</Text>
                 <View style={styles.tagsRow}>
                   {project.tags.slice(0, 2).map((tag, idx) => (
-                    <View key={idx} style={[styles.tagBadge, { backgroundColor: getTagColor(tag) }]}>
+                    <View key={idx} style={[styles.tagBadge, { backgroundColor: getTagColor(tag, theme) }]}>
                       <Text style={styles.tagText}>{tag}</Text>
                     </View>
                   ))}
@@ -143,7 +145,7 @@ export default function AllProjectsScreen() {
   );
 }
 
-function getTagColor(tag: string) {
+function getTagColor(tag: string, theme: typeof Colors.light) {
   switch (tag) {
     case 'Design':
       return '#9C7BB8';
@@ -152,14 +154,14 @@ function getTagColor(tag: string) {
     case 'Marketing':
       return '#FFB74D';
     default:
-      return Colors.light.tint;
+      return theme.tint;
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -171,7 +173,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   headerRight: {
     flexDirection: 'row',
@@ -181,12 +183,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   viewModeButtonActive: {
-    backgroundColor: Colors.light.tint + '20',
+    backgroundColor: theme.tint + '20',
   },
   statsRow: {
     flexDirection: 'row',
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   filterButton: {
     paddingVertical: 12,
@@ -225,14 +227,14 @@ const styles = StyleSheet.create({
   },
   filterButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.light.tintDark,
+    borderBottomColor: theme.tintDark,
   },
   filterText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   filterTextActive: {
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
     fontWeight: '600',
   },
   projectsList: {
@@ -249,7 +251,7 @@ const styles = StyleSheet.create({
   },
   projectCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     padding: 16,
   },
@@ -276,7 +278,7 @@ const styles = StyleSheet.create({
   projectName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 8,
   },
   tagsRow: {
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     borderRadius: 3,
   },
   progressFill: {
@@ -312,7 +314,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginLeft: 8,
   },
   projectFooter: {
@@ -322,7 +324,7 @@ const styles = StyleSheet.create({
   },
   dueDate: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   membersRow: {
     flexDirection: 'row',
@@ -332,7 +334,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.light.cardSecondary,
+    borderColor: theme.cardSecondary,
   },
   fab: {
     position: 'absolute',
@@ -341,7 +343,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   errorText: {
-    color: Colors.light.error,
+    color: theme.error,
     fontSize: 14,
   },
 });
