@@ -141,6 +141,11 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
               onPress={() => handleNavigation('/(tabs)/calendar')}
             />
             <MenuItem
+              icon={<Calendar size={22} color={theme.tint} />}
+              label="Events"
+              onPress={() => handleNavigation('/all-events')}
+            />
+            <MenuItem
               icon={<BarChart3 size={22} color={theme.tint} />}
               label="Analytics"
               onPress={() => handleNavigation('/(tabs)/analytics')}

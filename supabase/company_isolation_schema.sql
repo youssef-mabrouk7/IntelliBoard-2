@@ -501,3 +501,194 @@ with check (company_id = public.current_company_id());
 create policy invites_delete_company on public.invites
 for delete to authenticated
 using (company_id = public.current_company_id());
+
+-- ---------------------------------------------------------------------------
+-- RBAC + task history extensions
+-- ---------------------------------------------------------------------------
+alter table public.profiles
+  alter column role set default 'Team Member';
+
+alter table public.profiles
+  drop constraint if exists profiles_role_check;
+
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('Project Manager', 'Team Leader', 'Team Member'));
+
+alter table public.task_subtasks
+  add column if not exists due_date date;
+
+create table if not exists public.task_history (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete restrict,
+  task_id uuid not null references public.tasks(id) on delete cascade,
+  changed_by uuid references public.profiles(id) on delete set null,
+  action_type text not null default 'update' check (action_type in ('create', 'update', 'delete')),
+  field_name text not null,
+  old_value text,
+  new_value text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists task_history_company_idx on public.task_history(company_id);
+create index if not exists task_history_task_idx on public.task_history(task_id);
+
+create trigger task_history_set_company
+before insert or update on public.task_history
+for each row execute function public.set_company_id_from_auth();
+
+create or replace function public.current_user_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.role
+  from public.profiles p
+  where p.id = auth.uid()
+  limit 1
+$$;
+
+grant execute on function public.current_user_role() to authenticated;
+
+create or replace function public.has_any_role(roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.current_user_role() = any (roles), false)
+$$;
+
+grant execute on function public.has_any_role(text[]) to authenticated;
+
+alter table public.task_history enable row level security;
+
+drop policy if exists task_history_select_company on public.task_history;
+drop policy if exists task_history_insert_company on public.task_history;
+
+create policy task_history_select_company on public.task_history
+for select to authenticated
+using (company_id = public.current_company_id());
+
+create policy task_history_insert_company on public.task_history
+for insert to authenticated
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+);
+
+drop policy if exists projects_insert_company on public.projects;
+drop policy if exists projects_update_company on public.projects;
+drop policy if exists projects_delete_company on public.projects;
+drop policy if exists tasks_insert_company on public.tasks;
+drop policy if exists tasks_update_company on public.tasks;
+drop policy if exists tasks_delete_company on public.tasks;
+drop policy if exists teams_insert_company on public.teams;
+drop policy if exists teams_update_company on public.teams;
+drop policy if exists teams_delete_company on public.teams;
+drop policy if exists team_members_insert_company on public.team_members;
+drop policy if exists team_members_update_company on public.team_members;
+drop policy if exists team_members_delete_company on public.team_members;
+
+create policy projects_insert_company on public.projects
+for insert to authenticated
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager'])
+);
+
+create policy projects_update_company on public.projects
+for update to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager'])
+)
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager'])
+);
+
+create policy projects_delete_company on public.projects
+for delete to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager'])
+);
+
+create policy tasks_insert_company on public.tasks
+for insert to authenticated
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+);
+
+create policy tasks_update_company on public.tasks
+for update to authenticated
+using (
+  company_id = public.current_company_id()
+  and (
+    public.has_any_role(array['Project Manager', 'Team Leader'])
+    or exists (
+      select 1
+      from public.task_assignees ta
+      where ta.task_id = tasks.id
+        and ta.user_id = auth.uid()
+        and ta.company_id = public.current_company_id()
+    )
+  )
+)
+with check (company_id = public.current_company_id());
+
+create policy tasks_delete_company on public.tasks
+for delete to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+);
+
+create policy teams_insert_company on public.teams
+for insert to authenticated
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager'])
+);
+
+create policy teams_update_company on public.teams
+for update to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+)
+with check (company_id = public.current_company_id());
+
+create policy teams_delete_company on public.teams
+for delete to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager'])
+);
+
+create policy team_members_insert_company on public.team_members
+for insert to authenticated
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+);
+
+create policy team_members_update_company on public.team_members
+for update to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+)
+with check (company_id = public.current_company_id());
+
+create policy team_members_delete_company on public.team_members
+for delete to authenticated
+using (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+);

@@ -12,7 +12,10 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [companyOptions, setCompanyOptions] = useState<string[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyOptions, setCompanyOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [role, setRole] = useState<'Project Manager' | 'Team Leader' | 'Team Member'>('Team Member');
+  const [roleModalVisible, setRoleModalVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
@@ -28,7 +31,7 @@ export default function RegisterScreen() {
         setCompaniesLoading(true);
         const { data, error } = await supabase
           .from('companies')
-          .select('name')
+          .select('id, name')
           .order('name', { ascending: true });
 
         if (error) {
@@ -38,10 +41,10 @@ export default function RegisterScreen() {
           return;
         }
 
-        const names = (data || [])
-          .map((item: any) => String(item?.name || '').trim())
-          .filter((value: string) => value.length > 0);
-        setCompanyOptions(names);
+        const companies = (data || [])
+          .map((item: any) => ({ id: String(item?.id || ''), name: String(item?.name || '').trim() }))
+          .filter((item) => item.id.length > 0 && item.name.length > 0);
+        setCompanyOptions(companies);
         setCompaniesError(null);
       } finally {
         setCompaniesLoading(false);
@@ -71,7 +74,7 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!email || !password || !name || !companyName) {
+    if (!email || !password || !name || !companyName || !companyId) {
       alert('Please fill all fields');
       return;
     }
@@ -111,6 +114,8 @@ export default function RegisterScreen() {
           id: user.id,
           name,
           email,
+          role,
+          company_id: companyId,
         } as Record<string, any>;
 
         const attemptInsertProfile = async (payload: Record<string, any>) =>
@@ -236,6 +241,12 @@ export default function RegisterScreen() {
                 <ChevronDown size={18} color={theme.textSecondary} />
               </TouchableOpacity>
 
+              <TouchableOpacity style={styles.inputWrapper} onPress={() => setRoleModalVisible(true)}>
+                <User size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                <Text style={styles.selectText}>{role}</Text>
+                <ChevronDown size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
+
               <TouchableOpacity style={[styles.registerButton, loading && styles.disabledButton]} onPress={handleRegister} disabled={loading}>
                 <Text style={styles.registerButtonText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
               </TouchableOpacity>
@@ -264,18 +275,42 @@ export default function RegisterScreen() {
             ) : (
               companyOptions.map((option) => (
                 <TouchableOpacity
-                  key={option}
-                  style={[styles.modalItem, companyName === option && styles.modalItemSelected]}
+                  key={option.id}
+                  style={[styles.modalItem, companyName === option.name && styles.modalItemSelected]}
                   onPress={() => {
-                    setCompanyName(option);
+                    setCompanyName(option.name);
+                    setCompanyId(option.id);
                     setCompanyModalVisible(false);
                   }}
                 >
-                  <Text style={[styles.modalItemText, companyName === option && styles.modalItemTextSelected]}>{option}</Text>
+                  <Text style={[styles.modalItemText, companyName === option.name && styles.modalItemTextSelected]}>{option.name}</Text>
                 </TouchableOpacity>
               ))
             )}
             <TouchableOpacity style={styles.modalClose} onPress={() => setCompanyModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={roleModalVisible} transparent animationType="fade" onRequestClose={() => setRoleModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Select Role</Text>
+            {(['Project Manager', 'Team Leader', 'Team Member'] as const).map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[styles.modalItem, role === option && styles.modalItemSelected]}
+                onPress={() => {
+                  setRole(option);
+                  setRoleModalVisible(false);
+                }}
+              >
+                <Text style={[styles.modalItemText, role === option && styles.modalItemTextSelected]}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.modalClose} onPress={() => setRoleModalVisible(false)}>
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </View>

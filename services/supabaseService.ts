@@ -1,10 +1,18 @@
 import { supabase } from '../utils/supabase';
-import { Project, Task, User, Team, CalendarEvent, TaskSubtask } from '../constants/types';
+import { Project, Task, User, Team, CalendarEvent, TaskSubtask, TaskHistoryEntry } from '../constants/types';
 
 const isMissingTableError = (error: { code?: string } | null) => error?.code === 'PGRST205' || error?.code === '42P01';
 const TRANSIENT_ERROR_CODES = new Set(['57014', 'ETIMEDOUT', 'ECONNRESET', 'ENETUNREACH']);
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+type AppRole = 'Project Manager' | 'Team Leader' | 'Team Member';
+
+const normalizeRole = (value?: string | null): AppRole => {
+  const role = String(value ?? '').trim().toLowerCase();
+  if (role === 'project manager') return 'Project Manager';
+  if (role === 'team leader') return 'Team Leader';
+  return 'Team Member';
+};
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs = 8000): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -95,6 +103,19 @@ const mapTaskSubtask = (s: any): TaskSubtask => ({
   taskId: s.task_id,
   title: s.title ?? '',
   completed: Boolean(s.completed),
+  dueDate: s.due_date ?? null,
+});
+
+const mapTaskHistory = (entry: any): TaskHistoryEntry => ({
+  id: entry.id,
+  taskId: entry.task_id,
+  changedBy: entry.changed_by ?? null,
+  fieldName: entry.field_name ?? '',
+  oldValue: entry.old_value ?? null,
+  newValue: entry.new_value ?? null,
+  actionType: entry.action_type ?? 'update',
+  createdAt: entry.created_at,
+  actor: entry.actor ?? null,
 });
 
 function getStatusFromProgress(task: Task, progress: number): Task['status'] {
@@ -153,7 +174,9 @@ async function ensureCurrentProfileExists() {
     email: user.email ?? '',
     name: (user.user_metadata as any)?.name ?? '',
     avatar: (user.user_metadata as any)?.avatar_url ?? (user.user_metadata as any)?.avatar ?? null,
-    role: (user.user_metadata as any)?.role ?? 'Member',
+    // Never rely on JWT/user_metadata for authorization decisions.
+    // The canonical role is stored in `profiles.role`.
+    role: 'Team Member',
   };
 
   // Upsert is idempotent and fixes FK failures when `profiles` row doesn't exist yet.
@@ -162,6 +185,30 @@ async function ensureCurrentProfileExists() {
   );
   if (error) throw error;
   return user.id;
+}
+
+async function getCurrentUserProfile() {
+  const { data: authData, error: authError } = await withTimeout(withRetry(() => supabase.auth.getUser()));
+  if (authError) throw authError;
+  const authUser = authData.user;
+  if (!authUser) return null;
+
+  const { data, error } = await withTimeout(
+    withRetry(() =>
+      supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle(),
+    ),
+  );
+  if (error) throw error;
+  return data as User | null;
+}
+
+async function requireRole(permission: 'manageProjects' | 'manageTasks' | 'manageTeamMembers') {
+  const profile = await getCurrentUserProfile();
+  const role = normalizeRole(profile?.role);
+  if (role === 'Project Manager') return;
+  if (permission === 'manageTasks' && role === 'Team Leader') return;
+  if (permission === 'manageTeamMembers' && role === 'Team Leader') return;
+  throw new Error('You do not have permission to perform this action.');
 }
 
 export const supabaseService = {
@@ -271,6 +318,7 @@ export const supabaseService = {
   },
 
   async createProject(project: Partial<Project>) {
+    await requireRole('manageProjects');
     const userId = await ensureCurrentProfileExists();
     const payload: any = {
       name: project.name,
@@ -368,6 +416,7 @@ export const supabaseService = {
   },
 
   async createTask(task: Partial<Task>) {
+    await requireRole('manageTasks');
     const payload: any = {
       project_id: task.projectId,
       team_id: task.teamId,
@@ -393,7 +442,11 @@ export const supabaseService = {
       );
 
     let res = await attemptInsert(payload);
-    if (!res.error) return mapTask(res.data);
+    if (!res.error) {
+      const created = mapTask(res.data);
+      await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
+      return created;
+    }
 
     // If the DB schema doesn't have `team_id`, retry without it.
     const msg = String(res.error?.message || '').toLowerCase();
@@ -408,7 +461,11 @@ export const supabaseService = {
     if (missingTeamId) {
       const { team_id: _omit, ...withoutTeam } = payload;
       res = await attemptInsert(withoutTeam);
-      if (!res.error) return mapTask(res.data);
+      if (!res.error) {
+        const created = mapTask(res.data);
+        await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
+        return created;
+      }
     }
 
     // If the DB schema doesn't have `attachment_urls`, retry without it.
@@ -419,7 +476,11 @@ export const supabaseService = {
     if (missingAttachmentUrls) {
       const { attachment_urls: _omit, ...withoutAttachments } = payload;
       res = await attemptInsert(withoutAttachments);
-      if (!res.error) return mapTask(res.data);
+      if (!res.error) {
+        const created = mapTask(res.data);
+        await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
+        return created;
+      }
     }
 
     throw res.error;
@@ -444,8 +505,9 @@ export const supabaseService = {
 
   async createTaskSubtasks(
     taskId: string,
-    subtasks: Array<{ title: string; completed?: boolean }>,
+    subtasks: Array<{ title: string; completed?: boolean; dueDate?: string | null }>,
   ) {
+    await requireRole('manageTasks');
     if (!subtasks.length) return [];
     const payload = subtasks
       .filter((s) => s.title.trim().length > 0)
@@ -453,6 +515,7 @@ export const supabaseService = {
         task_id: taskId,
         title: s.title.trim(),
         completed: Boolean(s.completed),
+        due_date: s.dueDate ?? null,
       }));
     if (!payload.length) return [];
     const { data, error } = await withTimeout(
@@ -471,6 +534,7 @@ export const supabaseService = {
   },
 
   async updateTaskSubtaskStatus(taskId: string, subtaskId: string, completed: boolean) {
+    await requireRole('manageTasks');
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
@@ -493,6 +557,7 @@ export const supabaseService = {
     const status = getStatusFromProgress(task, progress);
 
     await this.updateTaskStatus(taskId, status, progress);
+    await this.logTaskHistory(taskId, 'update', `subtask:${mappedSubtask.title}`, String(!completed), String(completed));
     return mappedSubtask;
   },
 
@@ -518,6 +583,8 @@ export const supabaseService = {
   },
 
   async updateTaskStatus(taskId: string, status: Task['status'], progress: number) {
+    await requireRole('manageTasks');
+    const existing = await this.getTaskById(taskId);
     const { data, error } = await withTimeout(
       withRetry(() => supabase
       .from('tasks')
@@ -527,7 +594,87 @@ export const supabaseService = {
       .single()),
     );
     if (error) throw error;
-    return mapTask(data);
+    const updated = mapTask(data);
+    if (existing.status !== updated.status) {
+      await this.logTaskHistory(taskId, 'update', 'status', existing.status, updated.status);
+    }
+    if (existing.progress !== updated.progress) {
+      await this.logTaskHistory(taskId, 'update', 'progress', String(existing.progress), String(updated.progress));
+    }
+    return updated;
+  },
+
+  async updateTaskDetails(taskId: string, patch: Partial<Pick<Task, 'title' | 'description' | 'dueDate' | 'priority' | 'category'>>) {
+    await requireRole('manageTasks');
+    const existing = await this.getTaskById(taskId);
+    const updates: Record<string, any> = {};
+    if (patch.title !== undefined) updates.title = patch.title;
+    if (patch.description !== undefined) updates.description = patch.description;
+    if (patch.dueDate !== undefined) updates.due_date = patch.dueDate;
+    if (patch.priority !== undefined) updates.priority = patch.priority;
+    if (patch.category !== undefined) updates.category = patch.category;
+    if (Object.keys(updates).length === 0) return existing;
+    const { data, error } = await withTimeout(
+      withRetry(() => supabase.from('tasks').update(updates).eq('id', taskId).select('*').single()),
+    );
+    if (error) throw error;
+    const updated = mapTask(data);
+    const comparisons: Array<[string, any, any]> = [
+      ['title', existing.title, updated.title],
+      ['description', existing.description ?? '', updated.description ?? ''],
+      ['due_date', existing.dueDate, updated.dueDate],
+      ['priority', existing.priority, updated.priority],
+      ['category', existing.category ?? '', updated.category ?? ''],
+    ];
+    for (const [field, oldVal, newVal] of comparisons) {
+      if (String(oldVal ?? '') !== String(newVal ?? '')) {
+        await this.logTaskHistory(taskId, 'update', field, String(oldVal ?? ''), String(newVal ?? ''));
+      }
+    }
+    return updated;
+  },
+
+  async getTaskHistory(taskId: string) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('task_history')
+          .select('*, actor:profiles(*)')
+          .eq('task_id', taskId)
+          .order('created_at', { ascending: false }),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return [];
+      throw error;
+    }
+    return (data || []).map(mapTaskHistory);
+  },
+
+  async logTaskHistory(
+    taskId: string,
+    actionType: TaskHistoryEntry['actionType'],
+    fieldName: string,
+    oldValue: string | null,
+    newValue: string | null,
+  ) {
+    const { data: authData } = await supabase.auth.getUser();
+    const changedBy = authData.user?.id ?? null;
+    const { error } = await withTimeout(
+      withRetry(() =>
+        supabase.from('task_history').insert([
+          {
+            task_id: taskId,
+            changed_by: changedBy,
+            action_type: actionType,
+            field_name: fieldName,
+            old_value: oldValue,
+            new_value: newValue,
+          },
+        ]),
+      ),
+    );
+    if (error && !isMissingTableError(error)) throw error;
   },
 
   async getTeamById(teamId: string) {
@@ -562,6 +709,11 @@ export const supabaseService = {
     
     if (error) throw error;
     return data as User;
+  },
+
+  async getCurrentRole(): Promise<AppRole> {
+    const profile = await this.getCurrentProfile();
+    return normalizeRole(profile?.role);
   },
 
   async getProfiles() {
@@ -607,6 +759,7 @@ export const supabaseService = {
   },
 
   async createInvites(payload: { emails: string[]; role: string; message?: string; attachmentUrls?: string[] }) {
+    await requireRole('manageTeamMembers');
     const { error } = await withTimeout(
       withRetry(() =>
         supabase.from('invites').insert([
@@ -645,6 +798,7 @@ export const supabaseService = {
   },
 
   async createTeam(team: Pick<Team, 'name' | 'description' | 'color' | 'progress'>, memberIds: string[] = []) {
+    await requireRole('manageTeamMembers');
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
@@ -702,6 +856,7 @@ export const supabaseService = {
   },
 
   async createEvent(event: Pick<CalendarEvent, 'title' | 'date' | 'startTime' | 'endTime' | 'color' | 'status'>) {
+    await requireRole('manageTasks');
     const payload = {
       title: event.title,
       date: event.date,

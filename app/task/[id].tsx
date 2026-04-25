@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { ArrowLeft, Calendar, Briefcase, Users, Paperclip, ExternalLink } from 'lucide-react-native'
 
 import Colors from '@/constants/colors'
-import type { Project, Task, Team, TaskSubtask } from '@/constants/types'
+import type { Project, Task, Team, TaskSubtask, TaskHistoryEntry } from '@/constants/types'
 import { supabaseService } from '@/services/supabaseService'
 
 export default function TaskDetailsScreen() {
@@ -18,6 +18,7 @@ export default function TaskDetailsScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [subtasks, setSubtasks] = useState<TaskSubtask[]>([])
+  const [history, setHistory] = useState<TaskHistoryEntry[]>([])
   const [updatingSubtaskId, setUpdatingSubtaskId] = useState<string | null>(null)
   const theme = Colors.current
   const styles = createStyles(theme)
@@ -43,16 +44,18 @@ export default function TaskDetailsScreen() {
       try {
         setLoading(true)
         setError(null)
-        const [t, ps, ts, sts] = await Promise.all([
+        const [t, ps, ts, sts, hs] = await Promise.all([
           supabaseService.getTaskById(taskId),
           supabaseService.getProjects(),
           supabaseService.getTeams(),
           supabaseService.getTaskSubtasks(taskId),
+          supabaseService.getTaskHistory(taskId),
         ])
         setTask(t)
         setProjects(ps)
         setTeams(ts)
         setSubtasks(sts)
+        setHistory(hs)
       } catch (e: any) {
         setError(e?.message || 'Failed to load task')
       } finally {
@@ -210,6 +213,7 @@ export default function TaskDetailsScreen() {
                       ]}
                     />
                     <Text style={[styles.subtaskText, s.completed && styles.subtaskTextDone]}>{s.title}</Text>
+                    <Text style={styles.subtaskMeta}>{s.dueDate ? `Due ${s.dueDate}` : 'No due date'}</Text>
                     <TouchableOpacity
                       style={[styles.subtaskButton, s.completed && styles.subtaskButtonDone]}
                       onPress={() => void toggleSubtask(s)}
@@ -221,6 +225,27 @@ export default function TaskDetailsScreen() {
                         <Text style={styles.subtaskButtonText}>Task Done</Text>
                       )}
                     </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>History</Text>
+            {history.length === 0 ? (
+              <Text style={styles.muted}>No history recorded</Text>
+            ) : (
+              <View style={{ gap: 8 }}>
+                {history.map((entry) => (
+                  <View key={entry.id} style={styles.historyRow}>
+                    <Text style={styles.historyTitle}>{`${entry.actionType.toUpperCase()} - ${entry.fieldName}`}</Text>
+                    <Text style={styles.historyMeta}>
+                      {entry.oldValue ? `${entry.oldValue} -> ${entry.newValue ?? ''}` : entry.newValue ?? 'Updated'}
+                    </Text>
+                    <Text style={styles.historyMeta}>
+                      {entry.actor?.name || entry.actor?.email || 'System'} · {new Date(entry.createdAt).toLocaleString()}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -370,6 +395,12 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  subtaskMeta: {
+    marginLeft: 8,
+    color: theme.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
   subtaskTextDone: {
     textDecorationLine: 'line-through',
     color: theme.textSecondary,
@@ -409,6 +440,24 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
     color: theme.text,
     fontWeight: '700',
     fontSize: 11,
+  },
+  historyRow: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: theme.card,
+  },
+  historyTitle: {
+    color: theme.text,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  historyMeta: {
+    color: theme.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
   },
 })
 

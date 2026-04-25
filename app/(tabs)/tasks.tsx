@@ -82,6 +82,11 @@ export default function TasksScreen() {
             <Text style={styles.dropdownText}>{t('filterAllTasks')}</Text>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.dropdown} onPress={() => router.push('/all-subtasks')}>
+          <View style={styles.dropdownButton}>
+            <Text style={styles.dropdownText}>View All Subtasks</Text>
+          </View>
+        </TouchableOpacity>
 
         <Text style={styles.activeTasksText}>{`${filteredTasks.length} ${t('activeTasks')}`}</Text>
 

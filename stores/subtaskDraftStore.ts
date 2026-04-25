@@ -4,6 +4,7 @@ export type DraftSubtask = {
   id: string;
   title: string;
   completed: boolean;
+  dueDate?: string | null;
 };
 
 type SubtaskDraftState = {

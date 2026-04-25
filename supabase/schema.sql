@@ -345,3 +345,52 @@ on public.event_assignees
 for insert
 to authenticated
 with check (true);
+
+-- Task due-date + history extension
+alter table public.task_subtasks
+  add column if not exists due_date date;
+
+create table if not exists public.task_history (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid not null references public.tasks(id) on delete cascade,
+  changed_by uuid references public.profiles(id) on delete set null,
+  action_type text not null default 'update' check (action_type in ('create', 'update', 'delete')),
+  field_name text not null,
+  old_value text,
+  new_value text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_task_history_task_id on public.task_history(task_id);
+alter table public.task_history enable row level security;
+
+drop policy if exists task_history_select on public.task_history;
+drop policy if exists task_history_insert on public.task_history;
+
+create policy task_history_select
+on public.task_history
+for select
+to authenticated
+using (
+  exists (
+    select 1 from public.tasks t
+    where t.id = task_history.task_id
+      and (
+        t.project_id is null
+        or exists (
+          select 1 from public.project_members pm
+          where pm.project_id = t.project_id and pm.user_id = auth.uid()
+        )
+        or exists (
+          select 1 from public.projects p
+          where p.id = t.project_id and p.created_by = auth.uid()
+        )
+      )
+  )
+);
+
+create policy task_history_insert
+on public.task_history
+for insert
+to authenticated
+with check (changed_by = auth.uid() or changed_by is null);

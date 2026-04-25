@@ -106,6 +106,7 @@ function RootLayoutNav() {
       <Stack.Screen name="help-support" options={{ headerShown: false }} />
       <Stack.Screen name="account" options={{ headerShown: false }} />
       <Stack.Screen name="all-tasks" options={{ headerShown: false }} />
+      <Stack.Screen name="all-subtasks" options={{ headerShown: false }} />
       <Stack.Screen name="all-projects" options={{ headerShown: false }} />
       <Stack.Screen name="all-events" options={{ headerShown: false }} />
       <Stack.Screen name="event/[id]" options={{ headerShown: false }} />

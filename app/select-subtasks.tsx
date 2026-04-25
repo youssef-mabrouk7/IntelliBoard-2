@@ -10,6 +10,7 @@ interface Subtask {
   id: string;
   title: string;
   completed: boolean;
+  dueDate?: string | null;
 }
 
 export default function SelectSubtasksScreen() {
@@ -32,6 +33,7 @@ export default function SelectSubtasksScreen() {
         id: Date.now().toString(),
         title: newSubtaskTitle.trim(),
         completed: false,
+        dueDate: null,
       }]);
       setNewSubtaskTitle('');
     }
@@ -98,6 +100,19 @@ export default function SelectSubtasksScreen() {
                 >
                   {subtask.title}
                 </Text>
+                <TextInput
+                  style={styles.subtaskDueDateInput}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={Colors.light.textSecondary}
+                  value={subtask.dueDate ?? ''}
+                  onChangeText={(value) =>
+                    setSubtasks((prev) =>
+                      prev.map((item) =>
+                        item.id === subtask.id ? { ...item, dueDate: value.trim() || null } : item,
+                      ),
+                    )
+                  }
+                />
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => removeSubtask(subtask.id)}
@@ -240,6 +255,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: Colors.light.text,
+  },
+  subtaskDueDateInput: {
+    width: 110,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 12,
+    color: Colors.light.text,
+    marginRight: 8,
   },
   subtaskTitleCompleted: {
     textDecorationLine: 'line-through',

@@ -4,6 +4,7 @@ export interface User {
     email: string;
     avatar: string;
     role: string;
+    companyId?: string;
     companyName?: string;
     department?: string;
     jobTitle?: string;
@@ -31,6 +32,19 @@ export interface TaskSubtask {
   taskId: string;
   title: string;
   completed: boolean;
+  dueDate?: string | null;
+}
+
+export interface TaskHistoryEntry {
+  id: string;
+  taskId: string;
+  changedBy?: string | null;
+  fieldName: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+  actionType: 'create' | 'update' | 'delete';
+  createdAt: string;
+  actor?: User | null;
 }
   
   export interface Project {

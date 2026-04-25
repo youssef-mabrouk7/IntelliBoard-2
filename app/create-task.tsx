@@ -134,7 +134,7 @@ export default function CreateTaskScreen() {
       if (taskSubtasks.length > 0) {
         await supabaseService.createTaskSubtasks(
           createdTask.id,
-          taskSubtasks.map((s) => ({ title: s.title, completed: s.completed })),
+          taskSubtasks.map((s) => ({ title: s.title, completed: s.completed, dueDate: s.dueDate ?? null })),
         );
       }
       setDraftAttachments('task', []);
