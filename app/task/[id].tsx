@@ -91,6 +91,7 @@ export default function TaskDetailsScreen() {
     )
   }
 
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
