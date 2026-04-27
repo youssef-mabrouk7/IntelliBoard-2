@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ const teamColors = [
 ];
 
 export default function CreateTeamScreen() {
+  const params = useLocalSearchParams<{ memberIds?: string }>();
   const [teamName, setTeamName] = useState('Design Team');
   const [description, setDescription] = useState('UI/UX Designers working on user interface design');
   const [selectedColor, setSelectedColor] = useState(4);
@@ -26,6 +27,19 @@ export default function CreateTeamScreen() {
     const load = async () => setMembers((await supabaseService.getProfiles()).slice(0, 2));
     load();
   }, []);
+
+  useEffect(() => {
+    const rawIds = String(params.memberIds || '').trim();
+    if (!rawIds) return;
+    const ids = rawIds.split(',').map((id) => id.trim()).filter(Boolean);
+    if (!ids.length) return;
+    const run = async () => {
+      const allUsers = await supabaseService.getProfiles();
+      const selectedUsers = allUsers.filter((u) => ids.includes(u.id));
+      setMembers(selectedUsers);
+    };
+    run();
+  }, [params.memberIds]);
 
   const handleCreate = async () => {
     if (!teamName.trim()) {
@@ -119,7 +133,17 @@ export default function CreateTeamScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Team Members</Text>
-          <TouchableOpacity style={styles.addMemberButton} onPress={() => router.push('/add-member')}>
+          <TouchableOpacity
+            style={styles.addMemberButton}
+            onPress={() =>
+              router.push({
+                pathname: '/add-member',
+                params: {
+                  selectedIds: members.map((m) => m.id).join(','),
+                },
+              })
+            }
+          >
             <Plus size={20} color="#FFFFFF" />
             <Text style={styles.addMemberText}>Add Member</Text>
           </TouchableOpacity>

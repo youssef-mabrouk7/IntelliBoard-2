@@ -39,10 +39,11 @@ export default function CreateTaskScreen() {
 
   useEffect(() => {
     const load = async () => {
-      const [profiles, teamsData, projectsData] = await Promise.all([
+      const [profiles, teamsData, projectsData, currentProfile] = await Promise.all([
         supabaseService.getProfiles(),
         supabaseService.getTeams(),
         supabaseService.getProjects(),
+        supabaseService.getCurrentProfile().catch(() => null),
       ]);
       setUsers(profiles);
       setTeams(teamsData);
@@ -51,7 +52,7 @@ export default function CreateTaskScreen() {
       // Defaults: first project/team/user if available.
       setSelectedTeamId((prev) => prev ?? (teamsData[0]?.id ?? null));
       setSelectedProjectId((prev) => prev ?? (projectsData[0]?.id ?? null));
-      setSelectedUserId((prev) => prev ?? (profiles[0]?.id ?? null));
+      setSelectedUserId((prev) => prev ?? (currentProfile?.id ?? profiles[0]?.id ?? null));
     };
     load();
   }, []);
@@ -189,7 +190,7 @@ export default function CreateTaskScreen() {
       }
 
       if (suggestion.subtasks?.length) {
-        Alert.alert('AI Suggestion', `Updated task with random due date, priority, category, and ${suggestion.subtasks.length} subtasks.`);
+        Alert.alert('AI Suggestion', `Updated task details and added ${suggestion.subtasks.length} suggested subtasks.`);
       } else {
         Alert.alert('AI Suggestion', 'Task details updated from AI suggestion.');
       }
@@ -359,10 +360,10 @@ export default function CreateTaskScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Teams</Text>
-          <View style={styles.teamRow}>
+          <TouchableOpacity style={styles.teamRow} onPress={() => setTeamPickerOpen(true)}>
             <View>
-              <Text style={styles.teamName}>{assignedTeam?.name || 'No team'}</Text>
-              <Text style={styles.teamEmail}>{assignedUser?.email || 'No email'}</Text>
+              <Text style={styles.teamName}>{assignedTeam?.name || 'Select team'}</Text>
+              <Text style={styles.teamEmail}>{assignedTeam ? `${assignedTeam.memberCount} members` : 'No team selected'}</Text>
             </View>
             <View style={styles.membersRow}>
               {(assignedTeam?.members || []).slice(0, 3).map((member, idx) => (
@@ -372,11 +373,13 @@ export default function CreateTaskScreen() {
                   style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                 />
               ))}
-              <View style={styles.moreBadge}>
-                <Text style={styles.moreText}>+5</Text>
-              </View>
+              {(assignedTeam?.memberCount || 0) > 3 && (
+                <View style={styles.moreBadge}>
+                  <Text style={styles.moreText}>+{(assignedTeam?.memberCount || 0) - 3}</Text>
+                </View>
+              )}
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

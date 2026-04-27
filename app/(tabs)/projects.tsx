@@ -54,8 +54,12 @@ export default function ProjectsScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Projects</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}><Search size={22} color={theme.text} /></TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}><Bell size={22} color={theme.text} /></TouchableOpacity>
+          <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/all-projects' as const)}>
+            <Search size={22} color={theme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/notifications-settings')}>
+            <Bell size={22} color={theme.text} />
+          </TouchableOpacity>
         </View>
       </View>
 

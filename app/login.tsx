@@ -147,7 +147,7 @@ export default function LoginScreen() {
                   ]}
                   onPress={() => setLanguage('en')}
                 >
-                  <Text style={styles.languageText}>🇺🇸</Text>
+                  <Text style={styles.languageText}>US</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -156,7 +156,7 @@ export default function LoginScreen() {
                   ]}
                   onPress={() => setLanguage('ar')}
                 >
-                  <Text style={styles.languageText}>🇪🇬</Text>
+                  <Text style={styles.languageText}>AR</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -306,6 +306,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.tint + '15',
   },
   languageText: {
-    fontSize: 20,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
