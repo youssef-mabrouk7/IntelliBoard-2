@@ -23,6 +23,8 @@ const categories: Category[] = [
 ];
 
 export default function SelectCategoryScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [selectedCategory, setSelectedCategory] = useState<string>('6');
 
   const handleSave = () => {
@@ -33,7 +35,7 @@ export default function SelectCategoryScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Category</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -46,7 +48,7 @@ export default function SelectCategoryScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Select Category</Text>
             <TouchableOpacity style={styles.addButton}>
-              <Plus size={18} color={Colors.light.tint} />
+              <Plus size={18} color={theme.tint} />
               <Text style={styles.addButtonText}>Add New</Text>
             </TouchableOpacity>
           </View>
@@ -85,10 +87,10 @@ export default function SelectCategoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -100,10 +102,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   addButton: {
     flexDirection: 'row',
@@ -136,7 +138,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    color: Colors.light.tint,
+    color: theme.tint,
     fontWeight: '500',
   },
   categoriesGrid: {
@@ -146,17 +148,17 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '47%',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     position: 'relative',
   },
   categoryCardSelected: {
-    borderColor: Colors.light.tint,
-    backgroundColor: Colors.light.cardSecondary,
+    borderColor: theme.tint,
+    backgroundColor: theme.cardSecondary,
   },
   categoryIcon: {
     width: 48,
@@ -169,7 +171,7 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   checkBadge: {
     position: 'absolute',

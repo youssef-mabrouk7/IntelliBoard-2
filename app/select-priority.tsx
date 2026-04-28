@@ -10,7 +10,6 @@ type Priority = 'low' | 'medium' | 'high';
 interface PriorityOption {
   value: Priority;
   label: string;
-  color: string;
   description: string;
 }
 
@@ -18,24 +17,23 @@ const priorities: PriorityOption[] = [
   {
     value: 'low',
     label: 'Low Priority',
-    color: Colors.light.priority.low,
     description: 'Can be completed when time permits',
   },
   {
     value: 'medium',
     label: 'Medium Priority',
-    color: Colors.light.priority.medium,
     description: 'Should be completed soon',
   },
   {
     value: 'high',
     label: 'High Priority',
-    color: Colors.light.priority.high,
     description: 'Requires immediate attention',
   },
 ];
 
 export default function SelectPriorityScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
 
   const handleSave = () => {
@@ -46,7 +44,7 @@ export default function SelectPriorityScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Priority</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -58,19 +56,21 @@ export default function SelectPriorityScreen() {
         <Text style={styles.sectionTitle}>Select Priority Level</Text>
         
         <View style={styles.optionsList}>
-          {priorities.map((priority) => (
+          {priorities.map((priority) => {
+            const priorityColor = theme.priority[priority.value];
+            return (
             <TouchableOpacity
               key={priority.value}
               style={[
                 styles.priorityCard,
                 selectedPriority === priority.value && styles.priorityCardSelected,
-                { borderColor: priority.color },
+                { borderColor: priorityColor },
               ]}
               onPress={() => setSelectedPriority(priority.value)}
             >
               <View style={styles.priorityLeft}>
-                <View style={[styles.priorityIcon, { backgroundColor: priority.color + '20' }]}>
-                  <Flag size={20} color={priority.color} />
+                <View style={[styles.priorityIcon, { backgroundColor: priorityColor + '20' }]}>
+                  <Flag size={20} color={priorityColor} />
                 </View>
                 <View>
                   <Text style={styles.priorityLabel}>{priority.label}</Text>
@@ -81,7 +81,7 @@ export default function SelectPriorityScreen() {
               <View
                 style={[
                   styles.radioButton,
-                  selectedPriority === priority.value && { backgroundColor: priority.color, borderColor: priority.color },
+                  selectedPriority === priority.value && { backgroundColor: priorityColor, borderColor: priorityColor },
                 ]}
               >
                 {selectedPriority === priority.value && (
@@ -89,17 +89,18 @@ export default function SelectPriorityScreen() {
                 )}
               </View>
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -111,10 +112,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 20,
   },
   optionsList: {
@@ -142,14 +143,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
   priorityCardSelected: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
   },
   priorityLeft: {
     flexDirection: 'row',
@@ -167,19 +168,19 @@ const styles = StyleSheet.create({
   priorityLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   priorityDescription: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   radioButton: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
   },

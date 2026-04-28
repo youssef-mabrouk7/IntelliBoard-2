@@ -14,6 +14,8 @@ interface Subtask {
 }
 
 export default function SelectSubtasksScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const draftSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
   const setDraftSubtasks = useSubtaskDraftStore((s) => s.setSubtasks);
   const [subtasks, setSubtasks] = useState<Subtask[]>(
@@ -55,7 +57,7 @@ export default function SelectSubtasksScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Subtasks</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -103,7 +105,7 @@ export default function SelectSubtasksScreen() {
                 <TextInput
                   style={styles.subtaskDueDateInput}
                   placeholder="YYYY-MM-DD"
-                  placeholderTextColor={Colors.light.textSecondary}
+                  placeholderTextColor={theme.textSecondary}
                   value={subtask.dueDate ?? ''}
                   onChangeText={(value) =>
                     setSubtasks((prev) =>
@@ -117,7 +119,7 @@ export default function SelectSubtasksScreen() {
                   style={styles.deleteButton}
                   onPress={() => removeSubtask(subtask.id)}
                 >
-                  <Trash2 size={18} color={Colors.light.error} />
+                  <Trash2 size={18} color={theme.error} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -130,7 +132,7 @@ export default function SelectSubtasksScreen() {
             <TextInput
               style={styles.addInput}
               placeholder="Enter subtask title..."
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               value={newSubtaskTitle}
               onChangeText={setNewSubtaskTitle}
               onSubmitEditing={addSubtask}
@@ -145,10 +147,10 @@ export default function SelectSubtasksScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -160,10 +162,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
   progressSection: {
     marginHorizontal: 16,
     marginTop: 20,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
   },
@@ -189,11 +191,11 @@ const styles = StyleSheet.create({
   progressTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   progressText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   progressBarContainer: {
     flexDirection: 'row',
@@ -203,18 +205,18 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 8,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     borderRadius: 4,
   },
   progressFill: {
     height: 8,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 4,
   },
   progressPercent: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     minWidth: 36,
   },
   subtasksSection: {
@@ -224,7 +226,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   subtasksList: {
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
   subtaskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 14,
   },
@@ -242,40 +244,40 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
+    backgroundColor: theme.tint,
+    borderColor: theme.tint,
   },
   subtaskTitle: {
     flex: 1,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   subtaskDueDateInput: {
     width: 110,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 6,
     fontSize: 12,
-    color: Colors.light.text,
+    color: theme.text,
     marginRight: 8,
   },
   subtaskTitleCompleted: {
     textDecorationLine: 'line-through',
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   deleteButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.light.error + '15',
+    backgroundColor: theme.error + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -290,20 +292,20 @@ const styles = StyleSheet.create({
   },
   addInput: {
     flex: 1,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
   addButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     justifyContent: 'center',
     alignItems: 'center',
   },

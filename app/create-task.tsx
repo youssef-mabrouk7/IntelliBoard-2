@@ -234,7 +234,7 @@ export default function CreateTaskScreen() {
               value={taskName}
               onChangeText={setTaskName}
               placeholder="Enter task name"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
@@ -244,7 +244,7 @@ export default function CreateTaskScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder="Write a description for the task..."
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               multiline
             />
           </View>
@@ -263,7 +263,7 @@ export default function CreateTaskScreen() {
           <View style={styles.optionsList}>
             <TouchableOpacity style={styles.optionRow} onPress={() => setProjectPickerOpen(true)}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: '#7B8CDE20' }]}>
                   <Briefcase size={18} color="#7B8CDE" />
                 </View>
                 <Text style={styles.optionLabel}>Project</Text>
@@ -276,7 +276,7 @@ export default function CreateTaskScreen() {
 
             <TouchableOpacity style={styles.optionRow} onPress={() => setTeamPickerOpen(true)}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#FFF3E0' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: '#FFB74D20' }]}>
                   <UsersIcon size={18} color="#FFB74D" />
                 </View>
                 <Text style={styles.optionLabel}>Team</Text>
@@ -289,7 +289,7 @@ export default function CreateTaskScreen() {
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'task' } })}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
                   <Calendar size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>Due date</Text>
@@ -302,7 +302,7 @@ export default function CreateTaskScreen() {
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-priority')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#FFEBEE' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.priority.high + '20' }]}>
                   <Flag size={18} color={theme.priority.high} />
                 </View>
                 <Text style={styles.optionLabel}>Priority</Text>
@@ -317,14 +317,14 @@ export default function CreateTaskScreen() {
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-category')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
-                  <Tag size={18} color="#7B8CDE" />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <Tag size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>category</Text>
               </View>
               <View style={styles.optionRight}>
-                <View style={[styles.categoryBadge, { backgroundColor: '#E8EAF6' }]}>
-                  <Text style={[styles.categoryText, { color: '#7B8CDE' }]}>{category}</Text>
+                <View style={[styles.categoryBadge, { backgroundColor: theme.tint + '20' }]}>
+                  <Text style={[styles.categoryText, { color: theme.tint }]}>{category}</Text>
                 </View>
                 <ChevronRight size={18} color={theme.textSecondary} />
               </View>
@@ -332,7 +332,7 @@ export default function CreateTaskScreen() {
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-attachment')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8F5E9' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.status.completed + '20' }]}>
                   <Paperclip size={18} color={theme.status.completed} />
                 </View>
                   <Text style={styles.optionLabel}>{t('attachments')}</Text>
@@ -347,7 +347,7 @@ export default function CreateTaskScreen() {
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-subtasks')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
                   <List size={18} color={theme.tint} />
                 </View>
                 <View>
@@ -674,7 +674,7 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8EAF6',
+    backgroundColor: theme.tint + '20',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,

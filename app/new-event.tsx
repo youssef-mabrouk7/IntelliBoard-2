@@ -184,8 +184,8 @@ export default function NewEventScreen() {
             {/* Invite participants (future feature placeholder) */}
             <TouchableOpacity style={styles.optionRow}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
-                  <Users size={18} color="#7B8CDE" />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <Users size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>{t('inviteParticipants')}</Text>
               </View>
