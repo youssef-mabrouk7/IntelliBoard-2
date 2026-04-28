@@ -218,17 +218,46 @@ export const supabaseService = {
     category?: string;
     priority?: 'high' | 'medium' | 'low' | string;
   }) {
+    const body = {
+      title: input.title,
+      description: input.description,
+      category: input.category ?? '',
+      priority: input.priority ?? 'medium',
+    };
+    const backendBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+    if (backendBaseUrl) {
+      try {
+        const response = await withTimeout(
+          withRetry(() =>
+            fetch(`${backendBaseUrl.replace(/\/$/, '')}/api/ai/suggest-task`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            }),
+          ),
+          12000,
+        );
+        if (!response.ok) {
+          const details = await response.text();
+          throw new Error(`Backend AI request failed (${response.status}): ${details || 'Unknown backend error'}`);
+        }
+        return (await response.json()) as {
+          title?: string;
+          description?: string;
+          dueDate?: string;
+          priority?: 'high' | 'medium' | 'low' | string;
+          category?: string;
+          subtasks?: string[];
+          notes?: string;
+        };
+      } catch {
+        // Fall through to edge function if backend URL is configured but unavailable.
+      }
+    }
+
     const { data, error } = await withTimeout(
-      withRetry(() =>
-        supabase.functions.invoke('ai-task-suggestion', {
-          body: {
-            title: input.title,
-            description: input.description,
-            category: input.category ?? '',
-            priority: input.priority ?? 'medium',
-          },
-        }),
-      ),
+      withRetry(() => supabase.functions.invoke('ai-task-suggestion', { body })),
       12000,
     );
     if (error) {
@@ -237,7 +266,7 @@ export const supabaseService = {
         (error as any)?.context?.statusText ||
         (error as any)?.context?.message ||
         (error as any)?.message ||
-        'Unknown Edge Function error';
+        'Unknown AI provider error';
       throw new Error(`AI suggestion request failed${status ? ` (${status})` : ''}: ${details}`);
     }
     return data as {

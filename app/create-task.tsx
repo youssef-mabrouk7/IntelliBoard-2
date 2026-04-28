@@ -23,7 +23,6 @@ export default function CreateTaskScreen() {
   const [taskName, setTaskName] = useState('Design New Dashboard UI');
   const [description, setDescription] = useState('');
   const dueDraft = useDateDraftStore((s) => s.byContext.task);
-  const setDateDraft = useDateDraftStore((s) => s.setDateDraft);
   const todayISO = new Date().toISOString().slice(0, 10);
   const dueDate = dueDraft?.dateISO ?? todayISO;
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('High');
@@ -93,14 +92,6 @@ export default function CreateTaskScreen() {
   const taskAttachments = taskAttachmentsState ?? EMPTY_ATTACHMENTS;
   const setDraftAttachments = useAttachmentDraftStore((s) => s.setAttachments);
   const clearDraftSubtasks = useSubtaskDraftStore((s) => s.clearSubtasks);
-  const setDraftSubtasks = useSubtaskDraftStore((s) => s.setSubtasks);
-
-  const toUiPriority = (value: string | undefined) => {
-    const normalized = String(value ?? '').toLowerCase();
-    if (normalized === 'high') return 'High';
-    if (normalized === 'low') return 'Low';
-    return 'Medium';
-  };
 
   const handleCreate = async () => {
     if (!taskName.trim()) {
@@ -175,37 +166,21 @@ export default function CreateTaskScreen() {
         priority: priority.toLowerCase(),
       });
 
-      if (suggestion.title?.trim() && !taskName.trim()) {
-        setTaskName(suggestion.title.trim());
-      }
-      if (suggestion.description?.trim()) {
-        setDescription(suggestion.description.trim());
-      }
-      if (suggestion.priority) {
-        setPriority(toUiPriority(suggestion.priority));
-      }
-      if (suggestion.category?.trim()) {
-        setCategory(suggestion.category.trim());
-      }
-      if (suggestion.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(suggestion.dueDate)) {
-        setDateDraft('task', { dateISO: suggestion.dueDate });
-      }
-      if (suggestion.subtasks?.length) {
-        setDraftSubtasks(
-          'task',
-          suggestion.subtasks.map((title, idx) => ({
-            id: `${Date.now()}-${idx}`,
-            title: title.trim(),
-            completed: false,
-          })),
-        );
-      }
+      const suggestedSubtasks = (suggestion.subtasks ?? [])
+        .map((item) => item.trim())
+        .filter(Boolean);
 
-      if (suggestion.subtasks?.length) {
-        Alert.alert('AI Suggestion', `Updated task details and added ${suggestion.subtasks.length} suggested subtasks.`);
-      } else {
-        Alert.alert('AI Suggestion', 'Task details updated from AI suggestion.');
-      }
+      const message = [
+        `Due Date: ${suggestion.dueDate || '-'}`,
+        `Priority: ${suggestion.priority || '-'}`,
+        `Category: ${suggestion.category || '-'}`,
+        `Subtasks: ${suggestedSubtasks.length || 0}`,
+        ...(suggestedSubtasks.length
+          ? suggestedSubtasks.map((s, index) => `${index + 1}. ${s}`)
+          : ['- No suggested subtasks']),
+      ].join('\n');
+
+      Alert.alert('AI Suggestions', message);
     } catch (error: any) {
       Alert.alert('AI Suggestion Failed', error?.message || 'Could not get suggestion.');
     } finally {
