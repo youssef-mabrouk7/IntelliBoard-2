@@ -29,18 +29,73 @@ function inferCategory(title, description, fallback = "") {
 function buildDynamicSubtasks(title, description) {
   const subject = title.trim() || "the task";
   const context = description.trim();
-  const scopeLine = context
-    ? `Clarify scope and success criteria for "${subject}" using the provided description`
-    : `Clarify scope and success criteria for "${subject}"`;
-
-  const generated = [
-    scopeLine,
-    `Break "${subject}" into small actionable steps`,
-    `Implement and verify the main work for "${subject}"`,
-    `Review outcomes and document final updates for "${subject}"`,
+  const scopeChoices = [
+    context
+      ? `Clarify scope and success criteria for "${subject}" using the provided context`
+      : `Clarify scope and success criteria for "${subject}"`,
+    `Define concrete deliverables for "${subject}"`,
+    `Align expected outcome and constraints for "${subject}"`,
+  ];
+  const planningChoices = [
+    `Break "${subject}" into small actionable steps with owners`,
+    `List dependencies and blockers for "${subject}" before execution`,
+    `Plan milestones for "${subject}" with measurable checkpoints`,
+    `Estimate effort and timeline slices for "${subject}"`,
+  ];
+  const executionChoices = [
+    `Implement the core deliverable for "${subject}"`,
+    `Execute and validate the main work stream for "${subject}"`,
+    `Build and test the required outcome for "${subject}"`,
+    `Coordinate implementation handoff items for "${subject}"`,
+  ];
+  const reviewChoices = [
+    `Review final output quality and completeness for "${subject}"`,
+    `Document results and follow-up actions for "${subject}"`,
+    `Confirm acceptance criteria and close "${subject}"`,
+    `Share status update and risks for "${subject}"`,
+  ];
+  const polishChoices = [
+    `Prepare rollback or contingency notes for "${subject}"`,
+    `Collect feedback and refine "${subject}" based on findings`,
+    `Capture lessons learned from "${subject}" execution`,
   ];
 
-  return generated.map((s) => s.trim()).filter(Boolean);
+  const pick = (items) => items[Math.floor(Math.random() * items.length)];
+  const count = 4 + Math.floor(Math.random() * 3); // 4-6 subtasks
+
+  const generated = [
+    pick(scopeChoices),
+    pick(planningChoices),
+    pick(executionChoices),
+    pick(reviewChoices),
+    pick(polishChoices),
+    `Set a final verification checkpoint for "${subject}"`,
+  ];
+
+  return uniqueSubtasks(generated).slice(0, count);
+}
+
+function uniqueSubtasks(subtasks) {
+  const seen = new Set();
+  const normalized = [];
+  for (const item of subtasks || []) {
+    const value = String(item ?? "").trim();
+    if (!value) continue;
+    const key = value.toLowerCase().replace(/\s+/g, " ");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(value);
+  }
+  return normalized;
+}
+
+function shuffle(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 export async function suggestTeam(task, teams) {
@@ -111,8 +166,9 @@ export async function suggestTaskSuggestion(input) {
     "dueDate must be YYYY-MM-DD between tomorrow and +21 days.",
     "priority must be one of: high, medium, low.",
     "category must be a short label.",
-    "subtasks must be an array of short strings.",
+    "subtasks must be an array of short strings with no duplicates.",
     "Subtasks must be specific to the provided task title and description, not generic templates.",
+    "Subtasks must be different from each other and dynamic on each request.",
     "",
     `Input title: ${title || "(empty)"}`,
     `Input description: ${description || "(empty)"}`,
@@ -144,9 +200,15 @@ export async function suggestTaskSuggestion(input) {
   const safeCategoryFromModel = String(parsed?.category ?? "").trim();
   const safeCategory = safeCategoryFromModel || inferCategory(title, description, category);
   const safeSubtasksFromModel = Array.isArray(parsed?.subtasks)
-    ? parsed.subtasks.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
+    ? uniqueSubtasks(parsed.subtasks).slice(0, 8)
     : [];
-  const safeSubtasks = safeSubtasksFromModel.length > 0 ? safeSubtasksFromModel : buildDynamicSubtasks(title, description);
+  const randomizedFallback = buildDynamicSubtasks(title, description);
+  const safeSubtasks = safeSubtasksFromModel.length > 0
+    ? uniqueSubtasks([
+        ...shuffle(safeSubtasksFromModel).slice(0, 3),
+        ...shuffle(randomizedFallback).slice(0, 3),
+      ]).slice(0, 6)
+    : randomizedFallback;
 
   return {
     dueDate: safeDate,

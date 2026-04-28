@@ -22,6 +22,69 @@ function randomFutureDate(minDays = 1, maxDays = 21) {
   return d.toISOString().slice(0, 10);
 }
 
+function uniqueSubtasks(subtasks: unknown[]): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const item of subtasks) {
+    const value = String(item ?? '').trim();
+    if (!value) continue;
+    const key = value.toLowerCase().replace(/\s+/g, ' ');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(value);
+  }
+  return output;
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function buildDynamicSubtasks(subjectRaw: string, contextRaw: string): string[] {
+  const subject = subjectRaw.trim() || 'the task';
+  const hasContext = Boolean(contextRaw.trim());
+  const pick = <T>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
+
+  const scopeChoices = [
+    hasContext
+      ? `Clarify scope and success criteria for "${subject}" using the provided context`
+      : `Clarify scope and success criteria for "${subject}"`,
+    `Define concrete deliverables for "${subject}"`,
+    `Align expected outcome and constraints for "${subject}"`,
+  ];
+  const planningChoices = [
+    `Break "${subject}" into milestone-based action items`,
+    `List dependencies and prerequisites for "${subject}"`,
+    `Estimate effort and timeline slices for "${subject}"`,
+  ];
+  const executionChoices = [
+    `Execute the core work required for "${subject}"`,
+    `Implement and validate the primary deliverable for "${subject}"`,
+    `Coordinate implementation handoff items for "${subject}"`,
+  ];
+  const reviewChoices = [
+    `Review quality and acceptance criteria for "${subject}"`,
+    `Document final outcomes and unresolved follow-ups for "${subject}"`,
+    `Collect feedback and refine "${subject}" based on findings`,
+  ];
+
+  const pool = [
+    pick(scopeChoices),
+    pick(planningChoices),
+    pick(executionChoices),
+    pick(reviewChoices),
+    `Set a final verification checkpoint for "${subject}"`,
+    `Share a concise status and risk update for "${subject}"`,
+  ];
+  const count = 4 + Math.floor(Math.random() * 3); // 4-6
+  return uniqueSubtasks(pool).slice(0, count);
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -46,12 +109,7 @@ function buildLocalSuggestion(input: {
     dueDate: randomFutureDate(),
     priority: pickRandom(PRIORITY_VALUES),
     category: pickRandom(CATEGORY_VALUES),
-    subtasks: [
-      `Define objective and expected outcome for "${baseTitle}"`,
-      'Break work into 3-5 actionable steps',
-      'Assign owner and deadline for each step',
-      'Review progress and mark completion criteria',
-    ],
+    subtasks: buildDynamicSubtasks(baseTitle, input.description),
   };
 }
 
@@ -89,6 +147,8 @@ serve(async (req) => {
       'priority must be one of: high, medium, low.',
       'category must be a short label.',
       'subtasks must be an array of short strings.',
+      'subtasks must not contain duplicates.',
+      'subtasks must be dynamic and different from one another.',
       'Generate varied/randomized output on each call while staying realistic.',
       '',
       `Input title: ${title || '(empty)'}`,
@@ -109,7 +169,7 @@ serve(async (req) => {
           inputs: prompt,
           parameters: {
             max_new_tokens: 220,
-            temperature: 0.3,
+            temperature: 0.75,
             return_full_text: false,
           },
         }),
@@ -172,8 +232,11 @@ serve(async (req) => {
         : pickRandom(PRIORITY_VALUES),
       category: String(parsed.category ?? pickRandom(CATEGORY_VALUES)).slice(0, 40),
       subtasks: Array.isArray(parsed.subtasks)
-        ? parsed.subtasks.map((s) => String(s).trim()).filter(Boolean).slice(0, 8)
-        : [],
+        ? uniqueSubtasks([
+            ...shuffle(uniqueSubtasks(parsed.subtasks)).slice(0, 3),
+            ...shuffle(buildDynamicSubtasks(title, description)).slice(0, 3),
+          ]).slice(0, 6)
+        : buildDynamicSubtasks(title, description),
     };
 
     return new Response(JSON.stringify(result), {

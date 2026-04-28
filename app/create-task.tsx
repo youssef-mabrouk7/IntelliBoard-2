@@ -23,6 +23,7 @@ export default function CreateTaskScreen() {
   const [taskName, setTaskName] = useState('Design New Dashboard UI');
   const [description, setDescription] = useState('');
   const dueDraft = useDateDraftStore((s) => s.byContext.task);
+  const setDateDraft = useDateDraftStore((s) => s.setDateDraft);
   const todayISO = new Date().toISOString().slice(0, 10);
   const dueDate = dueDraft?.dateISO ?? todayISO;
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('High');
@@ -31,6 +32,7 @@ export default function CreateTaskScreen() {
   const draftCategory = useTaskMetaDraftStore((s) => s.category);
   const clearTaskMetaDraft = useTaskMetaDraftStore((s) => s.clear);
   const taskSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
+  const setDraftSubtasks = useSubtaskDraftStore((s) => s.setSubtasks);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -166,21 +168,63 @@ export default function CreateTaskScreen() {
         priority: priority.toLowerCase(),
       });
 
-      const suggestedSubtasks = (suggestion.subtasks ?? [])
-        .map((item) => item.trim())
-        .filter(Boolean);
+      const suggestedSubtasks = Array.from(
+        new Set(
+          (suggestion.subtasks ?? [])
+            .map((item) => String(item).trim())
+            .filter(Boolean)
+            .map((item) => item.replace(/\s+/g, ' ')),
+        ),
+      );
+      const suggestedDueDate =
+        suggestion.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(suggestion.dueDate) ? suggestion.dueDate : null;
+      const suggestedPriorityRaw = String(suggestion.priority ?? '').toLowerCase();
+      const suggestedPriorityMap: Record<string, 'High' | 'Medium' | 'Low'> = {
+        high: 'High',
+        medium: 'Medium',
+        low: 'Low',
+      };
+      const suggestedPriority = suggestedPriorityMap[suggestedPriorityRaw] ?? null;
+      const suggestedCategory = String(suggestion.category ?? '').trim();
 
       const message = [
-        `Due Date: ${suggestion.dueDate || '-'}`,
-        `Priority: ${suggestion.priority || '-'}`,
-        `Category: ${suggestion.category || '-'}`,
+        `Due Date: ${suggestedDueDate || '-'}`,
+        `Priority: ${suggestedPriority || '-'}`,
+        `Category: ${suggestedCategory || '-'}`,
         `Subtasks: ${suggestedSubtasks.length || 0}`,
         ...(suggestedSubtasks.length
           ? suggestedSubtasks.map((s, index) => `${index + 1}. ${s}`)
           : ['- No suggested subtasks']),
       ].join('\n');
 
-      Alert.alert('AI Suggestions', message);
+      Alert.alert('AI Suggestions', message, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'OK',
+          onPress: () => {
+            if (suggestedDueDate) {
+              setDateDraft('task', { dateISO: suggestedDueDate });
+            }
+            if (suggestedPriority) {
+              setPriority(suggestedPriority);
+            }
+            if (suggestedCategory) {
+              setCategory(suggestedCategory);
+            }
+            if (suggestedSubtasks.length > 0) {
+              setDraftSubtasks(
+                'task',
+                suggestedSubtasks.map((title, index) => ({
+                  id: `ai-${Date.now()}-${index}`,
+                  title,
+                  completed: false,
+                  dueDate: null,
+                })),
+              );
+            }
+          },
+        },
+      ]);
     } catch (error: any) {
       Alert.alert('AI Suggestion Failed', error?.message || 'Could not get suggestion.');
     } finally {

@@ -218,6 +218,42 @@ export const supabaseService = {
     category?: string;
     priority?: 'high' | 'medium' | 'low' | string;
   }) {
+    const randomFutureDate = (minDays = 1, maxDays = 21) => {
+      const span = Math.max(maxDays - minDays + 1, 1);
+      const days = minDays + Math.floor(Math.random() * span);
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    };
+    const normalizeTaskSuggestion = (raw: any) => {
+      const dueDateRaw = String(raw?.dueDate ?? '').trim();
+      const priorityRaw = String(raw?.priority ?? '').trim().toLowerCase();
+      const categoryRaw = String(raw?.category ?? '').trim();
+      const subtasksRaw = Array.isArray(raw?.subtasks)
+        ? Array.from(
+            new Set(
+              raw.subtasks
+                .map((s: unknown) => String(s ?? '').trim())
+                .filter(Boolean)
+                .map((s: string) => s.toLowerCase()),
+            ),
+          )
+        : [];
+
+      return {
+        title: raw?.title,
+        description: raw?.description,
+        dueDate: /^\d{4}-\d{2}-\d{2}$/.test(dueDateRaw) ? dueDateRaw : randomFutureDate(),
+        priority: (['high', 'medium', 'low'].includes(priorityRaw) ? priorityRaw : 'medium') as
+          | 'high'
+          | 'medium'
+          | 'low',
+        category: categoryRaw || 'Planning',
+        subtasks: subtasksRaw,
+        notes: raw?.notes,
+      };
+    };
+
     const body = {
       title: input.title,
       description: input.description,
@@ -242,7 +278,7 @@ export const supabaseService = {
           const details = await response.text();
           throw new Error(`Backend AI request failed (${response.status}): ${details || 'Unknown backend error'}`);
         }
-        return (await response.json()) as {
+        return normalizeTaskSuggestion((await response.json()) as {
           title?: string;
           description?: string;
           dueDate?: string;
@@ -250,7 +286,7 @@ export const supabaseService = {
           category?: string;
           subtasks?: string[];
           notes?: string;
-        };
+        });
       } catch {
         // Fall through to edge function if backend URL is configured but unavailable.
       }
@@ -269,7 +305,7 @@ export const supabaseService = {
         'Unknown AI provider error';
       throw new Error(`AI suggestion request failed${status ? ` (${status})` : ''}: ${details}`);
     }
-    return data as {
+    return normalizeTaskSuggestion(data as {
       title?: string;
       description?: string;
       dueDate?: string;
@@ -277,7 +313,7 @@ export const supabaseService = {
       category?: string;
       subtasks?: string[];
       notes?: string;
-    };
+    });
   },
 
   async testConnection() {
