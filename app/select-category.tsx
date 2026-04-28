@@ -24,16 +24,12 @@ const categories: Category[] = [
 ];
 
 export default function SelectCategoryScreen() {
-<<<<<<< HEAD
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const draftCategory = useTaskMetaDraftStore((s) => s.category);
   const setDraftCategory = useTaskMetaDraftStore((s) => s.setCategory);
   const defaultCategoryId = categories.find((c) => c.name === draftCategory)?.id ?? '6';
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategoryId);
-=======
-  const theme = Colors.current;
-  const styles = createStyles(theme);
-  const [selectedCategory, setSelectedCategory] = useState<string>('6');
->>>>>>> 8b4db185ebe6d2c512e2adbc69b0152d131c73ab
 
   const handleSave = () => {
     const category = categories.find((c) => c.id === selectedCategory);

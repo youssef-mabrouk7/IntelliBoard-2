@@ -33,17 +33,13 @@ const priorities: PriorityOption[] = [
 ];
 
 export default function SelectPriorityScreen() {
-<<<<<<< HEAD
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const draftPriority = useTaskMetaDraftStore((s) => s.priority);
   const setDraftPriority = useTaskMetaDraftStore((s) => s.setPriority);
   const [selectedPriority, setSelectedPriority] = useState<Priority>(
     draftPriority ? draftPriority.toLowerCase() as Priority : 'high',
   );
-=======
-  const theme = Colors.current;
-  const styles = createStyles(theme);
-  const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
->>>>>>> 8b4db185ebe6d2c512e2adbc69b0152d131c73ab
 
   const handleSave = () => {
     const value = selectedPriority.charAt(0).toUpperCase() + selectedPriority.slice(1) as 'High' | 'Medium' | 'Low';
