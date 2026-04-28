@@ -47,42 +47,50 @@ function shuffle<T>(items: T[]): T[] {
 
 function buildDynamicSubtasks(subjectRaw: string, contextRaw: string): string[] {
   const subject = subjectRaw.trim() || 'the task';
-  const hasContext = Boolean(contextRaw.trim());
+  const text = `${subjectRaw} ${contextRaw}`.toLowerCase();
+  const keywords = uniqueSubtasks(
+    text
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 4 && !['with', 'that', 'this', 'from', 'into', 'have', 'will', 'task'].includes(w))
+      .slice(0, 8),
+  );
+  const focus = keywords.length ? keywords[Math.floor(Math.random() * keywords.length)] : 'scope';
   const pick = <T>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
 
-  const scopeChoices = [
-    hasContext
-      ? `Clarify scope and success criteria for "${subject}" using the provided context`
-      : `Clarify scope and success criteria for "${subject}"`,
-    `Define concrete deliverables for "${subject}"`,
-    `Align expected outcome and constraints for "${subject}"`,
-  ];
-  const planningChoices = [
-    `Break "${subject}" into milestone-based action items`,
-    `List dependencies and prerequisites for "${subject}"`,
-    `Estimate effort and timeline slices for "${subject}"`,
-  ];
-  const executionChoices = [
-    `Execute the core work required for "${subject}"`,
-    `Implement and validate the primary deliverable for "${subject}"`,
-    `Coordinate implementation handoff items for "${subject}"`,
-  ];
-  const reviewChoices = [
-    `Review quality and acceptance criteria for "${subject}"`,
-    `Document final outcomes and unresolved follow-ups for "${subject}"`,
-    `Collect feedback and refine "${subject}" based on findings`,
-  ];
+  const phases = ['discovery', 'planning', 'execution', 'validation', 'handoff'] as const;
+  const actions = ['draft', 'map', 'prioritize', 'implement', 'validate', 'review', 'finalize', 'document'] as const;
+  const objects = [
+    `deliverables for "${subject}"`,
+    `risks and dependencies for "${subject}"`,
+    `acceptance criteria for "${subject}"`,
+    `test scenarios for "${subject}"`,
+    `handoff notes for "${subject}"`,
+    `timeline checkpoints for "${subject}"`,
+    `feedback loop for "${subject}"`,
+  ] as const;
+  const connectors = ['before', 'after', 'while', 'during'] as const;
+  const owners = ['assignee', 'team lead', 'reviewer', 'stakeholder'] as const;
 
-  const pool = [
-    pick(scopeChoices),
-    pick(planningChoices),
-    pick(executionChoices),
-    pick(reviewChoices),
-    `Set a final verification checkpoint for "${subject}"`,
-    `Share a concise status and risk update for "${subject}"`,
-  ];
-  const count = 4 + Math.floor(Math.random() * 3); // 4-6
-  return uniqueSubtasks(pool).slice(0, count);
+  const pool: string[] = [];
+  for (let i = 0; i < 12; i += 1) {
+    const action = pick(actions);
+    const object = pick(objects);
+    const phase = pick(phases);
+    const owner = pick(owners);
+    const connector = pick(connectors);
+    const capitalizedAction = action.charAt(0).toUpperCase() + action.slice(1);
+    if (i % 3 === 0) {
+      pool.push(`${capitalizedAction} ${object} during ${phase}`);
+    } else if (i % 3 === 1) {
+      pool.push(`${capitalizedAction} ${object} ${connector} ${focus} review`);
+    } else {
+      pool.push(`Assign ${owner} to ${action} ${object}`);
+    }
+  }
+
+  const count = 5 + Math.floor(Math.random() * 3); // 5-7
+  return shuffle(uniqueSubtasks(pool)).slice(0, count);
 }
 
 const corsHeaders = {

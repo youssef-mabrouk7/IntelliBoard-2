@@ -28,51 +28,50 @@ function inferCategory(title, description, fallback = "") {
 
 function buildDynamicSubtasks(title, description) {
   const subject = title.trim() || "the task";
-  const context = description.trim();
-  const scopeChoices = [
-    context
-      ? `Clarify scope and success criteria for "${subject}" using the provided context`
-      : `Clarify scope and success criteria for "${subject}"`,
-    `Define concrete deliverables for "${subject}"`,
-    `Align expected outcome and constraints for "${subject}"`,
-  ];
-  const planningChoices = [
-    `Break "${subject}" into small actionable steps with owners`,
-    `List dependencies and blockers for "${subject}" before execution`,
-    `Plan milestones for "${subject}" with measurable checkpoints`,
-    `Estimate effort and timeline slices for "${subject}"`,
-  ];
-  const executionChoices = [
-    `Implement the core deliverable for "${subject}"`,
-    `Execute and validate the main work stream for "${subject}"`,
-    `Build and test the required outcome for "${subject}"`,
-    `Coordinate implementation handoff items for "${subject}"`,
-  ];
-  const reviewChoices = [
-    `Review final output quality and completeness for "${subject}"`,
-    `Document results and follow-up actions for "${subject}"`,
-    `Confirm acceptance criteria and close "${subject}"`,
-    `Share status update and risks for "${subject}"`,
-  ];
-  const polishChoices = [
-    `Prepare rollback or contingency notes for "${subject}"`,
-    `Collect feedback and refine "${subject}" based on findings`,
-    `Capture lessons learned from "${subject}" execution`,
-  ];
+  const text = `${title} ${description}`.toLowerCase();
+  const keywords = uniqueSubtasks(
+    text
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 4 && !["with", "that", "this", "from", "into", "have", "will", "task"].includes(w))
+      .slice(0, 8)
+  );
+  const focus = keywords.length ? keywords[Math.floor(Math.random() * keywords.length)] : "scope";
 
+  const phases = ["discovery", "planning", "execution", "validation", "handoff"];
+  const actions = ["draft", "map", "prioritize", "implement", "validate", "review", "finalize", "document"];
+  const objects = [
+    `deliverables for "${subject}"`,
+    `risks and dependencies for "${subject}"`,
+    `acceptance criteria for "${subject}"`,
+    `test scenarios for "${subject}"`,
+    `handoff notes for "${subject}"`,
+    `timeline checkpoints for "${subject}"`,
+    `feedback loop for "${subject}"`,
+  ];
+  const connectors = ["before", "after", "while", "during"];
+  const owners = ["assignee", "team lead", "reviewer", "stakeholder"];
   const pick = (items) => items[Math.floor(Math.random() * items.length)];
-  const count = 4 + Math.floor(Math.random() * 3); // 4-6 subtasks
 
-  const generated = [
-    pick(scopeChoices),
-    pick(planningChoices),
-    pick(executionChoices),
-    pick(reviewChoices),
-    pick(polishChoices),
-    `Set a final verification checkpoint for "${subject}"`,
-  ];
+  const pool = [];
+  for (let i = 0; i < 12; i += 1) {
+    const action = pick(actions);
+    const object = pick(objects);
+    const phase = pick(phases);
+    const owner = pick(owners);
+    const connector = pick(connectors);
+    const variant = i % 3;
+    if (variant === 0) {
+      pool.push(`${action[0].toUpperCase() + action.slice(1)} ${object} during ${phase}`);
+    } else if (variant === 1) {
+      pool.push(`${action[0].toUpperCase() + action.slice(1)} ${object} ${connector} ${focus} review`);
+    } else {
+      pool.push(`Assign ${owner} to ${action} ${object}`);
+    }
+  }
 
-  return uniqueSubtasks(generated).slice(0, count);
+  const count = 5 + Math.floor(Math.random() * 3); // 5-7 subtasks
+  return shuffle(uniqueSubtasks(pool)).slice(0, count);
 }
 
 function uniqueSubtasks(subtasks) {
