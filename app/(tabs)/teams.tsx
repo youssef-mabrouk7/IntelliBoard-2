@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Menu, Search, Bell, Plus } from 'lucide-react-native';
@@ -15,8 +15,17 @@ export default function TeamsScreen() {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filteredTeams = teams.filter((team) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      team.name.toLowerCase().includes(q) ||
+      (team.description || '').toLowerCase().includes(q)
+    );
+  });
 
   const loadTeams = async () => {
     try {
@@ -62,7 +71,13 @@ export default function TeamsScreen() {
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
             <Search size={20} color={theme.textSecondary} />
-            <Text style={styles.searchPlaceholder}>Search Team...</Text>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search Team..."
+              placeholderTextColor={theme.textSecondary}
+              style={styles.searchInput}
+            />
           </View>
         </View>
 
@@ -76,7 +91,7 @@ export default function TeamsScreen() {
         <View style={styles.teamsList}>
           {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
-          {!loading && !error && teams.map((team) => (
+          {!loading && !error && filteredTeams.map((team) => (
             <TouchableOpacity key={team.id} style={styles.teamCard} onPress={() => router.push(`/team/${team.id}`)}>
               {/* Team header row — icon + name + member count */}
               <View style={styles.teamHeader}>
@@ -158,6 +173,12 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   searchPlaceholder: {
     fontSize: 15,
     color: theme.textSecondary,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.text,
+    padding: 0,
   },
   sectionHeader: {
     flexDirection: 'row',

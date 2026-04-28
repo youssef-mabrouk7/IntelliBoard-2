@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Menu, Search, Bell, Plus, ChevronDown, ArrowUpDown } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -19,6 +19,7 @@ export default function ProjectsScreen() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchProjects = React.useCallback(async () => {
     try {
@@ -39,6 +40,15 @@ export default function ProjectsScreen() {
     return true;
   });
   if (filterBy !== 'All') filteredProjects = filteredProjects.filter(p => p.tags.includes(filterBy));
+  const q = searchQuery.trim().toLowerCase();
+  if (q) {
+    filteredProjects = filteredProjects.filter((p) =>
+      p.name.toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q) ||
+      (p.companyName || '').toLowerCase().includes(q) ||
+      p.tags.some((tag) => tag.toLowerCase().includes(q)),
+    );
+  }
   filteredProjects = [...filteredProjects].sort((a, b) => {
     if (sortBy === 'Date') return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
     if (sortBy === 'Name') return a.name.localeCompare(b.name);
@@ -64,6 +74,18 @@ export default function ProjectsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={18} color={theme.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search projects..."
+              placeholderTextColor={theme.textSecondary}
+              style={styles.searchInput}
+            />
+          </View>
+        </View>
         <View style={styles.tabRow}>
           {(['All', 'Active', 'Completed'] as const).map((tab) => (
             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}>
@@ -179,6 +201,19 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: '600', color: theme.tintDark },
   headerRight: { flexDirection: 'row', gap: 16 },
   headerIcon: { padding: 4 },
+  searchContainer: { paddingHorizontal: 16, marginBottom: 14 },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: theme.cardSecondary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: theme.text, padding: 0 },
   tabRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16, gap: 20 },
   tabText: { fontSize: 15, fontWeight: '500', color: theme.textSecondary },
   tabTextActive: { color: theme.tint, fontWeight: '600' },

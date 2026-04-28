@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Menu, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
+import { Menu, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { CalendarEvent } from '@/constants/types';
@@ -21,6 +21,7 @@ export default function CalendarScreen() {
   const { locale, t } = useLocalization();
   const [visibleMonth, setVisibleMonth] = useState(new Date());
   const [selectedDateISO, setSelectedDateISO] = useState(toISODate(new Date()));
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -48,6 +49,24 @@ export default function CalendarScreen() {
     () => tasks.filter((task) => toISODate(new Date(task.dueDate)) === selectedDateISO),
     [tasks, selectedDateISO],
   );
+  const filteredEventsForDate = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return eventsForDate;
+    return eventsForDate.filter((event) =>
+      event.title.toLowerCase().includes(q) ||
+      (event.assignee || '').toLowerCase().includes(q) ||
+      (event.status || '').toLowerCase().includes(q),
+    );
+  }, [eventsForDate, searchQuery]);
+  const filteredTasksForDate = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return tasksForDate;
+    return tasksForDate.filter((task) =>
+      task.title.toLowerCase().includes(q) ||
+      (task.description || '').toLowerCase().includes(q) ||
+      (task.category || '').toLowerCase().includes(q),
+    );
+  }, [tasksForDate, searchQuery]);
 
   const monthLabel = useMemo(
     () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(visibleMonth),
@@ -65,6 +84,18 @@ export default function CalendarScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={18} color={theme.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search events and tasks..."
+              placeholderTextColor={theme.textSecondary}
+              style={styles.searchInput}
+            />
+          </View>
+        </View>
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
             <ChevronLeft size={24} color={theme.text} />
@@ -111,7 +142,7 @@ export default function CalendarScreen() {
         <View style={styles.eventsList}>
           {loading && <ActivityIndicator color={theme.tint} />}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
-          {!loading && !error && eventsForDate.map((event) => (
+          {!loading && !error && filteredEventsForDate.map((event) => (
             <TouchableOpacity key={event.id} style={styles.eventCard} onPress={() => router.push(`/event/${event.id}` as const)}>
               <View style={styles.eventTimeColumn}>
                 <Text style={styles.eventTime}>{event.startTime}</Text>
@@ -160,10 +191,10 @@ export default function CalendarScreen() {
               </View>
             </TouchableOpacity>
           ))}
-          {!loading && !error && eventsForDate.length === 0 && tasksForDate.length === 0 && (
+          {!loading && !error && filteredEventsForDate.length === 0 && filteredTasksForDate.length === 0 && (
             <Text style={styles.errorText}>{t('noTasksForDate')}</Text>
           )}
-          {!loading && !error && tasksForDate.map((task) => (
+          {!loading && !error && filteredTasksForDate.map((task) => (
             <TouchableOpacity key={task.id} style={styles.eventCard} onPress={() => router.push(`/task/${task.id}` as const)}>
               <View style={styles.eventTimeColumn}>
                 <Text style={styles.eventTime}>Task</Text>
@@ -213,6 +244,27 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   headerAvatarPlaceholder: {
     width: 36,
     height: 36,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: theme.cardSecondary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.text,
+    padding: 0,
   },
   monthSelector: {
     flexDirection: 'row',

@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Flag, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useTaskMetaDraftStore } from '@/stores/taskMetaDraftStore';
 
 type Priority = 'low' | 'medium' | 'high';
 
@@ -36,9 +37,15 @@ const priorities: PriorityOption[] = [
 ];
 
 export default function SelectPriorityScreen() {
-  const [selectedPriority, setSelectedPriority] = useState<Priority>('high');
+  const draftPriority = useTaskMetaDraftStore((s) => s.priority);
+  const setDraftPriority = useTaskMetaDraftStore((s) => s.setPriority);
+  const [selectedPriority, setSelectedPriority] = useState<Priority>(
+    draftPriority ? draftPriority.toLowerCase() as Priority : 'high',
+  );
 
   const handleSave = () => {
+    const value = selectedPriority.charAt(0).toUpperCase() + selectedPriority.slice(1) as 'High' | 'Medium' | 'Low';
+    setDraftPriority(value);
     router.back();
   };
 

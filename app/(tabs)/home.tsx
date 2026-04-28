@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Menu, Search, Bell, ArrowRight, Circle, Check } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -17,6 +17,7 @@ export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const theme = Colors.current;
   const styles = createStyles(theme);
@@ -61,6 +62,28 @@ export default function HomeScreen() {
     () => tasks.filter((task) => toISODate(new Date(task.dueDate)) === selectedDate),
     [selectedDate, tasks],
   );
+  const searchedProjects = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return projects.slice(0, 2);
+    return projects.filter((project) => {
+      return (
+        project.name.toLowerCase().includes(q) ||
+        (project.description || '').toLowerCase().includes(q) ||
+        (project.companyName || '').toLowerCase().includes(q)
+      );
+    }).slice(0, 2);
+  }, [projects, searchQuery]);
+  const searchedTasksForDate = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return tasksForDate;
+    return tasksForDate.filter((task) => {
+      return (
+        task.title.toLowerCase().includes(q) ||
+        (task.description || '').toLowerCase().includes(q) ||
+        (task.category || '').toLowerCase().includes(q)
+      );
+    });
+  }, [tasksForDate, searchQuery]);
   const monthLabel = useMemo(
     () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(selectedDate)),
     [locale, selectedDate],
@@ -83,6 +106,18 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={18} color={theme.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search projects and tasks..."
+              placeholderTextColor={theme.textSecondary}
+              style={styles.searchInput}
+            />
+          </View>
+        </View>
         <View style={styles.dateSection}>
           <Text style={styles.monthText}>{monthLabel}</Text>
           <View style={styles.daysRow}>
@@ -123,7 +158,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectsScroll}>
-            {projects.slice(0, 2).map((project) => (
+            {searchedProjects.map((project) => (
               <TouchableOpacity
                 key={project.id}
                 style={[styles.projectCard, { backgroundColor: project.color }]}
@@ -164,7 +199,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.tasksList}>
-            {tasksForDate.map((task) => (
+            {searchedTasksForDate.map((task) => (
               <TouchableOpacity key={task.id} style={styles.taskItem} onPress={() => router.push(`/task/${task.id}`)}>
                 <View style={[styles.taskIndicator, { backgroundColor: getPriorityColor(task.priority) }]} />
                 <TouchableOpacity
@@ -196,7 +231,7 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
             ))}
-            {tasksForDate.length === 0 && (
+            {searchedTasksForDate.length === 0 && (
               <Text style={[styles.taskSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>{t('noTasksForDate')}</Text>
             )}
           </View>
@@ -240,6 +275,27 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   },
   headerIcon: {
     padding: 4,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: theme.cardSecondary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: theme.text,
+    fontSize: 14,
+    padding: 0,
   },
   dateSection: {
     paddingHorizontal: 16,

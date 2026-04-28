@@ -9,7 +9,7 @@ type AppRole = 'Project Manager' | 'Team Leader' | 'Team Member';
 
 const normalizeRole = (value?: string | null): AppRole => {
   const role = String(value ?? '').trim().toLowerCase();
-  if (role === 'project manager') return 'Project Manager';
+  if (role === 'project manager' || role === 'manager' || role === 'product manager') return 'Project Manager';
   if (role === 'team leader') return 'Team Leader';
   return 'Team Member';
 };

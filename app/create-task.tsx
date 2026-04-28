@@ -11,6 +11,7 @@ import { useDateDraftStore } from '@/stores/dateDraftStore';
 import { useAttachmentDraftStore } from '@/stores/attachmentDraftStore';
 import type { DraftAttachment } from '@/stores/attachmentDraftStore';
 import { useSubtaskDraftStore } from '@/stores/subtaskDraftStore';
+import { useTaskMetaDraftStore } from '@/stores/taskMetaDraftStore';
 import { useLocalization } from '@/utils/localization';
 
 const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
@@ -23,8 +24,11 @@ export default function CreateTaskScreen() {
   const setDateDraft = useDateDraftStore((s) => s.setDateDraft);
   const todayISO = new Date().toISOString().slice(0, 10);
   const dueDate = dueDraft?.dateISO ?? todayISO;
-  const [priority, setPriority] = useState('High');
+  const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('High');
   const [category, setCategory] = useState('Upload');
+  const draftPriority = useTaskMetaDraftStore((s) => s.priority);
+  const draftCategory = useTaskMetaDraftStore((s) => s.category);
+  const clearTaskMetaDraft = useTaskMetaDraftStore((s) => s.clear);
   const taskSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -56,6 +60,11 @@ export default function CreateTaskScreen() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    if (draftPriority) setPriority(draftPriority);
+    if (draftCategory) setCategory(draftCategory);
+  }, [draftPriority, draftCategory]);
 
   const selectedTeam = useMemo(
     () => (selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined),
@@ -140,6 +149,7 @@ export default function CreateTaskScreen() {
       }
       setDraftAttachments('task', []);
       clearDraftSubtasks('task');
+      clearTaskMetaDraft();
       Alert.alert('Success', 'Task created successfully.');
       router.back();
     } catch (error: any) {

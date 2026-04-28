@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Tag, Check, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useTaskMetaDraftStore } from '@/stores/taskMetaDraftStore';
 
 interface Category {
   id: string;
@@ -23,9 +24,14 @@ const categories: Category[] = [
 ];
 
 export default function SelectCategoryScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('6');
+  const draftCategory = useTaskMetaDraftStore((s) => s.category);
+  const setDraftCategory = useTaskMetaDraftStore((s) => s.setCategory);
+  const defaultCategoryId = categories.find((c) => c.name === draftCategory)?.id ?? '6';
+  const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategoryId);
 
   const handleSave = () => {
+    const category = categories.find((c) => c.id === selectedCategory);
+    if (category) setDraftCategory(category.name);
     router.back();
   };
 

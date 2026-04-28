@@ -19,6 +19,13 @@ const permissions = [
 ];
 
 export default function RolePermissionsScreen() {
+  const displayRole = React.useMemo(() => {
+    const role = String(profile?.role ?? '').trim().toLowerCase();
+    if (role === 'project manager' || role === 'manager' || role === 'product manager') return 'Project Manager';
+    if (role === 'team leader') return 'Team Leader';
+    return 'Team Member';
+  }, [profile?.role]);
+
   const [perms, setPerms] = useState(permissions);
   const [profile, setProfile] = useState<AppUser | null>(null);
   useEffect(() => {
@@ -56,7 +63,7 @@ export default function RolePermissionsScreen() {
         <View style={styles.roleRow}>
           <Text style={styles.roleLabel}>Role</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>manager</Text>
+            <Text style={styles.roleText}>{displayRole}</Text>
           </View>
         </View>
 

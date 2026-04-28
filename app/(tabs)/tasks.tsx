@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Menu, Search, Bell, Plus, Clock, CheckCircle, AlertCircle, Circle, Check } from 'lucide-react-native';
@@ -18,6 +18,7 @@ export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const theme = Colors.current;
@@ -48,6 +49,13 @@ export default function TasksScreen() {
   );
 
   const filteredTasks = tasks.filter((task) => {
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      task.title.toLowerCase().includes(q) ||
+      (task.description || '').toLowerCase().includes(q) ||
+      (task.category || '').toLowerCase().includes(q);
+    if (!matchesSearch) return false;
     if (activeFilter === 'All') return true;
     if (activeFilter === 'In Progress') return task.status === 'inProgress';
     if (activeFilter === 'Completed') return task.status === 'completed';
@@ -77,6 +85,18 @@ export default function TasksScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={20} color={theme.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search Tasks..."
+              placeholderTextColor={theme.textSecondary}
+              style={styles.searchInput}
+            />
+          </View>
+        </View>
         <TouchableOpacity style={styles.dropdown} onPress={() => router.push('/all-tasks')}>
           <View style={styles.dropdownButton}>
             <Text style={styles.dropdownText}>{t('filterAllTasks')}</Text>
@@ -316,6 +336,25 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   },
   headerIcon: {
     padding: 4,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.cardSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.text,
+    padding: 0,
   },
   dropdown: {
     paddingHorizontal: 16,
