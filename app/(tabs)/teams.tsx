@@ -49,10 +49,10 @@ export default function TeamsScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Teams</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/all-teams')}>
             <Search size={22} color={theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/notifications-settings')}>
             <Bell size={22} color={theme.text} />
           </TouchableOpacity>
         </View>

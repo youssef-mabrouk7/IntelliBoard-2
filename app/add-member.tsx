@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,16 +20,21 @@ interface UserWithSelected {
 }
 
 export default function AddMemberScreen() {
+  const params = useLocalSearchParams<{ selectedIds?: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [userList, setUserList] = useState<UserWithSelected[]>([]);
 
   useEffect(() => {
     const load = async () => {
       const users: User[] = await supabaseService.getProfiles();
-      setUserList(users.map(u => ({ ...u, selected: false })));
+      const selectedIds = String(params.selectedIds || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+      setUserList(users.map((u) => ({ ...u, selected: selectedIds.includes(u.id) })));
     };
     load();
-  }, []);
+  }, [params.selectedIds]);
 
   const toggleUser = (id: string) => {
     setUserList(userList.map(u => 
@@ -45,7 +50,11 @@ export default function AddMemberScreen() {
   );
 
   const handleAdd = () => {
-    router.back();
+    const selectedIds = userList.filter((u) => u.selected).map((u) => u.id).join(',');
+    router.replace({
+      pathname: '/create-team',
+      params: { memberIds: selectedIds },
+    });
   };
 
   return (

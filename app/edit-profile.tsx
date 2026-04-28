@@ -8,12 +8,19 @@ import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
 import { useLocalization } from '@/utils/localization';
 import { EditableAvatar } from '@/components/EditableAvatar';
+import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
+
+const LANGUAGE_LABELS: Record<'en' | 'ar', string> = {
+  en: 'English',
+  ar: 'Arabic',
+};
 
 export default function EditProfileScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
   const { t } = useLocalization();
   const [profile, setProfile] = useState<AppUser | null>(null);
+  const appLanguage = useAppPreferencesStore((s) => s.language);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -21,12 +28,12 @@ export default function EditProfileScreen() {
     email: 'mark@example.com',
     phone: '+20 111 222 3333',
     department: 'Development',
-    role: 'Product Manager',
+    role: 'Team Member',
     emailNotification: true,
     taskAssignmentAlerts: true,
     deadlineReminder: true,
     timeZone: 'GMT +2: Cairo',
-    language: 'English',
+    language: LANGUAGE_LABELS[appLanguage],
   });
 
   useEffect(() => {
@@ -48,16 +55,29 @@ export default function EditProfileScreen() {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      language: LANGUAGE_LABELS[appLanguage],
+    }));
+  }, [appLanguage]);
+
   const handleSave = () => {
     const run = async () => {
       try {
         setSaving(true);
+        const normalizedRole = (() => {
+          const role = formData.role.trim().toLowerCase();
+          if (role === 'project manager' || role === 'product manager') return 'Project Manager';
+          if (role === 'team leader') return 'Team Leader';
+          return 'Team Member';
+        })();
         await supabaseService.updateCurrentProfile({
           name: formData.fullName,
           email: formData.email,
           phone: formData.phone,
           department: formData.department,
-          role: formData.role,
+          role: normalizedRole,
           jobTitle: formData.jobTitle,
           avatar: profile?.avatar,
         });

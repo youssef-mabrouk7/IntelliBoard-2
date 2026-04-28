@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import React from 'react';
 import { ActivityIndicator, Alert, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Camera, Image as ImageIcon, Pencil, RotateCcw } from 'lucide-react-native';
+import { Image as ImageIcon, Pencil, RotateCcw } from 'lucide-react-native';
 
 import Colors from '@/constants/colors';
 import { uploadToStorage } from '@/services/uploadService';
@@ -87,10 +87,6 @@ export function EditableAvatar({ value, onUploaded, size = 88, disabled }: Props
         <TouchableOpacity style={styles.btn} disabled={disabled} onPress={() => pickImage(false)}>
           <ImageIcon size={14} color={theme.text} />
           <Text style={styles.btnText}>Gallery</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.btn} disabled={disabled} onPress={() => pickImage(true)}>
-          <Camera size={14} color={theme.text} />
-          <Text style={styles.btnText}>Camera</Text>
         </TouchableOpacity>
       </View>
 

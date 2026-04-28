@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,7 +14,16 @@ export default function AllTasksScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
   const { t, isRTL, formatDate } = useLocalization();
+  const params = useLocalSearchParams<{ filter?: string }>();
+  const requestedFilter = String(params.filter || '').toLowerCase();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
+  useEffect(() => {
+    if (requestedFilter === 'completed') setActiveFilter('Completed');
+    else if (requestedFilter === 'overdue') setActiveFilter('Overdue');
+    else if (requestedFilter === 'inprogress') setActiveFilter('In Progress');
+    else setActiveFilter('All');
+  }, [requestedFilter]);
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Folder, CheckCircle, Users, ChevronRight, Settings } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
-import { Task, Team, User } from '@/constants/types';
+import { Project, Task, Team, User } from '@/constants/types';
 import { useLocalization } from '@/utils/localization';
 
 export default function ProfileScreen() {
@@ -15,18 +15,21 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const myTasks = tasks.slice(0, 3);
 
   useEffect(() => {
     const loadData = async () => {
-      const [profileData, tasksData, teamsData] = await Promise.all([
+      const [profileData, tasksData, teamsData, projectsData] = await Promise.all([
         supabaseService.getCurrentProfile(),
         supabaseService.getTasks(),
         supabaseService.getTeams(),
+        supabaseService.getProjects(),
       ]);
       setProfile(profileData);
       setTasks(tasksData);
       setTeams(teamsData);
+      setProjects(projectsData);
     };
     loadData();
   }, []);
@@ -48,7 +51,7 @@ export default function ProfileScreen() {
           <View style={styles.profileHeader}>
             <Image source={{ uri: profile?.avatar || 'https://via.placeholder.com/120' }} style={styles.avatar} />
             <View style={styles.profileInfo}>
-              <Text style={styles.name}>{profile?.name || 'User'}</Text>
+              <Text style={styles.name}>{profile?.name || profile?.email?.split('@')[0] || 'User'}</Text>
               <Text style={styles.email}>{profile?.email || 'No email'}</Text>
             </View>
           </View>
@@ -62,7 +65,7 @@ export default function ProfileScreen() {
             <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
               <Folder size={20} color={theme.tint} />
             </View>
-            <Text style={styles.statNumber}>{Math.max(0, teams.length)}</Text>
+            <Text style={styles.statNumber}>{Math.max(0, projects.length)}</Text>
             <Text style={styles.statLabel}>{t('projects')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statItem} onPress={() => router.push('/all-tasks')}>

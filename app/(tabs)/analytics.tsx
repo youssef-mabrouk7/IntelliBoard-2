@@ -156,7 +156,7 @@ export default function AnalyticsScreen() {
           <View style={styles.legend}>
             <TouchableOpacity 
               style={styles.legendItem}
-              onPress={() => router.push('/all-tasks' as const)}
+              onPress={() => router.push({ pathname: '/all-tasks', params: { filter: 'completed' } })}
             >
               <View style={[styles.legendIcon, { backgroundColor: theme.tint + '20' }]}>
                 <Check size={16} color={theme.tint} />
@@ -165,7 +165,7 @@ export default function AnalyticsScreen() {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.legendItem}
-              onPress={() => router.push('/all-tasks' as const)}
+              onPress={() => router.push({ pathname: '/all-tasks', params: { filter: 'overdue' } })}
             >
               <View style={[styles.legendIcon, { backgroundColor: theme.priority.high + '20' }]}>
                 <AlertCircle size={16} color={theme.priority.high} />
@@ -215,14 +215,20 @@ export default function AnalyticsScreen() {
             <Text style={styles.statNumber}>{analyticsData.totalTasks}</Text>
             <Text style={styles.statLabel}>{t('totalTasks')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push({ pathname: '/all-tasks', params: { filter: 'completed' } })}
+          >
             <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
               <Check size={24} color={theme.tint} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.completed}</Text>
             <Text style={styles.statLabel}>{t('completedLabel')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push({ pathname: '/all-tasks', params: { filter: 'overdue' } })}
+          >
             <View style={[styles.statIcon, { backgroundColor: theme.priority.high + '20' }]}>
               <AlertCircle size={24} color={theme.priority.high} />
             </View>
