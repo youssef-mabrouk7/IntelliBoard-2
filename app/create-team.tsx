@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, X, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { User } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
+import { useLocalization } from '@/utils/localization';
 
 const teamColors = [
   { color: '#4CAF90', id: 1 },
@@ -17,36 +18,26 @@ const teamColors = [
 ];
 
 export default function CreateTeamScreen() {
-  const params = useLocalSearchParams<{ memberIds?: string }>();
+  const theme = Colors.current;
+  const styles = createStyles(theme);
+  const { t } = useLocalization();
+
   const [teamName, setTeamName] = useState('Design Team');
   const [description, setDescription] = useState('UI/UX Designers working on user interface design');
   const [selectedColor, setSelectedColor] = useState(4);
   const [members, setMembers] = useState<User[]>([]);
   const [creating, setCreating] = useState(false);
+
   useEffect(() => {
     const load = async () => setMembers((await supabaseService.getProfiles()).slice(0, 2));
     load();
   }, []);
-
-  useEffect(() => {
-    const rawIds = String(params.memberIds || '').trim();
-    if (!rawIds) return;
-    const ids = rawIds.split(',').map((id) => id.trim()).filter(Boolean);
-    if (!ids.length) return;
-    const run = async () => {
-      const allUsers = await supabaseService.getProfiles();
-      const selectedUsers = allUsers.filter((u) => ids.includes(u.id));
-      setMembers(selectedUsers);
-    };
-    run();
-  }, [params.memberIds]);
 
   const handleCreate = async () => {
     if (!teamName.trim()) {
       Alert.alert('Validation', 'Team name is required.');
       return;
     }
-
     try {
       setCreating(true);
       const color = teamColors.find((c) => c.id === selectedColor)?.color || '#9C7BB8';
@@ -76,34 +67,38 @@ export default function CreateTeamScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Team</Text>
-        <TouchableOpacity style={[styles.createButton, creating && styles.createButtonDisabled]} onPress={handleCreate} disabled={creating}>
-          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>Create</Text>}
+        <Text style={styles.headerTitle}>{t('addTeam')}</Text>
+        <TouchableOpacity
+          style={[styles.createButton, creating && styles.createButtonDisabled]}
+          onPress={handleCreate}
+          disabled={creating}
+        >
+          {creating ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createButtonText}>{t('create')}</Text>}
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.inputSection}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Team Name</Text>
+            <Text style={styles.inputLabel}>{t('teamName')}</Text>
             <TextInput
               style={styles.textInput}
               value={teamName}
               onChangeText={setTeamName}
               placeholder="Enter team name"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Description</Text>
+            <Text style={styles.inputLabel}>{t('description')}</Text>
             <TextInput
               style={styles.textInput}
               value={description}
               onChangeText={setDescription}
               placeholder="Enter team description"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               multiline
             />
           </View>
@@ -125,27 +120,17 @@ export default function CreateTeamScreen() {
                 {selectedColor === item.id && item.color && (
                   <Check size={18} color="#FFFFFF" />
                 )}
-                {!item.color && <X size={18} color={Colors.light.textSecondary} />}
+                {!item.color && <X size={18} color={theme.textSecondary} />}
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Team Members</Text>
-          <TouchableOpacity
-            style={styles.addMemberButton}
-            onPress={() =>
-              router.push({
-                pathname: '/add-member',
-                params: {
-                  selectedIds: members.map((m) => m.id).join(','),
-                },
-              })
-            }
-          >
+          <Text style={styles.sectionTitle}>{t('members')}</Text>
+          <TouchableOpacity style={styles.addMemberButton} onPress={() => router.push('/add-member')}>
             <Plus size={20} color="#FFFFFF" />
-            <Text style={styles.addMemberText}>Add Member</Text>
+            <Text style={styles.addMemberText}>{t('addMember')}</Text>
           </TouchableOpacity>
 
           <View style={styles.membersList}>
@@ -160,7 +145,7 @@ export default function CreateTeamScreen() {
                   style={styles.removeButton}
                   onPress={() => removeMember(member.id)}
                 >
-                  <X size={18} color={Colors.light.textSecondary} />
+                  <X size={18} color={theme.textSecondary} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -171,10 +156,10 @@ export default function CreateTeamScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -186,10 +171,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   createButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -203,7 +188,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   inputSection: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -214,19 +199,21 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -235,7 +222,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   colorRow: {
@@ -259,13 +246,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   removeColor: {
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
   },
   addMemberButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 12,
     paddingVertical: 14,
     marginBottom: 16,
@@ -284,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   memberAvatar: {
     width: 44,
@@ -298,18 +285,18 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 2,
   },
   memberEmail: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   removeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.light.border,
+    backgroundColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
   },

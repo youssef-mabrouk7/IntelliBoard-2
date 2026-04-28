@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useLocalization } from '@/utils/localization';
 
 interface PreferenceSection {
   title: string;
@@ -19,6 +20,7 @@ interface PreferenceSection {
 export default function PreferencesScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
   const [autoSave, setAutoSave] = useState(true);
   const [compactView, setCompactView] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -55,7 +57,7 @@ export default function PreferencesScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Preferences</Text>
+        <Text style={styles.headerTitle}>{t('preferencesTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 

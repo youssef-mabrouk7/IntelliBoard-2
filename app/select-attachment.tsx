@@ -59,6 +59,8 @@ interface AttachedFile {
 const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
 
 export default function SelectAttachmentScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { t } = useLocalization();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [linkInput, setLinkInput] = useState('');
@@ -144,7 +146,7 @@ export default function SelectAttachmentScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('attachments')}</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -169,7 +171,7 @@ export default function SelectAttachmentScreen() {
                   }}
                 >
                   <View style={styles.fileIcon}>
-                    <FileText size={24} color={Colors.light.tint} />
+                    <FileText size={24} color={theme.tint} />
                   </View>
                   <View style={styles.fileInfo}>
                     <Text style={styles.fileName}>{file.name}</Text>
@@ -179,7 +181,7 @@ export default function SelectAttachmentScreen() {
                     style={styles.removeButton}
                     onPress={() => handleRemoveFile(file.id)}
                   >
-                    <X size={18} color={Colors.light.textSecondary} />
+                    <X size={18} color={theme.textSecondary} />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -193,7 +195,7 @@ export default function SelectAttachmentScreen() {
             <TextInput
               style={styles.linkInput}
               placeholder="https://..."
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               value={linkInput}
               onChangeText={setLinkInput}
               autoCapitalize="none"
@@ -235,10 +237,10 @@ export default function SelectAttachmentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -250,10 +252,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   filesList: {
@@ -279,7 +281,7 @@ const styles = StyleSheet.create({
   fileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     padding: 12,
   },
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.light.tint + '20',
+    backgroundColor: theme.tint + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -298,18 +300,18 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 2,
   },
   fileSize: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   removeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -330,14 +332,14 @@ const styles = StyleSheet.create({
   },
   linkInput: {
     flex: 1,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: Colors.light.text,
+    color: theme.text,
   },
   addLinkButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -348,17 +350,17 @@ const styles = StyleSheet.create({
   },
   attachmentCard: {
     width: '30%',
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     position: 'relative',
   },
   attachmentCardSelected: {
-    borderColor: Colors.light.tint,
-    backgroundColor: Colors.light.cardSecondary,
+    borderColor: theme.tint,
+    backgroundColor: theme.cardSecondary,
   },
   attachmentIcon: {
     width: 48,
@@ -371,7 +373,7 @@ const styles = StyleSheet.create({
   attachmentName: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.light.text,
+    color: theme.text,
     textAlign: 'center',
   },
   checkBadge: {

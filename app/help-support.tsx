@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, HelpCircle, MessageCircle, FileText, Mail, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useLocalization } from '@/utils/localization';
 
 const quickLinks = [
   'Getting Started',
@@ -16,6 +17,7 @@ const quickLinks = [
 export default function HelpSupportScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
 
   const supportOptions = [
     {
@@ -50,7 +52,7 @@ export default function HelpSupportScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Help & Support</Text>
+        <Text style={styles.headerTitle}>{t('helpSupportLabel')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -68,7 +70,7 @@ export default function HelpSupportScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Links</Text>
+          <Text style={styles.sectionTitle}>{t('languageAndDate')}</Text>
           <View style={styles.linksList}>
             {quickLinks.map((link, index) => (
               <TouchableOpacity key={index} style={styles.linkItem}>

@@ -17,6 +17,7 @@ import { ArrowLeft, Calendar, Clock, Users, ChevronRight, X } from 'lucide-react
 import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
+import { useLocalization } from '@/utils/localization';
 
 const TIME_SLOTS = [
   '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
@@ -28,6 +29,7 @@ const TIME_SLOTS = [
 export default function NewEventScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const dateDraft = useDateDraftStore((s) => s.byContext.event);
@@ -38,10 +40,6 @@ export default function NewEventScreen() {
   const [startTime, setStartTime] = useState('10:00 AM');
   const [endTime, setEndTime] = useState('11:00 AM');
   const [creating, setCreating] = useState(false);
-  const [invitees, setInvitees] = useState('');
-  const [reminder, setReminder] = useState('15 minutes before');
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [reminderModalOpen, setReminderModalOpen] = useState(false);
 
   // 'start' | 'end' | null
   const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end' | null>(null);
@@ -59,13 +57,7 @@ export default function NewEventScreen() {
         startTime,
         endTime,
         color: theme.tint,
-        status: [
-          description.trim(),
-          invitees.trim() ? `Invite: ${invitees.trim()}` : '',
-          reminder ? `Reminder: ${reminder}` : '',
-        ]
-          .filter(Boolean)
-          .join(' | ') || undefined,
+        status: description.trim() ? description.trim() : undefined,
       });
       // Clear the date draft so the next event starts fresh
       clearDateDraft('event');
@@ -93,7 +85,7 @@ export default function NewEventScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Event</Text>
+        <Text style={styles.headerTitle}>{t('newEventTitle')}</Text>
         <TouchableOpacity
           style={[styles.createButton, creating && { opacity: 0.7 }]}
           onPress={handleCreate}
@@ -102,7 +94,7 @@ export default function NewEventScreen() {
           {creating ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.createButtonText}>Create</Text>
+            <Text style={styles.createButtonText}>{t('create')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -110,22 +102,22 @@ export default function NewEventScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.inputSection}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Event Name</Text>
+            <Text style={styles.inputLabel}>{t('eventName')}</Text>
             <TextInput
               style={styles.textInput}
               value={eventName}
               onChangeText={setEventName}
-              placeholder="Enter event name"
+              placeholder={t('eventNamePlaceholder')}
               placeholderTextColor={theme.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Description</Text>
+            <Text style={styles.inputLabel}>{t('description')}</Text>
             <TextInput
               style={styles.textInput}
               value={description}
               onChangeText={setDescription}
-              placeholder="Add event description..."
+              placeholder={t('descriptionPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               multiline
             />
@@ -133,7 +125,7 @@ export default function NewEventScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Event Details</Text>
+          <Text style={styles.sectionTitle}>{t('eventDetailsSection')}</Text>
 
           <View style={styles.optionsList}>
             {/* Date picker — navigates to select-due-date */}
@@ -147,7 +139,7 @@ export default function NewEventScreen() {
                 <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
                   <Calendar size={18} color={theme.tint} />
                 </View>
-                <Text style={styles.optionLabel}>Date</Text>
+                <Text style={styles.optionLabel}>{t('dateLabel')}</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{date}</Text>
@@ -164,7 +156,7 @@ export default function NewEventScreen() {
                 <View style={[styles.optionIcon, { backgroundColor: theme.status.completed + '20' }]}>
                   <Clock size={18} color={theme.status.completed} />
                 </View>
-                <Text style={styles.optionLabel}>Start Time</Text>
+                <Text style={styles.optionLabel}>{t('startTimeLabel')}</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{startTime}</Text>
@@ -181,7 +173,7 @@ export default function NewEventScreen() {
                 <View style={[styles.optionIcon, { backgroundColor: theme.priority.high + '20' }]}>
                   <Clock size={18} color={theme.priority.high} />
                 </View>
-                <Text style={styles.optionLabel}>End Time</Text>
+                <Text style={styles.optionLabel}>{t('endTimeLabel')}</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{endTime}</Text>
@@ -190,12 +182,12 @@ export default function NewEventScreen() {
             </TouchableOpacity>
 
             {/* Invite participants (future feature placeholder) */}
-            <TouchableOpacity style={styles.optionRow} onPress={() => setInviteModalOpen(true)}>
+            <TouchableOpacity style={styles.optionRow}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
-                  <Users size={18} color="#7B8CDE" />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <Users size={18} color={theme.tint} />
                 </View>
-                <Text style={styles.optionLabel}>Invite Participants</Text>
+                <Text style={styles.optionLabel}>{t('inviteParticipants')}</Text>
               </View>
               <ChevronRight size={18} color={theme.textSecondary} />
             </TouchableOpacity>
@@ -203,11 +195,11 @@ export default function NewEventScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reminder</Text>
-          <TouchableOpacity style={styles.reminderRow} onPress={() => setReminderModalOpen(true)}>
-            <Text style={styles.reminderText}>{reminder}</Text>
+          <Text style={styles.sectionTitle}>{t('reminderLabel')}</Text>
+          <View style={styles.reminderRow}>
+            <Text style={styles.reminderText}>{t('reminderDefault')}</Text>
             <ChevronRight size={18} color={theme.textSecondary} />
-          </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
@@ -222,7 +214,7 @@ export default function NewEventScreen() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                Select {timePickerTarget === 'start' ? 'Start' : 'End'} Time
+                {t('selectTime')} ({timePickerTarget === 'start' ? t('startTimeLabel') : t('endTimeLabel')})
               </Text>
               <TouchableOpacity onPress={() => setTimePickerTarget(null)}>
                 <X size={20} color={theme.textSecondary} />
@@ -247,44 +239,6 @@ export default function NewEventScreen() {
                 })}
               </View>
             </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={inviteModalOpen} transparent animationType="fade" onRequestClose={() => setInviteModalOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setInviteModalOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Invite participants</Text>
-            <TextInput
-              style={styles.textInput}
-              value={invitees}
-              onChangeText={setInvitees}
-              placeholder="Enter names or emails, comma separated"
-              placeholderTextColor={theme.textSecondary}
-            />
-            <TouchableOpacity style={[styles.createButton, { marginTop: 12 }]} onPress={() => setInviteModalOpen(false)}>
-              <Text style={styles.createButtonText}>Done</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={reminderModalOpen} transparent animationType="fade" onRequestClose={() => setReminderModalOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setReminderModalOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Select reminder</Text>
-            {['None', '10 minutes before', '15 minutes before', '30 minutes before', '1 hour before'].map((value) => (
-              <TouchableOpacity
-                key={value}
-                style={styles.modalRow}
-                onPress={() => {
-                  setReminder(value);
-                  setReminderModalOpen(false);
-                }}
-              >
-                <Text style={styles.optionLabel}>{value}</Text>
-              </TouchableOpacity>
-            ))}
           </Pressable>
         </Pressable>
       </Modal>
@@ -403,11 +357,6 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   reminderText: {
     fontSize: 15,
     color: theme.text,
-  },
-  modalRow: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
   },
   /* Modal */
   modalBackdrop: {

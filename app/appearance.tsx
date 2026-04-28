@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Moon, Sun, Smartphone } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
+import { useLocalization } from '@/utils/localization';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -15,6 +16,7 @@ export default function AppearanceScreen() {
   const [highContrast, setHighContrast] = useState(false);
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
 
   const onSelectTheme = async (mode: ThemeMode) => {
     await setThemeMode(mode);
@@ -26,13 +28,13 @@ export default function AppearanceScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Appearance</Text>
+        <Text style={styles.headerTitle}>{t('appearanceTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Theme</Text>
+          <Text style={styles.sectionTitle}>{t('themeLabel')}</Text>
           
           <View style={styles.themeGrid}>
             <TouchableOpacity
@@ -42,7 +44,7 @@ export default function AppearanceScreen() {
               <View style={[styles.themeIcon, { backgroundColor: '#FFF8E1' }]}>
                 <Sun size={24} color={Colors.light.warning} />
               </View>
-              <Text style={styles.themeName}>Light</Text>
+              <Text style={styles.themeName}>{t('lightTheme')}</Text>
               {selectedTheme === 'light' && <View style={styles.checkIndicator} />}
             </TouchableOpacity>
 
@@ -53,7 +55,7 @@ export default function AppearanceScreen() {
               <View style={[styles.themeIcon, { backgroundColor: '#E3F2FD' }]}>
                 <Moon size={24} color={Colors.light.tint} />
               </View>
-              <Text style={styles.themeName}>Dark</Text>
+              <Text style={styles.themeName}>{t('darkTheme')}</Text>
               {selectedTheme === 'dark' && <View style={styles.checkIndicator} />}
             </TouchableOpacity>
 
@@ -64,7 +66,7 @@ export default function AppearanceScreen() {
               <View style={[styles.themeIcon, { backgroundColor: '#E8F5E9' }]}>
                 <Smartphone size={24} color={Colors.light.status.completed} />
               </View>
-              <Text style={styles.themeName}>System</Text>
+              <Text style={styles.themeName}>{t('systemTheme')}</Text>
               {selectedTheme === 'system' && <View style={styles.checkIndicator} />}
             </TouchableOpacity>
           </View>

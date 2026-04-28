@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Bell, Mail, MessageSquare, Calendar, CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useLocalization } from '@/utils/localization';
 
 interface NotificationSetting {
   id: string;
@@ -16,6 +17,7 @@ interface NotificationSetting {
 export default function NotificationsSettingsScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
   const [settings, setSettings] = useState<NotificationSetting[]>([
     {
       id: 'push',
@@ -66,7 +68,7 @@ export default function NotificationsSettingsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle}>{t('notificationsTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 

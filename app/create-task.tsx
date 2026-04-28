@@ -17,6 +17,8 @@ import { useLocalization } from '@/utils/localization';
 const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
 
 export default function CreateTaskScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const { t } = useLocalization();
   const [taskName, setTaskName] = useState('Design New Dashboard UI');
   const [description, setDescription] = useState('');
@@ -215,7 +217,7 @@ export default function CreateTaskScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('createTask')}</Text>
         <TouchableOpacity style={[styles.createButton, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
@@ -227,10 +229,10 @@ export default function CreateTaskScreen() {
         <View style={styles.inputSection}>
           <TouchableOpacity style={[styles.aiButton, suggesting && { opacity: 0.7 }]} onPress={handleSuggestWithAI} disabled={suggesting}>
             {suggesting ? (
-              <ActivityIndicator color={Colors.light.tint} />
+              <ActivityIndicator color={theme.tint} />
             ) : (
               <>
-                <Sparkles size={16} color={Colors.light.tint} />
+                <Sparkles size={16} color={theme.tint} />
                 <Text style={styles.aiButtonText}>Suggest with AI</Text>
               </>
             )}
@@ -242,7 +244,7 @@ export default function CreateTaskScreen() {
               value={taskName}
               onChangeText={setTaskName}
               placeholder="Enter task name"
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
@@ -252,7 +254,7 @@ export default function CreateTaskScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder="Write a description for the task..."
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               multiline
             />
           </View>
@@ -265,83 +267,83 @@ export default function CreateTaskScreen() {
               <Text style={styles.assigneeName}>{assignedUser?.name || 'Unassigned'}</Text>
               <Text style={styles.assigneeEmail}>{assignedUser?.email || 'No email'}</Text>
             </View>
-            <ChevronRight size={18} color={Colors.light.textSecondary} />
+            <ChevronRight size={18} color={theme.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.optionsList}>
             <TouchableOpacity style={styles.optionRow} onPress={() => setProjectPickerOpen(true)}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: '#7B8CDE20' }]}>
                   <Briefcase size={18} color="#7B8CDE" />
                 </View>
                 <Text style={styles.optionLabel}>Project</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{selectedProject?.name || 'None'}</Text>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionRow} onPress={() => setTeamPickerOpen(true)}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#FFF3E0' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: '#FFB74D20' }]}>
                   <UsersIcon size={18} color="#FFB74D" />
                 </View>
                 <Text style={styles.optionLabel}>Team</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{assignedTeam?.name || 'None'}</Text>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push({ pathname: '/select-due-date', params: { context: 'task' } })}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
-                  <Calendar size={18} color={Colors.light.tint} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <Calendar size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>Due date</Text>
               </View>
               <View style={styles.optionRight}>
                 <Text style={styles.optionValue}>{dueDate}</Text>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-priority')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#FFEBEE' }]}>
-                  <Flag size={18} color={Colors.light.priority.high} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.priority.high + '20' }]}>
+                  <Flag size={18} color={theme.priority.high} />
                 </View>
                 <Text style={styles.optionLabel}>Priority</Text>
               </View>
               <View style={styles.optionRight}>
-                <View style={[styles.priorityBadge, { backgroundColor: Colors.light.priority.high + '20' }]}>
-                  <Text style={[styles.priorityText, { color: Colors.light.priority.high }]}>{priority}</Text>
+                <View style={[styles.priorityBadge, { backgroundColor: theme.priority.high + '20' }]}>
+                  <Text style={[styles.priorityText, { color: theme.priority.high }]}>{priority}</Text>
                 </View>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-category')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8EAF6' }]}>
-                  <Tag size={18} color="#7B8CDE" />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <Tag size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>category</Text>
               </View>
               <View style={styles.optionRight}>
-                <View style={[styles.categoryBadge, { backgroundColor: '#E8EAF6' }]}>
-                  <Text style={[styles.categoryText, { color: '#7B8CDE' }]}>{category}</Text>
+                <View style={[styles.categoryBadge, { backgroundColor: theme.tint + '20' }]}>
+                  <Text style={[styles.categoryText, { color: theme.tint }]}>{category}</Text>
                 </View>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-attachment')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E8F5E9' }]}>
-                  <Paperclip size={18} color={Colors.light.status.completed} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.status.completed + '20' }]}>
+                  <Paperclip size={18} color={theme.status.completed} />
                 </View>
                   <Text style={styles.optionLabel}>{t('attachments')}</Text>
               </View>
@@ -349,21 +351,21 @@ export default function CreateTaskScreen() {
                 <View style={styles.addButton}>
                   <Text style={styles.addButtonText}>{taskAttachments.length} files</Text>
                 </View>
-                <ChevronRight size={18} color={Colors.light.textSecondary} />
+                <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/select-subtasks')}>
               <View style={styles.optionLeft}>
-                <View style={[styles.optionIcon, { backgroundColor: '#E3F2FD' }]}>
-                  <List size={18} color={Colors.light.tint} />
+                <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
+                  <List size={18} color={theme.tint} />
                 </View>
                 <View>
                   <Text style={styles.optionLabel}>Subtasks</Text>
                   <Text style={styles.subtaskCount}>{taskSubtasks.length} subtasks added</Text>
                 </View>
               </View>
-              <ChevronRight size={18} color={Colors.light.textSecondary} />
+              <ChevronRight size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -494,10 +496,10 @@ export default function CreateTaskScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -509,10 +511,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   createButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -523,7 +525,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   inputSection: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -537,9 +539,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 8,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -548,23 +550,23 @@ const styles = StyleSheet.create({
   aiButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.light.tint,
+    color: theme.tint,
   },
   inputLabel: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   section: {
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -575,7 +577,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   assigneeAvatar: {
     width: 48,
@@ -593,37 +595,37 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalCard: {
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 12,
   },
   modalRow: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   modalRowText: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
     fontWeight: '600',
   },
   assigneeName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 2,
   },
   assigneeEmail: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   optionsList: {
     marginTop: 8,
@@ -634,7 +636,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   optionLeft: {
     flexDirection: 'row',
@@ -650,7 +652,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: theme.text,
   },
   optionRight: {
     flexDirection: 'row',
@@ -659,7 +661,7 @@ const styles = StyleSheet.create({
   },
   optionValue: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   priorityBadge: {
     paddingHorizontal: 12,
@@ -682,7 +684,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8EAF6',
+    backgroundColor: theme.tint + '20',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -691,17 +693,17 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.light.tint,
+    color: theme.tint,
   },
   subtaskCount: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   teamRow: {
@@ -710,17 +712,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: theme.border,
   },
   teamName: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 4,
   },
   teamEmail: {
     fontSize: 13,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   membersRow: {
     flexDirection: 'row',
@@ -731,20 +733,20 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: Colors.light.cardSecondary,
+    borderColor: theme.cardSecondary,
   },
   moreBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.light.card,
+    backgroundColor: theme.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: -8,
   },
   moreText: {
     fontSize: 11,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '500',
   },
 });

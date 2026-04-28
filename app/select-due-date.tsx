@@ -47,6 +47,8 @@ const monthName = (d: Date) =>
   d.toLocaleString('en-US', { month: 'long' });
 
 export default function SelectDueDateScreen() {
+  const theme = Colors.current;
+  const styles = createStyles(theme);
   const params = useLocalSearchParams<{ context?: string }>();
   const context = (params.context as DateDraftContext | undefined) ?? 'task';
   const setDateDraft = useDateDraftStore((s) => s.setDateDraft);
@@ -95,7 +97,7 @@ export default function SelectDueDateScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={Colors.light.text} />
+          <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Due Date</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -106,13 +108,13 @@ export default function SelectDueDateScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={() => setVisibleMonth((m) => startOfMonth(addMonths(m, -1)))}>
-            <ChevronLeft size={24} color={Colors.light.text} />
+            <ChevronLeft size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.monthText}>
             {monthName(visibleMonth)} {visibleMonth.getFullYear()}
           </Text>
           <TouchableOpacity onPress={() => setVisibleMonth((m) => startOfMonth(addMonths(m, 1)))}>
-            <ChevronRight size={24} color={Colors.light.text} />
+            <ChevronRight size={24} color={theme.text} />
           </TouchableOpacity>
         </View>
 
@@ -194,10 +196,10 @@ export default function SelectDueDateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -209,10 +211,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.light.tintDark,
+    color: theme.tintDark,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -241,20 +243,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
   yearAdjustText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   todayBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
   },
   todayText: {
     fontSize: 13,
@@ -264,7 +266,7 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   weekDaysRow: {
     flexDirection: 'row',
@@ -274,7 +276,7 @@ const styles = StyleSheet.create({
   },
   weekDayLabel: {
     fontSize: 12,
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
     fontWeight: '500',
     width: 40,
     textAlign: 'center',
@@ -294,7 +296,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dateCellSelected: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: theme.tint,
   },
   dateCellMuted: {
     opacity: 0.4,
@@ -302,13 +304,13 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
   },
   dateTextSelected: {
     color: '#FFFFFF',
   },
   dateTextMuted: {
-    color: Colors.light.textSecondary,
+    color: theme.textSecondary,
   },
   timeSection: {
     paddingHorizontal: 16,
@@ -317,7 +319,7 @@ const styles = StyleSheet.create({
   timeSectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: theme.text,
     marginBottom: 16,
   },
   timeGrid: {
@@ -329,17 +331,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: Colors.light.cardSecondary,
+    backgroundColor: theme.cardSecondary,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: theme.border,
   },
   timeButtonSelected: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
+    backgroundColor: theme.tint,
+    borderColor: theme.tint,
   },
   timeButtonText: {
     fontSize: 14,
-    color: Colors.light.text,
+    color: theme.text,
     fontWeight: '500',
   },
   timeButtonTextSelected: {

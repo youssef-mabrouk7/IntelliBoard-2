@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Heart, Github, Globe, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useLocalization } from '@/utils/localization';
 
 const appInfo = [
   { label: 'Version', value: '2.1.0' },
@@ -20,6 +21,19 @@ const legalLinks = [
 export default function AboutScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
+
+  const appInfo = [
+    { label: t('version'), value: '2.1.0' },
+    { label: 'Build', value: '2024.03.15' },
+    { label: 'Platform', value: 'React Native' },
+  ];
+
+  const legalLinks = [
+    t('privacyPolicy'),
+    t('termsOfService'),
+    t('licenses'),
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -27,7 +41,7 @@ export default function AboutScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>About</Text>
+        <Text style={styles.headerTitle}>{t('aboutTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -37,11 +51,11 @@ export default function AboutScreen() {
             <Text style={styles.logoText}>IB</Text>
           </View>
           <Text style={styles.appName}>IntelliBoard</Text>
-          <Text style={styles.tagline}>Smart Project Management</Text>
+          <Text style={styles.tagline}>{t('smartProjectManagement')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Information</Text>
+          <Text style={styles.sectionTitle}>{t('appInformation')}</Text>
           <View style={styles.infoList}>
             {appInfo.map((item, index) => (
               <View key={index} style={styles.infoItem}>
@@ -53,7 +67,7 @@ export default function AboutScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Legal</Text>
+          <Text style={styles.sectionTitle}>{t('legal')}</Text>
           <View style={styles.linksList}>
             {legalLinks.map((link, index) => (
               <TouchableOpacity key={index} style={styles.linkItem}>
@@ -65,7 +79,7 @@ export default function AboutScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Connect</Text>
+          <Text style={styles.sectionTitle}>{t('connect')}</Text>
           <View style={styles.socialLinks}>
             <TouchableOpacity style={styles.socialButton}>
               <Globe size={24} color={theme.tint} />

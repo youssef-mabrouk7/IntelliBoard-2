@@ -7,8 +7,10 @@ import { ArrowLeft, Calendar, Briefcase, Users, Paperclip, ExternalLink } from '
 import Colors from '@/constants/colors'
 import type { Project, Task, Team, TaskSubtask, TaskHistoryEntry } from '@/constants/types'
 import { supabaseService } from '@/services/supabaseService'
+import { useLocalization } from '@/utils/localization'
 
 export default function TaskDetailsScreen() {
+  const { t } = useLocalization()
   const { id } = useLocalSearchParams<{ id: string }>()
   const taskId = Array.isArray(id) ? id[0] : id
 
@@ -81,11 +83,11 @@ export default function TaskDetailsScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Task</Text>
+          <Text style={styles.headerTitle}>{t('taskDetails')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: theme.error }}>Missing task id.</Text>
+          <Text style={{ color: theme.error }}>{t('missingTaskId')}</Text>
         </View>
       </SafeAreaView>
     )
@@ -98,7 +100,7 @@ export default function TaskDetailsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Task</Text>
+        <Text style={styles.headerTitle}>{t('taskDetails')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -123,13 +125,13 @@ export default function TaskDetailsScreen() {
           <View style={styles.card}>
             <View style={styles.row}>
               <Calendar size={18} color={theme.tint} />
-              <Text style={styles.rowLabel}>Due</Text>
+              <Text style={styles.rowLabel}>{t('dueLabel')}</Text>
               <Text style={styles.rowValue}>{task.dueDate}</Text>
             </View>
             <View style={styles.row}>
               <Briefcase size={18} color="#7B8CDE" />
-              <Text style={styles.rowLabel}>Project</Text>
-              <Text style={styles.rowValue}>{project?.name || 'None'}</Text>
+              <Text style={styles.rowLabel}>{t('project')}</Text>
+              <Text style={styles.rowValue}>{project?.name || '-'}</Text>
             </View>
             {!!project?.companyName && (
               <View style={styles.companyTag}>
@@ -138,15 +140,15 @@ export default function TaskDetailsScreen() {
             )}
             <View style={styles.row}>
               <Users size={18} color="#FFB74D" />
-              <Text style={styles.rowLabel}>Team</Text>
-              <Text style={styles.rowValue}>{team?.name || 'None'}</Text>
+              <Text style={styles.rowLabel}>{t('team')}</Text>
+              <Text style={styles.rowValue}>{team?.name || '-'}</Text>
             </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Attachments</Text>
+            <Text style={styles.sectionTitle}>{t('attachments')}</Text>
             {(task.attachmentUrls || []).length === 0 ? (
-              <Text style={styles.muted}>No attachments</Text>
+              <Text style={styles.muted}>{t('noAttachments')}</Text>
             ) : (
               <View style={{ gap: 10 }}>
                 {(task.attachmentUrls || []).map((url, idx) => {
@@ -181,9 +183,9 @@ export default function TaskDetailsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Assignees</Text>
+            <Text style={styles.sectionTitle}>{t('assigneesLabel')}</Text>
             {task.assignees.length === 0 ? (
-              <Text style={styles.muted}>Unassigned</Text>
+              <Text style={styles.muted}>{t('unassigned')}</Text>
             ) : (
               <View style={styles.assignees}>
                 {task.assignees.map((u) => (
@@ -200,9 +202,9 @@ export default function TaskDetailsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Subtasks</Text>
+            <Text style={styles.sectionTitle}>{t('subtasksLabel')}</Text>
             {subtasks.length === 0 ? (
-              <Text style={styles.muted}>No subtasks</Text>
+              <Text style={styles.muted}>{t('noSubtasks')}</Text>
             ) : (
               <View style={{ gap: 8 }}>
                 {subtasks.map((s) => (
@@ -223,7 +225,7 @@ export default function TaskDetailsScreen() {
                       {updatingSubtaskId === s.id ? (
                         <ActivityIndicator size="small" color={theme.tintDark} />
                       ) : (
-                        <Text style={styles.subtaskButtonText}>Task Done</Text>
+                        <Text style={styles.subtaskButtonText}>{t('taskDone')}</Text>
                       )}
                     </TouchableOpacity>
                   </View>
@@ -233,9 +235,9 @@ export default function TaskDetailsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>History</Text>
+            <Text style={styles.sectionTitle}>{t('historyLabel')}</Text>
             {history.length === 0 ? (
-              <Text style={styles.muted}>No history recorded</Text>
+              <Text style={styles.muted}>{t('noHistoryRecorded')}</Text>
             ) : (
               <View style={{ gap: 8 }}>
                 {history.map((entry) => (
@@ -245,7 +247,7 @@ export default function TaskDetailsScreen() {
                       {entry.oldValue ? `${entry.oldValue} -> ${entry.newValue ?? ''}` : entry.newValue ?? 'Updated'}
                     </Text>
                     <Text style={styles.historyMeta}>
-                      {entry.actor?.name || entry.actor?.email || 'System'} · {new Date(entry.createdAt).toLocaleString()}
+                      {entry.actor?.name || entry.actor?.email || t('systemActor')} · {new Date(entry.createdAt).toLocaleString()}
                     </Text>
                   </View>
                 ))}
