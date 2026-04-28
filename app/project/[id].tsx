@@ -7,10 +7,12 @@ import { ArrowLeft, Calendar, CheckCircle, ListTodo } from 'lucide-react-native'
 import Colors from '@/constants/colors'
 import type { Project, Task } from '@/constants/types'
 import { supabaseService } from '@/services/supabaseService'
+import { useLocalization } from '@/utils/localization'
 
 export default function ProjectDetailsScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization()
   const { id } = useLocalSearchParams<{ id: string }>()
   const projectId = Array.isArray(id) ? id[0] : id
 
@@ -55,11 +57,11 @@ export default function ProjectDetailsScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Project</Text>
+          <Text style={styles.headerTitle}>{t('projectDetails')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: theme.error }}>Missing project id.</Text>
+          <Text style={{ color: theme.error }}>{t('missingProjectId')}</Text>
         </View>
       </SafeAreaView>
     )
@@ -71,7 +73,7 @@ export default function ProjectDetailsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Project</Text>
+        <Text style={styles.headerTitle}>{t('projectDetails')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -101,27 +103,27 @@ export default function ProjectDetailsScreen() {
           <View style={styles.card}>
             <View style={styles.row}>
               <Calendar size={18} color={theme.tint} />
-              <Text style={styles.rowLabel}>Due</Text>
+              <Text style={styles.rowLabel}>{t('dueLabel')}</Text>
               <Text style={styles.rowValue}>{project.dueDate || '-'}</Text>
             </View>
             <View style={styles.row}>
               <ListTodo size={18} color="#7B8CDE" />
-              <Text style={styles.rowLabel}>Tasks</Text>
+              <Text style={styles.rowLabel}>{t('taskPlural')}</Text>
               <Text style={styles.rowValue}>
-                {tasks.length} total • {completedCount} completed
+                {tasks.length} total • {completedCount} {t('completed')}
               </Text>
             </View>
             <View style={styles.row}>
               <CheckCircle size={18} color={theme.status.completed} />
-              <Text style={styles.rowLabel}>Progress</Text>
+              <Text style={styles.rowLabel}>{t('inProgress')}</Text>
               <Text style={styles.rowValue}>{liveProgress}%</Text>
             </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Members</Text>
+            <Text style={styles.sectionTitle}>{t('membersLabel')}</Text>
             {project.members.length === 0 ? (
-              <Text style={styles.muted}>No members</Text>
+              <Text style={styles.muted}>{t('noMembers')}</Text>
             ) : (
               <View style={styles.membersRow}>
                 {project.members.slice(0, 8).map((m, idx) => (
@@ -136,9 +138,9 @@ export default function ProjectDetailsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Project Tasks</Text>
+            <Text style={styles.sectionTitle}>{t('projectTasksLabel')}</Text>
             {tasks.length === 0 ? (
-              <Text style={styles.muted}>No tasks for this project yet.</Text>
+              <Text style={styles.muted}>{t('noTasksForProject')}</Text>
             ) : (
               <View style={{ gap: 10 }}>
                 {tasks.map((t) => (

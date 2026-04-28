@@ -119,6 +119,7 @@ export default function RootLayout() {
   const hydrate = useAppPreferencesStore((s) => s.hydrate);
   const isRTL = useAppPreferencesStore((s) => s.language === "ar");
   const themeMode = useAppPreferencesStore((s) => s.themeMode);
+  const language = useAppPreferencesStore((s) => s.language);
 
   useEffect(() => {
     hydrate();
@@ -127,7 +128,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView key={themeMode} style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}>
+      <GestureHandlerRootView key={`${themeMode}-${language}`} style={{ flex: 1, direction: isRTL ? "rtl" : "ltr" }}>
         <RootLayoutNav />
       </GestureHandlerRootView>
     </QueryClientProvider>

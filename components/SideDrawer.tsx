@@ -22,6 +22,7 @@ import {
   Briefcase,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { useLocalization } from '@/utils/localization';
 
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.75;
@@ -41,6 +42,7 @@ interface MenuItemProps {
 export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
   const slideAnim = React.useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -105,7 +107,7 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
           ]}
         >
           <View style={styles.drawerHeader}>
-            <Text style={styles.drawerTitle}>Menu</Text>
+            <Text style={styles.drawerTitle}>{t('menuLabel')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color={theme.text} />
             </TouchableOpacity>
@@ -114,22 +116,22 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
           <View style={styles.menuContainer}>
             <MenuItem
               icon={<Home size={22} color={theme.tint} />}
-              label="Home"
+              label={t('home')}
               onPress={() => handleNavigation('/(tabs)/home')}
             />
             <MenuItem
               icon={<Folder size={22} color={theme.tint} />}
-              label="Tasks"
+              label={t('tasks')}
               onPress={() => handleNavigation('/(tabs)/tasks')}
             />
             <MenuItem
               icon={<Briefcase size={22} color={theme.tint} />}
-              label="Projects"
+              label={t('projects')}
               onPress={() => handleNavigation('/(tabs)/projects')}
             />
             <MenuItem
               icon={<Users size={22} color={theme.tint} />}
-              label="Teams"
+              label={t('teams')}
               onPress={() => handleNavigation('/(tabs)/teams')}
             />
 
@@ -137,17 +139,17 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
 
             <MenuItem
               icon={<Calendar size={22} color={theme.tint} />}
-              label="Calendar"
+              label={t('calendar')}
               onPress={() => handleNavigation('/(tabs)/calendar')}
             />
             <MenuItem
               icon={<Calendar size={22} color={theme.tint} />}
-              label="Events"
+              label={t('eventsLabel')}
               onPress={() => handleNavigation('/all-events')}
             />
             <MenuItem
               icon={<BarChart3 size={22} color={theme.tint} />}
-              label="Analytics"
+              label={t('analyticsTitle')}
               onPress={() => handleNavigation('/(tabs)/analytics')}
             />
 
@@ -155,12 +157,12 @@ export default function SideDrawer({ isVisible, onClose }: SideDrawerProps) {
 
             <MenuItem
               icon={<User size={22} color={theme.tint} />}
-              label="Profile"
+              label={t('profile')}
               onPress={() => handleNavigation('/profile')}
             />
             <MenuItem
               icon={<Settings size={22} color={theme.tint} />}
-              label="Settings"
+              label={t('settingsTitle')}
               onPress={() => handleNavigation('/settings')}
             />
           </View>

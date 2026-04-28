@@ -6,10 +6,12 @@ import { ArrowLeft, Mail, Phone, Lock, Shield, ChevronRight } from 'lucide-react
 import Colors from '@/constants/colors';
 import { User as AppUser } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
+import { useLocalization } from '@/utils/localization';
 
 export default function AccountScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(true);
   const [profile, setProfile] = useState<AppUser | null>(null);
@@ -28,7 +30,7 @@ export default function AccountScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account</Text>
+        <Text style={styles.headerTitle}>{t('accountTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -40,7 +42,7 @@ export default function AccountScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Information</Text>
+          <Text style={styles.sectionTitle}>{t('accountLabel')}</Text>
           
           <TouchableOpacity style={styles.infoItem}>
             <View style={styles.infoLeft}>
@@ -48,7 +50,7 @@ export default function AccountScreen() {
                 <Mail size={18} color={theme.tint} />
               </View>
               <View>
-                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoLabel}>{t('emailLabel')}</Text>
                 <Text style={styles.infoValue}>{profile?.email || 'No email'}</Text>
               </View>
             </View>
@@ -61,7 +63,7 @@ export default function AccountScreen() {
                 <Phone size={18} color={theme.status.completed} />
               </View>
               <View>
-                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoLabel}>{t('phone')}</Text>
                 <Text style={styles.infoValue}>+1 234 567 890</Text>
               </View>
             </View>
@@ -114,7 +116,7 @@ export default function AccountScreen() {
         </View>
 
         <TouchableOpacity style={styles.deleteButton}>
-          <Text style={styles.deleteButtonText}>Delete Account</Text>
+          <Text style={styles.deleteButtonText}>{t('delete')} {t('accountTitle')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

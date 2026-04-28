@@ -7,19 +7,21 @@ import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
 import { supabase } from '@/utils/supabase';
+import { useLocalization } from '@/utils/localization';
 
 export default function SettingsScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
 
   const settingsItems = [
-    { icon: User, label: 'Account', color: theme.tint, route: '/account' },
-    { icon: Bell, label: 'Notifications', color: '#FF9800', route: '/notifications-settings' },
-    { icon: Palette, label: 'Appearance', color: '#9C27B0', route: '/appearance' },
-    { icon: CheckCircle, label: 'Preferences', color: '#4CAF50', route: '/preferences' },
-    { icon: HelpCircle, label: 'Help & Support', color: theme.tint, route: '/help-support' },
-    { icon: Info, label: 'About', color: theme.tint, route: '/about' },
-    { icon: Globe, label: 'Language & Date', color: theme.text, route: '/language-date' },
+    { icon: User, label: t('accountLabel'), color: theme.tint, route: '/account' },
+    { icon: Bell, label: t('notificationsLabel'), color: '#FF9800', route: '/notifications-settings' },
+    { icon: Palette, label: t('appearanceLabel'), color: '#9C27B0', route: '/appearance' },
+    { icon: CheckCircle, label: t('preferencesLabel'), color: '#4CAF50', route: '/preferences' },
+    { icon: HelpCircle, label: t('helpSupportLabel'), color: theme.tint, route: '/help-support' },
+    { icon: Info, label: t('aboutLabel'), color: theme.tint, route: '/about' },
+    { icon: Globe, label: t('languageDateLabel'), color: theme.text, route: '/language-date' },
   ];
   const [testingConnection, setTestingConnection] = React.useState(false);
   const [profile, setProfile] = React.useState<AppUser | null>(null);
@@ -60,7 +62,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('settingsTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -72,7 +74,7 @@ export default function SettingsScreen() {
             <Text style={styles.email}>{profile?.email || 'No email'}</Text>
           </View>
           <TouchableOpacity style={styles.editProfileButton} onPress={() => router.push('/edit-profile')}>
-            <Text style={styles.editProfileText}>Edit Profile</Text>
+            <Text style={styles.editProfileText}>{t('editProfileLabel')}</Text>
             <ChevronRight size={16} color="#FFFFFF" />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -101,7 +103,7 @@ export default function SettingsScreen() {
             <View style={[styles.iconContainer, { backgroundColor: '#FFEBEE' }]}>
               <LogOut size={20} color={theme.error} />
             </View>
-            <Text style={[styles.itemLabel, { color: theme.error }]}>Logout</Text>
+            <Text style={[styles.itemLabel, { color: theme.error }]}>{t('logoutLabel')}</Text>
             <ChevronRight size={20} color={theme.error} />
           </TouchableOpacity>
         </View>

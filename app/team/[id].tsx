@@ -7,10 +7,12 @@ import { ArrowLeft, Users, ClipboardList } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import type { Task, Team } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
+import { useLocalization } from '@/utils/localization';
 
 export default function TeamDetailsScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const teamId = Array.isArray(id) ? id[0] : id;
@@ -50,11 +52,11 @@ export default function TeamDetailsScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft size={24} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Team</Text>
+          <Text style={styles.headerTitle}>{t('teamDetails')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: theme.error }}>Missing team id.</Text>
+          <Text style={{ color: theme.error }}>{t('missingTeamId')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -66,7 +68,7 @@ export default function TeamDetailsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Team</Text>
+        <Text style={styles.headerTitle}>{t('teamDetails')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -97,19 +99,19 @@ export default function TeamDetailsScreen() {
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
                 <Users size={16} color={theme.textSecondary} />
-                <Text style={styles.metaText}>{team.memberCount} members</Text>
+                <Text style={styles.metaText}>{team.memberCount} {t('membersCount')}</Text>
               </View>
               <View style={styles.metaItem}>
                 <ClipboardList size={16} color={theme.textSecondary} />
-                <Text style={styles.metaText}>{doneCount}/{tasks.length} tasks done</Text>
+                <Text style={styles.metaText}>{doneCount}/{tasks.length} {t('tasksDoneOf')}</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Members</Text>
+            <Text style={styles.sectionTitle}>{t('membersLabel')}</Text>
             {team.members.length === 0 ? (
-              <Text style={styles.muted}>No members</Text>
+              <Text style={styles.muted}>{t('noMembers')}</Text>
             ) : (
               <View style={{ gap: 10 }}>
                 {team.members.map((m) => (
@@ -126,17 +128,17 @@ export default function TeamDetailsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Tasks</Text>
+            <Text style={styles.sectionTitle}>{t('teamTasksLabel')}</Text>
             {tasks.length === 0 ? (
-              <Text style={styles.muted}>No tasks</Text>
+              <Text style={styles.muted}>{t('noTasksForTeam')}</Text>
             ) : (
               <View style={{ gap: 10 }}>
-                {tasks.map((t) => (
-                  <TouchableOpacity key={t.id} style={styles.taskRow} onPress={() => router.push(`/task/${t.id}`)}>
-                    <View style={[styles.taskStatusDot, { backgroundColor: t.status === 'completed' ? theme.status.completed : theme.border }]} />
+                {tasks.map((task) => (
+                  <TouchableOpacity key={task.id} style={styles.taskRow} onPress={() => router.push(`/task/${task.id}` as never)}>
+                    <View style={[styles.taskStatusDot, { backgroundColor: task.status === 'completed' ? theme.status.completed : theme.border }]} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.taskTitle}>{t.title}</Text>
-                      <Text style={styles.taskSub}>{t.status === 'completed' ? 'Done' : 'Not Done'} · Due {t.dueDate}</Text>
+                      <Text style={styles.taskTitle}>{task.title}</Text>
+                      <Text style={styles.taskSub}>{task.status === 'completed' ? t('done') : t('notDone')} · {t('dueLabel')} {task.dueDate}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}

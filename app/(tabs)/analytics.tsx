@@ -8,10 +8,12 @@ import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
 import { Project, Task, Team } from '@/constants/types';
+import { useLocalization } from '@/utils/localization';
 
 export default function AnalyticsScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
+  const { t } = useLocalization();
   const [timeRange, setTimeRange] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [overviewRange, setOverviewRange] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -96,10 +98,10 @@ export default function AnalyticsScreen() {
         <TouchableOpacity onPress={() => setDrawerVisible(true)}>
           <Menu size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Analytics</Text>
+        <Text style={styles.headerTitle}>{t('analyticsTitle')}</Text>
         <TouchableOpacity style={styles.filterButton}>
           <Filter size={16} color={theme.textSecondary} />
-          <Text style={styles.filterText}>This Week</Text>
+          <Text style={styles.filterText}>{t('thisWeek')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -131,7 +133,7 @@ export default function AnalyticsScreen() {
 
         <View style={styles.overviewSection}>
           <View style={styles.overviewHeader}>
-            <Text style={styles.overviewTitle}>Overview</Text>
+            <Text style={styles.overviewTitle}>{t('overview')}</Text>
             <TouchableOpacity>
               <Text style={styles.moreOptions}>...</Text>
             </TouchableOpacity>
@@ -159,7 +161,7 @@ export default function AnalyticsScreen() {
               <View style={[styles.legendIcon, { backgroundColor: theme.tint + '20' }]}>
                 <Check size={16} color={theme.tint} />
               </View>
-              <Text style={styles.legendText}>Completed</Text>
+              <Text style={styles.legendText}>{t('completedLabel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.legendItem}
@@ -168,7 +170,7 @@ export default function AnalyticsScreen() {
               <View style={[styles.legendIcon, { backgroundColor: theme.priority.high + '20' }]}>
                 <AlertCircle size={16} color={theme.priority.high} />
               </View>
-              <Text style={styles.legendText}>Overdue</Text>
+              <Text style={styles.legendText}>{t('overdueLabel')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -211,21 +213,21 @@ export default function AnalyticsScreen() {
               <FileText size={24} color={theme.status.completed} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.totalTasks}</Text>
-            <Text style={styles.statLabel}>Total Tasks</Text>
+            <Text style={styles.statLabel}>{t('totalTasks')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
             <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
               <Check size={24} color={theme.tint} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.completed}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statLabel}>{t('completedLabel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statCard} onPress={() => router.push('/all-tasks' as const)}>
             <View style={[styles.statIcon, { backgroundColor: theme.priority.high + '20' }]}>
               <AlertCircle size={24} color={theme.priority.high} />
             </View>
             <Text style={styles.statNumber}>{analyticsData.overdue}</Text>
-            <Text style={styles.statLabel}>Overdue</Text>
+            <Text style={styles.statLabel}>{t('overdueLabel')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -236,7 +238,7 @@ export default function AnalyticsScreen() {
             </View>
             <View>
               <Text style={styles.statNumber}>{analyticsData.ongoing}</Text>
-              <Text style={styles.statLabel}>Ongoing</Text>
+              <Text style={styles.statLabel}>{t('ongoingLabel')}</Text>
             </View>
           </View>
           <View style={[styles.bottomStatCard, { flex: 1 }]}>
@@ -245,7 +247,7 @@ export default function AnalyticsScreen() {
             </View>
             <View>
               <Text style={styles.statNumber}>{analyticsData.totalProjects}</Text>
-              <Text style={styles.statLabel}>Projects</Text>
+              <Text style={styles.statLabel}>{t('projectsLabel')}</Text>
             </View>
           </View>
           <View style={[styles.bottomStatCard, { flex: 1 }]}>
@@ -254,7 +256,7 @@ export default function AnalyticsScreen() {
             </View>
             <View>
               <Text style={styles.statNumber}>{analyticsData.totalTeams}</Text>
-              <Text style={styles.statLabel}>Teams</Text>
+              <Text style={styles.statLabel}>{t('teamsLabel')}</Text>
             </View>
           </View>
         </View>
