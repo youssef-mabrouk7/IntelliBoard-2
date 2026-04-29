@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Bell, Mail, MessageSquare, Calendar, CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useLocalization } from '@/utils/localization';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabaseService } from '@/services/supabaseService';
 import { getReminderNotifications, setReminderNotificationRead, type ReminderNotificationItem } from '@/services/reminderNotifications';
 import { EventInvite } from '@/constants/types';

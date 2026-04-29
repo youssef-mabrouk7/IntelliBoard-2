@@ -7,6 +7,14 @@ const TRANSIENT_ERROR_CODES = new Set(['57014', 'ETIMEDOUT', 'ECONNRESET', 'ENET
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 type AppRole = 'Project Manager' | 'Team Leader' | 'Team Member';
 
+function stripUndefined<T extends Record<string, any>>(obj: T) {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out as Partial<T>;
+}
+
 const normalizeRole = (value?: string | null): AppRole => {
   const role = String(value ?? '').trim().toLowerCase();
   if (role === 'project manager' || role === 'manager' || role === 'product manager') return 'Project Manager';
@@ -181,6 +189,16 @@ async function ensureCurrentProfileExists() {
   const user = authData.user;
   if (!user) return null;
 
+  const { data: existingProfile, error: existingError } = await withTimeout(
+    withRetry(() => supabase.from('profiles').select('id, role').eq('id', user.id).maybeSingle()),
+  );
+  if (existingError && !isMissingTableError(existingError)) throw existingError;
+
+  const roleFromProfile = normalizeRole((existingProfile as any)?.role);
+  const roleFromMetadata = normalizeRole((user.user_metadata as any)?.role);
+  const roleToPersist: AppRole =
+    (existingProfile as any)?.id ? roleFromProfile : roleFromMetadata || 'Team Member';
+
   const payload = {
     id: user.id,
     email: user.email ?? '',
@@ -188,7 +206,7 @@ async function ensureCurrentProfileExists() {
     avatar: (user.user_metadata as any)?.avatar_url ?? (user.user_metadata as any)?.avatar ?? null,
     // Never rely on JWT/user_metadata for authorization decisions.
     // The canonical role is stored in `profiles.role`.
-    role: 'Team Member',
+    role: roleToPersist,
   };
 
   // Upsert is idempotent and fixes FK failures when `profiles` row doesn't exist yet.
@@ -220,7 +238,7 @@ async function requireRole(permission: 'manageProjects' | 'manageTasks' | 'manag
   if (role === 'Project Manager') return;
   if (permission === 'manageTasks' && role === 'Team Leader') return;
   if (permission === 'manageTeamMembers' && role === 'Team Leader') return;
-  throw new Error('You do not have permission to perform this action.');
+  throw new Error(`You do not have permission to perform this action. Current role: ${role}.`);
 }
 
 export const supabaseService = {
@@ -840,7 +858,7 @@ export const supabaseService = {
     const user = authData.user;
     if (!user) throw new Error('No authenticated user.');
 
-    const payload: any = {
+    const payload: any = stripUndefined({
       id: user.id,
       name: patch.name,
       email: patch.email,
@@ -850,7 +868,7 @@ export const supabaseService = {
       department: patch.department,
       job_title: patch.jobTitle,
       phone: patch.phone,
-    };
+    });
 
     const { data, error } = await withTimeout(
       withRetry(() =>
@@ -1001,14 +1019,7 @@ export const supabaseService = {
         const { error: inviteError } = await withTimeout(
           withRetry(() => supabase.from('event_invites').insert(inviteRows)),
         );
-        if (inviteError) {
-          if (isMissingTableError(inviteError)) {
-            throw new Error(
-              "Event was created, but invites couldn't be sent because `event_invites` table is missing in Supabase. Run `supabase/schema.sql` to create it.",
-            );
-          }
-          throw inviteError;
-        }
+        if (inviteError && !isMissingTableError(inviteError)) throw inviteError;
       }
     }
 

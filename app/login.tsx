@@ -13,6 +13,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -65,13 +66,14 @@ export default function LoginScreen() {
     }
     setSendingReset(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(preferredEmail);
+      const redirectTo = Linking.createURL('reset-password');
+      const { error } = await supabase.auth.resetPasswordForEmail(preferredEmail, { redirectTo });
       if (error) {
         alert(error.message);
         return;
       }
       setShowResetModal(false);
-      alert('Password reset email sent. Please check your inbox.');
+      alert('Password reset email sent. Open the link to reset your password.');
     } catch (error: any) {
       alert(friendlyAuthNetworkMessage(error?.message));
     } finally {

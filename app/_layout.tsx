@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as Linking from "expo-linking";
 import { useAppPreferencesStore } from "@/stores/appPreferencesStore";
 import { useDateDraftStore } from "@/stores/dateDraftStore";
 import { useSubtaskDraftStore } from "@/stores/subtaskDraftStore";
@@ -16,6 +17,16 @@ const queryClient = new QueryClient();
 
 import { supabase } from "@/utils/supabase";
 import { router } from "expo-router";
+
+function parseHashParams(url: string) {
+  const hash = url.split("#")[1] ?? "";
+  const params = new URLSearchParams(hash);
+  const out: Record<string, string> = {};
+  params.forEach((v, k) => {
+    out[k] = v;
+  });
+  return out;
+}
 
 function RootLayoutNav() {
   const hydrated = useAppPreferencesStore((s) => s.hydrated);
@@ -90,6 +101,35 @@ function RootLayoutNav() {
     };
   }, [hydrated, pathname, onboardingCompleted, resetForSignedOut, clearDateDraft, clearSubtasks, clearTaskMeta]);
 
+  useEffect(() => {
+    const handleUrl = async (url: string) => {
+      try {
+        // Supabase recovery links for native apps typically include tokens in the URL hash.
+        const hashParams = parseHashParams(url);
+        const access_token = hashParams["access_token"];
+        const refresh_token = hashParams["refresh_token"];
+        const type = hashParams["type"];
+        if (type === "recovery" && access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (error) return;
+          router.replace("/reset-password");
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      void handleUrl(url);
+    });
+
+    Linking.getInitialURL().then((initial) => {
+      if (initial) void handleUrl(initial);
+    });
+
+    return () => sub.remove();
+  }, []);
+
   // While preferences are loading from AsyncStorage, render a blank screen.
   // This prevents the WelcomeScreen from being tappable before the onboarding
   // check runs (which was causing onboarding to be skipped after cache clear).
@@ -103,6 +143,7 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="profile" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
