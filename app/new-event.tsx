@@ -19,6 +19,7 @@ import { supabaseService } from '@/services/supabaseService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
 import { useLocalization } from '@/utils/localization';
 import { saveEventReminder } from '@/services/reminderNotifications';
+import { supabase } from '@/utils/supabase';
 
 const TIME_SLOTS = [
   '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
@@ -69,9 +70,20 @@ export default function NewEventScreen() {
         status: description.trim() ? description.trim() : undefined,
       }, selectedParticipantIds);
       await saveEventReminder(createdEvent.id, reminderMinutes);
+      const invitesSent = selectedParticipantIds.length > 0 ? await supabaseService.getEventInvitesCount(createdEvent.id) : 0;
       // Clear the date draft so the next event starts fresh
       clearDateDraft('event');
-      Alert.alert('Success', 'Event created successfully.');
+      if (selectedParticipantIds.length > 0 && invitesSent === 0) {
+        Alert.alert(
+          'Event created',
+          "Invites were confirmed, but 0 invites were saved. This usually means your Supabase database is missing the `event_invites` RLS policies (or insert is blocked). Please apply the `event_invites` section from `supabase/schema.sql`.",
+        );
+      } else {
+        Alert.alert(
+          'Success',
+          `Event created successfully.${selectedParticipantIds.length > 0 ? ` Invites sent: ${invitesSent}.` : ''}`,
+        );
+      }
       router.back();
     } catch (error: any) {
       Alert.alert('Create Event Failed', error?.message || 'Unknown error.');
@@ -111,10 +123,18 @@ export default function NewEventScreen() {
         return;
       }
 
+      const { data: authData } = await supabase.auth.getUser();
+      const myId = authData.user?.id;
+      const filteredIds = profileIds.filter((id) => id !== myId);
+      if (filteredIds.length === 0) {
+        Alert.alert('Error', 'You cannot invite yourself. Please enter another user email.');
+        return;
+      }
+
       setInviteEmails(enteredEmails.join(', '));
-      setSelectedParticipantIds(profileIds);
+      setSelectedParticipantIds(filteredIds);
       setShowInviteModal(false);
-      Alert.alert('Success', 'Invitation emails confirmed.');
+      Alert.alert('Success', `Invitation emails confirmed. Inviting: ${filteredIds.length} user(s).`);
     } catch (error: any) {
       Alert.alert('Invite Error', error?.message || 'Could not validate invite emails.');
     } finally {

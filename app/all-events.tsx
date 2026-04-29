@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ export default function AllEventsScreen() {
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingInviteCount, setPendingInviteCount] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -22,6 +23,24 @@ export default function AllEventsScreen() {
     };
     load();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let active = true;
+      const loadInviteCount = async () => {
+        try {
+          const count = await supabaseService.getMyPendingEventInvitesCount();
+          if (active) setPendingInviteCount(count);
+        } catch {
+          if (active) setPendingInviteCount(0);
+        }
+      };
+      void loadInviteCount();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const currentMonth = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(currentMonthDate);
   const monthEvents = calendarEvents.filter((event) => {
@@ -38,6 +57,11 @@ export default function AllEventsScreen() {
         <Text style={styles.headerTitle}>{t('allEvents')}</Text>
         <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/notifications-settings')}>
           <Bell size={22} color={Colors.light.text} />
+          {pendingInviteCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{pendingInviteCount > 99 ? '99+' : String(pendingInviteCount)}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -141,6 +165,24 @@ const styles = StyleSheet.create({
   },
   headerIcon: {
     padding: 4,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: '#E53935',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   monthSelector: {
     flexDirection: 'row',

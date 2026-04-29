@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Menu, Search, Bell, ArrowRight, Circle, Check } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const theme = Colors.current;
   const styles = createStyles(theme);
 
@@ -89,6 +90,24 @@ export default function HomeScreen() {
     [locale, selectedDate],
   );
 
+  useFocusEffect(
+    React.useCallback(() => {
+      let active = true;
+      const loadInviteCount = async () => {
+        try {
+          const count = await supabaseService.getMyPendingEventInvitesCount();
+          if (active) setPendingInviteCount(count);
+        } catch {
+          if (active) setPendingInviteCount(0);
+        }
+      };
+      void loadInviteCount();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -98,6 +117,11 @@ export default function HomeScreen() {
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/notifications-settings')}>
             <Bell size={22} color={theme.text} />
+            {pendingInviteCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{pendingInviteCount > 99 ? '99+' : String(pendingInviteCount)}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -272,6 +296,24 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   },
   headerIcon: {
     padding: 4,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: '#E53935',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   searchContainer: {
     paddingHorizontal: 16,

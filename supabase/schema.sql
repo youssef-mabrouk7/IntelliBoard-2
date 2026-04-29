@@ -82,6 +82,10 @@ create table if not exists public.calendar_events (
   created_at timestamptz not null default now()
 );
 
+-- Company isolation (optional, but recommended)
+alter table public.calendar_events
+  add column if not exists company_id uuid;
+
 -- Junction tables
 create table if not exists public.task_assignees (
   task_id uuid references public.tasks(id) on delete cascade,
@@ -115,8 +119,12 @@ create table if not exists public.event_assignees (
   primary key (event_id, user_id)
 );
 
+alter table public.event_assignees
+  add column if not exists company_id uuid;
+
 create table if not exists public.event_invites (
   id uuid primary key default gen_random_uuid(),
+  company_id uuid,
   event_id uuid not null references public.calendar_events(id) on delete cascade,
   inviter_id uuid not null references public.profiles(id) on delete cascade,
   invitee_id uuid not null references public.profiles(id) on delete cascade,
@@ -327,54 +335,101 @@ to authenticated
 with check (true);
 
 -- Calendar events policies
+drop policy if exists calendar_events_select on public.calendar_events;
+drop policy if exists calendar_events_insert on public.calendar_events;
+drop policy if exists calendar_events_update on public.calendar_events;
+
 create policy calendar_events_select
 on public.calendar_events
 for select
 to authenticated
-using (true);
+using (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+);
 
 create policy calendar_events_insert
 on public.calendar_events
 for insert
 to authenticated
-with check (true);
+with check (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+);
 
 create policy calendar_events_update
 on public.calendar_events
 for update
 to authenticated
-using (true);
+using (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+)
+with check (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+);
 
 -- Event assignees policies
+drop policy if exists event_assignees_select on public.event_assignees;
+drop policy if exists event_assignees_insert on public.event_assignees;
+
 create policy event_assignees_select
 on public.event_assignees
 for select
 to authenticated
-using (true);
+using (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+);
 
 create policy event_assignees_insert
 on public.event_assignees
 for insert
 to authenticated
-with check (true);
+with check (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+);
 
 create policy event_invites_select
 on public.event_invites
 for select
 to authenticated
-using (invitee_id = auth.uid() or inviter_id = auth.uid());
+using (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and (invitee_id = auth.uid() or inviter_id = auth.uid())
+);
 
 create policy event_invites_insert
 on public.event_invites
 for insert
 to authenticated
-with check (inviter_id = auth.uid());
+with check (
+  inviter_id = auth.uid()
+  and company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and exists (
+    select 1 from public.profiles invitee
+    where invitee.id = event_invites.invitee_id
+      and invitee.company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  )
+);
 
 create policy event_invites_update
 on public.event_invites
 for update
 to authenticated
-using (invitee_id = auth.uid() or inviter_id = auth.uid());
+using (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and (invitee_id = auth.uid() or inviter_id = auth.uid())
+)
+with check (
+  company_id is not null
+  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+);
 
 -- Task due-date + history extension
 alter table public.task_subtasks

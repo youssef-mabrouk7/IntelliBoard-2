@@ -61,21 +61,28 @@ export default function NotificationsSettingsScreen() {
   ]);
   const [reminders, setReminders] = useState<ReminderNotificationItem[]>([]);
   const [eventInvites, setEventInvites] = useState<EventInvite[]>([]);
+  const [inviteLoadError, setInviteLoadError] = useState<string | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
       const loadReminderNotifications = async () => {
         try {
-          const [events, invites] = await Promise.all([
-            supabaseService.getEvents(),
-            supabaseService.getMyPendingEventInvites(),
-          ]);
+          setInviteLoadError(null);
+
+          const events = await supabaseService.getEvents();
           const items = await getReminderNotifications(events);
           setReminders(items);
-          setEventInvites(invites);
         } catch {
           setReminders([]);
+        }
+
+        try {
+          const invites = await supabaseService.getMyPendingEventInvites();
+          setEventInvites(invites);
+          setInviteLoadError(null);
+        } catch (e: any) {
           setEventInvites([]);
+          setInviteLoadError(e?.message || 'Failed to load invites.');
         }
       };
       loadReminderNotifications();
@@ -148,6 +155,7 @@ export default function NotificationsSettingsScreen() {
 
         <View style={styles.reminderSection}>
           <Text style={styles.quietHoursTitle}>Event invites</Text>
+          {!!inviteLoadError && <Text style={styles.quietHoursDescription}>{inviteLoadError}</Text>}
           {eventInvites.length === 0 ? (
             <Text style={styles.quietHoursDescription}>No pending event invitations.</Text>
           ) : (

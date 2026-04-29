@@ -15,6 +15,13 @@ function stripUndefined<T extends Record<string, any>>(obj: T) {
   return out as Partial<T>;
 }
 
+const mapProfile = (p: any): User => ({
+  ...(p as any),
+  companyId: (p as any)?.company_id ?? (p as any)?.companyId,
+  companyName: (p as any)?.company_name ?? (p as any)?.company ?? (p as any)?.companyName,
+  jobTitle: (p as any)?.job_title ?? (p as any)?.jobTitle,
+});
+
 const normalizeRole = (value?: string | null): AppRole => {
   const role = String(value ?? '').trim().toLowerCase();
   if (role === 'project manager' || role === 'manager' || role === 'product manager') return 'Project Manager';
@@ -115,7 +122,7 @@ const mapEventInvite = (row: any): EventInvite => ({
   createdAt: row.created_at,
   respondedAt: row.responded_at ?? null,
   event: row.event ? mapEvent(row.event) : null,
-  inviter: row.inviter ?? null,
+  inviter: row.inviter ? mapProfile(row.inviter) : row.inviter ?? null,
 });
 
 const mapTaskSubtask = (s: any): TaskSubtask => ({
@@ -803,7 +810,7 @@ export const supabaseService = {
       .single();
     
     if (error) throw error;
-    return data as User;
+    return mapProfile(data);
   },
 
   async getCurrentRole(): Promise<AppRole> {
@@ -819,7 +826,7 @@ export const supabaseService = {
       if (isMissingTableError(error)) return [];
       throw error;
     }
-    return (data || []) as User[];
+    return (data || []).map(mapProfile);
   },
 
   async resolveProfileIdsByEmails(emails: string[]) {
@@ -832,12 +839,13 @@ export const supabaseService = {
     );
     if (normalized.length === 0) return { profileIds: [] as string[], missingEmails: [] as string[] };
 
+    const orFilter = normalized.map((email) => `email.ilike.${email}`).join(',');
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
           .from('profiles')
           .select('id,email')
-          .in('email', normalized),
+          .or(orFilter),
       ),
     );
     if (error) throw error;
@@ -850,6 +858,19 @@ export const supabaseService = {
       profileIds: found.map((row) => row.id),
       missingEmails,
     };
+  },
+
+  async getEventInvitesCount(eventId: string) {
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase.from('event_invites').select('id').eq('event_id', eventId),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return 0;
+      throw error;
+    }
+    return Array.isArray(data) ? data.length : 0;
   },
 
   async updateCurrentProfile(patch: Partial<User>) {
@@ -986,7 +1007,13 @@ export const supabaseService = {
   ) {
     await requireRole('manageTasks');
     const creatorId = await ensureCurrentProfileExists();
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) {
+      throw new Error('Your profile is missing companyId. Please select a company in registration/profile.');
+    }
     const payload = {
+      company_id: companyId,
       title: event.title,
       date: event.date,
       start_time: event.startTime,
@@ -1009,6 +1036,7 @@ export const supabaseService = {
       const inviteRows = uniqueParticipants
         .filter((id) => id !== creatorId)
         .map((inviteeId) => ({
+          company_id: companyId,
           event_id: created.id,
           inviter_id: creatorId,
           invitee_id: inviteeId,
@@ -1019,7 +1047,14 @@ export const supabaseService = {
         const { error: inviteError } = await withTimeout(
           withRetry(() => supabase.from('event_invites').insert(inviteRows)),
         );
-        if (inviteError && !isMissingTableError(inviteError)) throw inviteError;
+        if (inviteError) {
+          if (isMissingTableError(inviteError)) {
+            throw new Error(
+              "Event was created, but invites couldn't be sent because `event_invites` table is missing in Supabase. Run `supabase/schema.sql` to create it.",
+            );
+          }
+          throw inviteError;
+        }
       }
     }
 
@@ -1036,11 +1071,7 @@ export const supabaseService = {
       withRetry(() =>
         supabase
           .from('event_invites')
-          .select(`
-            *,
-            event:calendar_events(*, assignees:event_assignees(profiles(*))),
-            inviter:profiles!event_invites_inviter_id_fkey(*)
-          `)
+          .select('*')
           .eq('invitee_id', userId)
           .eq('status', 'pending')
           .order('created_at', { ascending: false }),
@@ -1050,7 +1081,57 @@ export const supabaseService = {
       if (isMissingTableError(error)) return [];
       throw error;
     }
-    return (data || []).map(mapEventInvite);
+
+    const rows = (data || []) as any[];
+    if (rows.length === 0) return [];
+
+    const eventIds = Array.from(new Set(rows.map((r) => r.event_id).filter(Boolean)));
+    const inviterIds = Array.from(new Set(rows.map((r) => r.inviter_id).filter(Boolean)));
+
+    const [eventsRes, invitersRes] = await Promise.all([
+      withTimeout(
+        withRetry(() =>
+          supabase
+            .from('calendar_events')
+            .select(`*, assignees:event_assignees(profiles(*))`)
+            .in('id', eventIds),
+        ),
+      ),
+      withTimeout(withRetry(() => supabase.from('profiles').select('*').in('id', inviterIds))),
+    ]);
+
+    const eventsById = new Map<string, any>((eventsRes.data || []).map((e: any) => [String(e.id), e]));
+    const invitersById = new Map<string, any>((invitersRes.data || []).map((p: any) => [String(p.id), p]));
+
+    return rows.map((row) =>
+      mapEventInvite({
+        ...row,
+        event: eventsById.get(String(row.event_id)) ?? null,
+        inviter: invitersById.get(String(row.inviter_id)) ?? null,
+      }),
+    );
+  },
+
+  async getMyPendingEventInvitesCount() {
+    const { data: authData, error: authError } = await withTimeout(withRetry(() => supabase.auth.getUser()));
+    if (authError) throw authError;
+    const userId = authData.user?.id;
+    if (!userId) return 0;
+
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('event_invites')
+          .select('id')
+          .eq('invitee_id', userId)
+          .eq('status', 'pending'),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return 0;
+      throw error;
+    }
+    return Array.isArray(data) ? data.length : 0;
   },
 
   async respondToEventInvite(inviteId: string, accept: boolean) {
@@ -1072,11 +1153,16 @@ export const supabaseService = {
     if (inviteError) throw inviteError;
 
     if (accept) {
+      const profile = await this.getCurrentProfile();
+      const companyId = profile?.companyId;
       const { error: assignError } = await withTimeout(
         withRetry(() =>
           supabase
             .from('event_assignees')
-            .upsert({ event_id: invite.event_id, user_id: userId }, { onConflict: 'event_id,user_id' }),
+            .upsert(
+              { event_id: invite.event_id, user_id: userId, company_id: companyId },
+              { onConflict: 'event_id,user_id' },
+            ),
         ),
       );
       if (assignError && !isMissingTableError(assignError)) throw assignError;
