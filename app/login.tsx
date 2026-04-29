@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
@@ -26,6 +28,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [sendingReset, setSendingReset] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) return;
@@ -49,6 +54,28 @@ export default function LoginScreen() {
       alert(friendlyAuthNetworkMessage(error?.message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const preferredEmail = email.trim() || resetEmail.trim();
+    if (!preferredEmail) {
+      setShowResetModal(true);
+      return;
+    }
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(preferredEmail);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      setShowResetModal(false);
+      alert('Password reset email sent. Please check your inbox.');
+    } catch (error: any) {
+      alert(friendlyAuthNetworkMessage(error?.message));
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -103,6 +130,7 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={[styles.forgotPassword, isRTL && { alignSelf: 'flex-start' }]}
+                onPress={handleForgotPassword}
               >
                 <Text style={styles.forgotPasswordText}>{t('forgotPassword')}</Text>
               </TouchableOpacity>
@@ -163,6 +191,34 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <Modal
+        visible={showResetModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowResetModal(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowResetModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Reset password</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={resetEmail}
+              onChangeText={setResetEmail}
+              placeholder={t('emailLabel')}
+              placeholderTextColor={Colors.light.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={[styles.loginButton, sendingReset && styles.disabledButton]}
+              onPress={handleForgotPassword}
+              disabled={sendingReset}
+            >
+              <Text style={styles.loginButtonText}>{sendingReset ? 'Sending...' : 'Send reset link'}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -308,5 +364,30 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  modalInput: {
+    height: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    paddingHorizontal: 12,
+    color: Colors.light.text,
   },
 });

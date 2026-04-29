@@ -21,6 +21,7 @@ export default function EditProfileScreen() {
   const { t } = useLocalization();
   const [profile, setProfile] = useState<AppUser | null>(null);
   const appLanguage = useAppPreferencesStore((s) => s.language);
+  const setLanguage = useAppPreferencesStore((s) => s.setLanguage);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -214,10 +215,26 @@ export default function EditProfileScreen() {
           </View>
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>Language</Text>
-            <TouchableOpacity style={styles.selectButton}>
-              <Text style={styles.selectText}>{formData.language}</Text>
-              <ChevronDown size={18} color={theme.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.languageContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.languageButton,
+                  appLanguage === 'en' && styles.languageButtonActive,
+                ]}
+                onPress={() => setLanguage('en')}
+              >
+                <Text style={styles.languageText}>US</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.languageButton,
+                  appLanguage === 'ar' && styles.languageButtonActive,
+                ]}
+                onPress={() => setLanguage('ar')}
+              >
+                <Text style={styles.languageText}>AR</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -309,6 +326,29 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   },
   toggleLabel: {
     fontSize: 15,
+    color: theme.text,
+  },
+  languageContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  languageButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  languageButtonActive: {
+    borderColor: theme.tint,
+    borderWidth: 2,
+  },
+  languageText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: theme.text,
   },
 });

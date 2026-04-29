@@ -5,6 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Bell, Mail, MessageSquare, Calendar, CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useLocalization } from '@/utils/localization';
+import { useFocusEffect } from 'expo-router';
+import { supabaseService } from '@/services/supabaseService';
+import { getReminderNotifications, setReminderNotificationRead, type ReminderNotificationItem } from '@/services/reminderNotifications';
+import { EventInvite } from '@/constants/types';
 
 interface NotificationSetting {
   id: string;
@@ -55,11 +59,45 @@ export default function NotificationsSettingsScreen() {
       enabled: true,
     },
   ]);
+  const [reminders, setReminders] = useState<ReminderNotificationItem[]>([]);
+  const [eventInvites, setEventInvites] = useState<EventInvite[]>([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadReminderNotifications = async () => {
+        try {
+          const [events, invites] = await Promise.all([
+            supabaseService.getEvents(),
+            supabaseService.getMyPendingEventInvites(),
+          ]);
+          const items = await getReminderNotifications(events);
+          setReminders(items);
+          setEventInvites(invites);
+        } catch {
+          setReminders([]);
+          setEventInvites([]);
+        }
+      };
+      loadReminderNotifications();
+    }, []),
+  );
 
   const toggleSetting = (id: string) => {
     setSettings(settings.map(s => 
       s.id === id ? { ...s, enabled: !s.enabled } : s
     ));
+  };
+
+  const toggleReminderRead = async (eventId: string, nextRead: boolean) => {
+    await setReminderNotificationRead(eventId, nextRead);
+    setReminders((prev) =>
+      prev.map((item) => (item.eventId === eventId ? { ...item, isRead: nextRead } : item)),
+    );
+  };
+
+  const respondInvite = async (inviteId: string, accept: boolean) => {
+    await supabaseService.respondToEventInvite(inviteId, accept);
+    setEventInvites((prev) => prev.filter((invite) => invite.id !== inviteId));
   };
 
   return (
@@ -107,6 +145,62 @@ export default function NotificationsSettingsScreen() {
             Pause notifications during specific hours
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.reminderSection}>
+          <Text style={styles.quietHoursTitle}>Event invites</Text>
+          {eventInvites.length === 0 ? (
+            <Text style={styles.quietHoursDescription}>No pending event invitations.</Text>
+          ) : (
+            eventInvites.map((invite) => (
+              <View key={invite.id} style={styles.reminderCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingTitle}>Invitation: {invite.event?.title ?? 'Event'}</Text>
+                  <Text style={styles.settingDescription}>
+                    {invite.inviter?.name || 'Someone'} invited you ({invite.event?.startTime ?? ''})
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.readToggle}
+                  onPress={() => respondInvite(invite.id, false)}
+                >
+                  <Text style={styles.readToggleText}>Reject</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.readToggle, { borderColor: theme.tint }]}
+                  onPress={() => respondInvite(invite.id, true)}
+                >
+                  <Text style={styles.readToggleText}>Accept</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+
+        <View style={styles.reminderSection}>
+          <Text style={styles.quietHoursTitle}>Event reminders</Text>
+          {reminders.length === 0 ? (
+            <Text style={styles.quietHoursDescription}>No triggered reminders yet.</Text>
+          ) : (
+            reminders.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.reminderCard}
+                onPress={() => router.push(`/event/${item.eventId}` as const)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingTitle}>{item.title}</Text>
+                  <Text style={styles.settingDescription}>{item.body}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.readToggle}
+                  onPress={() => toggleReminderRead(item.eventId, !item.isRead)}
+                >
+                  <Text style={styles.readToggleText}>{item.isRead ? 'Mark unread' : 'Mark read'}</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -199,5 +293,32 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   quietHoursDescription: {
     fontSize: 13,
     color: theme.textSecondary,
+  },
+  reminderSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 24,
+    gap: 10,
+  },
+  reminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: theme.cardSecondary,
+    borderRadius: 12,
+    padding: 12,
+  },
+  readToggle: {
+    backgroundColor: theme.card,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  readToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.tint,
   },
 });

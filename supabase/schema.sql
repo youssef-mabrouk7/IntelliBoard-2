@@ -115,6 +115,17 @@ create table if not exists public.event_assignees (
   primary key (event_id, user_id)
 );
 
+create table if not exists public.event_invites (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.calendar_events(id) on delete cascade,
+  inviter_id uuid not null references public.profiles(id) on delete cascade,
+  invitee_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'rejected')),
+  created_at timestamptz not null default now(),
+  responded_at timestamptz,
+  unique (event_id, invitee_id)
+);
+
 -- Helpful indexes
 create index if not exists idx_tasks_project_id on public.tasks(project_id);
 create index if not exists idx_tasks_team_id on public.tasks(team_id);
@@ -134,6 +145,7 @@ alter table public.task_subtasks enable row level security;
 alter table public.project_members enable row level security;
 alter table public.team_members enable row level security;
 alter table public.event_assignees enable row level security;
+alter table public.event_invites enable row level security;
 
 -- Remove previous versions to avoid duplicate policy errors
 drop policy if exists "Public profiles are viewable by everyone." on public.profiles;
@@ -345,6 +357,24 @@ on public.event_assignees
 for insert
 to authenticated
 with check (true);
+
+create policy event_invites_select
+on public.event_invites
+for select
+to authenticated
+using (invitee_id = auth.uid() or inviter_id = auth.uid());
+
+create policy event_invites_insert
+on public.event_invites
+for insert
+to authenticated
+with check (inviter_id = auth.uid());
+
+create policy event_invites_update
+on public.event_invites
+for update
+to authenticated
+using (invitee_id = auth.uid() or inviter_id = auth.uid());
 
 -- Task due-date + history extension
 alter table public.task_subtasks

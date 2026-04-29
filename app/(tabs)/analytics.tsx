@@ -238,7 +238,10 @@ export default function AnalyticsScreen() {
         </View>
 
         <View style={styles.bottomStatsRow}>
-          <View style={[styles.bottomStatCard, { flex: 1 }]}>
+          <TouchableOpacity
+            style={[styles.bottomStatCard, { flex: 1 }]}
+            onPress={() => router.push({ pathname: '/all-tasks', params: { filter: 'inProgress' } })}
+          >
             <View style={[styles.statIcon, { backgroundColor: theme.tint + '20' }]}>
               <Clock size={24} color={theme.tint} />
             </View>
@@ -246,8 +249,8 @@ export default function AnalyticsScreen() {
               <Text style={styles.statNumber}>{analyticsData.ongoing}</Text>
               <Text style={styles.statLabel}>{t('ongoingLabel')}</Text>
             </View>
-          </View>
-          <View style={[styles.bottomStatCard, { flex: 1 }]}>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.bottomStatCard, { flex: 1 }]} onPress={() => router.push('/all-projects' as const)}>
             <View style={[styles.statIcon, { backgroundColor: '#E8EAF6' }]}>
               <Briefcase size={24} color="#7B8CDE" />
             </View>
@@ -255,8 +258,8 @@ export default function AnalyticsScreen() {
               <Text style={styles.statNumber}>{analyticsData.totalProjects}</Text>
               <Text style={styles.statLabel}>{t('projectsLabel')}</Text>
             </View>
-          </View>
-          <View style={[styles.bottomStatCard, { flex: 1 }]}>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.bottomStatCard, { flex: 1 }]} onPress={() => router.push('/all-teams' as const)}>
             <View style={[styles.statIcon, { backgroundColor: '#FFF3E0' }]}>
               <Users size={24} color="#FFB74D" />
             </View>
@@ -264,7 +267,7 @@ export default function AnalyticsScreen() {
               <Text style={styles.statNumber}>{analyticsData.totalTeams}</Text>
               <Text style={styles.statLabel}>{t('teamsLabel')}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

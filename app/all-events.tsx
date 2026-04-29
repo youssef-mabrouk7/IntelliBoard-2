@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
+import { ArrowLeft, Bell, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { CalendarEvent } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
@@ -36,8 +36,8 @@ export default function AllEventsScreen() {
           <ArrowLeft size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('allEvents')}</Text>
-        <TouchableOpacity style={styles.headerIcon}>
-          <Calendar size={22} color={Colors.light.text} />
+        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/notifications-settings')}>
+          <Bell size={22} color={Colors.light.text} />
         </TouchableOpacity>
       </View>
 

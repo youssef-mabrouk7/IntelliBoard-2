@@ -96,9 +96,6 @@ export default function HomeScreen() {
           <Menu size={24} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/all-tasks')}>
-            <Search size={22} color={theme.text} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/notifications-settings')}>
             <Bell size={22} color={theme.text} />
           </TouchableOpacity>

@@ -18,6 +18,7 @@ import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { useDateDraftStore } from '@/stores/dateDraftStore';
 import { useLocalization } from '@/utils/localization';
+import { saveEventReminder } from '@/services/reminderNotifications';
 
 const TIME_SLOTS = [
   '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
@@ -25,6 +26,7 @@ const TIME_SLOTS = [
   '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM',
   '08:00 PM',
 ];
+const REMINDER_OPTIONS = [5, 10, 15, 30, 60, 120, 1440];
 
 export default function NewEventScreen() {
   const theme = Colors.current;
@@ -40,9 +42,16 @@ export default function NewEventScreen() {
   const [startTime, setStartTime] = useState('10:00 AM');
   const [endTime, setEndTime] = useState('11:00 AM');
   const [creating, setCreating] = useState(false);
+  const [reminderMinutes, setReminderMinutes] = useState(10);
+  const [inviteEmails, setInviteEmails] = useState('');
+  const [inviteDraftEmails, setInviteDraftEmails] = useState('');
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
+  const [resolvingInvites, setResolvingInvites] = useState(false);
 
   // 'start' | 'end' | null
   const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end' | null>(null);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const handleCreate = async () => {
     if (!eventName.trim()) {
@@ -51,14 +60,15 @@ export default function NewEventScreen() {
     }
     try {
       setCreating(true);
-      await supabaseService.createEvent({
+      const createdEvent = await supabaseService.createEvent({
         title: eventName.trim(),
         date,
         startTime,
         endTime,
         color: theme.tint,
         status: description.trim() ? description.trim() : undefined,
-      });
+      }, selectedParticipantIds);
+      await saveEventReminder(createdEvent.id, reminderMinutes);
       // Clear the date draft so the next event starts fresh
       clearDateDraft('event');
       Alert.alert('Success', 'Event created successfully.');
@@ -77,6 +87,39 @@ export default function NewEventScreen() {
       setEndTime(slot);
     }
     setTimePickerTarget(null);
+  };
+
+  const handleConfirmInviteEmails = async () => {
+    try {
+      setResolvingInvites(true);
+      const enteredEmails = inviteDraftEmails
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (enteredEmails.length === 0) {
+        setInviteEmails('');
+        setSelectedParticipantIds([]);
+        setShowInviteModal(false);
+        Alert.alert('Done', 'Invite list cleared.');
+        return;
+      }
+
+      const { profileIds, missingEmails } = await supabaseService.resolveProfileIdsByEmails(enteredEmails);
+      if (missingEmails.length > 0) {
+        Alert.alert('Error', `No user found with: ${missingEmails.join(', ')}`);
+        return;
+      }
+
+      setInviteEmails(enteredEmails.join(', '));
+      setSelectedParticipantIds(profileIds);
+      setShowInviteModal(false);
+      Alert.alert('Success', 'Invitation emails confirmed.');
+    } catch (error: any) {
+      Alert.alert('Invite Error', error?.message || 'Could not validate invite emails.');
+    } finally {
+      setResolvingInvites(false);
+    }
   };
 
   return (
@@ -182,24 +225,38 @@ export default function NewEventScreen() {
             </TouchableOpacity>
 
             {/* Invite participants (future feature placeholder) */}
-            <TouchableOpacity style={styles.optionRow}>
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() => {
+                setInviteDraftEmails(inviteEmails);
+                setShowInviteModal(true);
+              }}
+            >
               <View style={styles.optionLeft}>
                 <View style={[styles.optionIcon, { backgroundColor: theme.tint + '20' }]}>
                   <Users size={18} color={theme.tint} />
                 </View>
                 <Text style={styles.optionLabel}>{t('inviteParticipants')}</Text>
               </View>
-              <ChevronRight size={18} color={theme.textSecondary} />
+              <View style={styles.optionRight}>
+                <Text style={styles.optionValue}>
+                  {selectedParticipantIds.length > 0 ? `${selectedParticipantIds.length} invited` : 'Tap to add'}
+                </Text>
+                <ChevronRight size={18} color={theme.textSecondary} />
+              </View>
             </TouchableOpacity>
+            {!!inviteEmails && <Text style={styles.optionValue}>{inviteEmails}</Text>}
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('reminderLabel')}</Text>
-          <View style={styles.reminderRow}>
-            <Text style={styles.reminderText}>{t('reminderDefault')}</Text>
+          <TouchableOpacity style={styles.reminderRow} onPress={() => setShowReminderModal(true)}>
+            <Text style={styles.reminderText}>
+              {reminderMinutes === 1440 ? '1 day before' : `${reminderMinutes} minutes before`}
+            </Text>
             <ChevronRight size={18} color={theme.textSecondary} />
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -239,6 +296,75 @@ export default function NewEventScreen() {
                 })}
               </View>
             </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={showInviteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowInviteModal(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowInviteModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('inviteParticipants')}</Text>
+              <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+                <X size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.textInput}
+              value={inviteDraftEmails}
+              onChangeText={setInviteDraftEmails}
+              placeholder="Write participant emails separated by comma"
+              placeholderTextColor={theme.textSecondary}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              multiline
+            />
+            <TouchableOpacity
+              style={[styles.createButton, { marginTop: 14 }, resolvingInvites && { opacity: 0.7 }]}
+              onPress={handleConfirmInviteEmails}
+              disabled={resolvingInvites}
+            >
+              <Text style={styles.createButtonText}>{resolvingInvites ? 'Checking...' : 'Confirm invites'}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={showReminderModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReminderModal(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowReminderModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('reminderLabel')}</Text>
+              <TouchableOpacity onPress={() => setShowReminderModal(false)}>
+                <X size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.timeGrid}>
+              {REMINDER_OPTIONS.map((minutes) => {
+                const selected = minutes === reminderMinutes;
+                const label = minutes === 1440 ? '1 day before' : `${minutes} min before`;
+                return (
+                  <TouchableOpacity
+                    key={minutes}
+                    style={[styles.timeSlot, selected && styles.timeSlotSelected]}
+                    onPress={() => {
+                      setReminderMinutes(minutes);
+                      setShowReminderModal(false);
+                    }}
+                  >
+                    <Text style={[styles.timeSlotText, selected && styles.timeSlotTextSelected]}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

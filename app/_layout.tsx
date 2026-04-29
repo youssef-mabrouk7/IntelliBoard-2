@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAppPreferencesStore } from "@/stores/appPreferencesStore";
+import { useDateDraftStore } from "@/stores/dateDraftStore";
+import { useSubtaskDraftStore } from "@/stores/subtaskDraftStore";
+import { useTaskMetaDraftStore } from "@/stores/taskMetaDraftStore";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 void SplashScreen.preventAutoHideAsync();
@@ -17,7 +20,12 @@ import { router } from "expo-router";
 function RootLayoutNav() {
   const hydrated = useAppPreferencesStore((s) => s.hydrated);
   const onboardingCompleted = useAppPreferencesStore((s) => s.onboardingCompleted);
+  const resetForSignedOut = useAppPreferencesStore((s) => s.resetForSignedOut);
+  const clearDateDraft = useDateDraftStore((s) => s.clearDateDraft);
+  const clearSubtasks = useSubtaskDraftStore((s) => s.clearSubtasks);
+  const clearTaskMeta = useTaskMetaDraftStore((s) => s.clear);
   const pathname = usePathname();
+  const didSignedOutLaunchReset = useRef(false);
 
   // ✅ ALL hooks are declared unconditionally at the top level.
   // The hydration guard is applied inside the JSX return, NOT as an early return
@@ -33,12 +41,28 @@ function RootLayoutNav() {
       // Authenticated users should only be redirected away from public auth screens.
       // Internal stack screens (task details, settings, profile, create flows) stay accessible.
       if (hasSession && onPublicAuth) {
+        didSignedOutLaunchReset.current = false;
         router.replace("/(tabs)/home");
         return;
       }
 
       // Unauthenticated users see onboarding first, then login/register.
       if (!hasSession) {
+        if (!didSignedOutLaunchReset.current) {
+          // Reset local draft cache and onboarding state once per signed-out app launch.
+          clearDateDraft("task");
+          clearDateDraft("event");
+          clearSubtasks("task");
+          clearTaskMeta();
+          void queryClient.clear();
+          void resetForSignedOut();
+          didSignedOutLaunchReset.current = true;
+          if (pathname !== "/onboarding") {
+            router.replace("/onboarding");
+            return;
+          }
+        }
+
         if (!onboardingCompleted && pathname !== "/onboarding") {
           router.replace("/onboarding");
           return;
@@ -64,7 +88,7 @@ function RootLayoutNav() {
       isActive = false;
       authListener.subscription.unsubscribe();
     };
-  }, [hydrated, pathname, onboardingCompleted]);
+  }, [hydrated, pathname, onboardingCompleted, resetForSignedOut, clearDateDraft, clearSubtasks, clearTaskMeta]);
 
   // While preferences are loading from AsyncStorage, render a blank screen.
   // This prevents the WelcomeScreen from being tappable before the onboarding

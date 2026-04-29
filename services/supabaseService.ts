@@ -1,5 +1,5 @@
 import { supabase } from '../utils/supabase';
-import { Project, Task, User, Team, CalendarEvent, TaskSubtask, TaskHistoryEntry } from '../constants/types';
+import { Project, Task, User, Team, CalendarEvent, TaskSubtask, TaskHistoryEntry, EventInvite } from '../constants/types';
 
 const isMissingTableError = (error: { code?: string } | null) => error?.code === 'PGRST205' || error?.code === '42P01';
 const TRANSIENT_ERROR_CODES = new Set(['57014', 'ETIMEDOUT', 'ECONNRESET', 'ENETUNREACH']);
@@ -96,6 +96,18 @@ const mapEvent = (e: any): CalendarEvent => ({
   taskCount: e.task_count ?? undefined,
   assignee: e.assignee ?? undefined,
   assignees: e.assignees?.map((a: any) => a.profiles) || [],
+});
+
+const mapEventInvite = (row: any): EventInvite => ({
+  id: row.id,
+  eventId: row.event_id,
+  inviterId: row.inviter_id,
+  inviteeId: row.invitee_id,
+  status: row.status ?? 'pending',
+  createdAt: row.created_at,
+  respondedAt: row.responded_at ?? null,
+  event: row.event ? mapEvent(row.event) : null,
+  inviter: row.inviter ?? null,
 });
 
 const mapTaskSubtask = (s: any): TaskSubtask => ({
@@ -792,6 +804,36 @@ export const supabaseService = {
     return (data || []) as User[];
   },
 
+  async resolveProfileIdsByEmails(emails: string[]) {
+    const normalized = Array.from(
+      new Set(
+        emails
+          .map((email) => email.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    );
+    if (normalized.length === 0) return { profileIds: [] as string[], missingEmails: [] as string[] };
+
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('profiles')
+          .select('id,email')
+          .in('email', normalized),
+      ),
+    );
+    if (error) throw error;
+
+    const found = (data || []) as Array<{ id: string; email: string }>;
+    const foundEmailSet = new Set(found.map((row) => String(row.email || '').trim().toLowerCase()));
+    const missingEmails = normalized.filter((email) => !foundEmailSet.has(email));
+
+    return {
+      profileIds: found.map((row) => row.id),
+      missingEmails,
+    };
+  },
+
   async updateCurrentProfile(patch: Partial<User>) {
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError) throw authError;
@@ -920,8 +962,12 @@ export const supabaseService = {
     return (data || []).map(mapEvent);
   },
 
-  async createEvent(event: Pick<CalendarEvent, 'title' | 'date' | 'startTime' | 'endTime' | 'color' | 'status'>) {
+  async createEvent(
+    event: Pick<CalendarEvent, 'title' | 'date' | 'startTime' | 'endTime' | 'color' | 'status'>,
+    participantIds: string[] = [],
+  ) {
     await requireRole('manageTasks');
+    const creatorId = await ensureCurrentProfileExists();
     const payload = {
       title: event.title,
       date: event.date,
@@ -938,6 +984,107 @@ export const supabaseService = {
         .single()),
     );
     if (error) throw error;
-    return mapEvent(data);
+
+    const created = mapEvent(data);
+    const uniqueParticipants = Array.from(new Set(participantIds)).filter(Boolean);
+    if (uniqueParticipants.length > 0 && creatorId) {
+      const inviteRows = uniqueParticipants
+        .filter((id) => id !== creatorId)
+        .map((inviteeId) => ({
+          event_id: created.id,
+          inviter_id: creatorId,
+          invitee_id: inviteeId,
+          status: 'pending',
+        }));
+
+      if (inviteRows.length > 0) {
+        const { error: inviteError } = await withTimeout(
+          withRetry(() => supabase.from('event_invites').insert(inviteRows)),
+        );
+        if (inviteError) {
+          if (isMissingTableError(inviteError)) {
+            throw new Error(
+              "Event was created, but invites couldn't be sent because `event_invites` table is missing in Supabase. Run `supabase/schema.sql` to create it.",
+            );
+          }
+          throw inviteError;
+        }
+      }
+    }
+
+    return created;
+  },
+
+  async getMyPendingEventInvites() {
+    const { data: authData, error: authError } = await withTimeout(withRetry(() => supabase.auth.getUser()));
+    if (authError) throw authError;
+    const userId = authData.user?.id;
+    if (!userId) return [];
+
+    const { data, error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('event_invites')
+          .select(`
+            *,
+            event:calendar_events(*, assignees:event_assignees(profiles(*))),
+            inviter:profiles!event_invites_inviter_id_fkey(*)
+          `)
+          .eq('invitee_id', userId)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false }),
+      ),
+    );
+    if (error) {
+      if (isMissingTableError(error)) return [];
+      throw error;
+    }
+    return (data || []).map(mapEventInvite);
+  },
+
+  async respondToEventInvite(inviteId: string, accept: boolean) {
+    const { data: authData, error: authError } = await withTimeout(withRetry(() => supabase.auth.getUser()));
+    if (authError) throw authError;
+    const userId = authData.user?.id;
+    if (!userId) throw new Error('No authenticated user.');
+
+    const { data: invite, error: inviteError } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('event_invites')
+          .select('*')
+          .eq('id', inviteId)
+          .eq('invitee_id', userId)
+          .single(),
+      ),
+    );
+    if (inviteError) throw inviteError;
+
+    if (accept) {
+      const { error: assignError } = await withTimeout(
+        withRetry(() =>
+          supabase
+            .from('event_assignees')
+            .upsert({ event_id: invite.event_id, user_id: userId }, { onConflict: 'event_id,user_id' }),
+        ),
+      );
+      if (assignError && !isMissingTableError(assignError)) throw assignError;
+    }
+
+    const { error: updateError } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('event_invites')
+          .update({
+            status: accept ? 'accepted' : 'rejected',
+            responded_at: new Date().toISOString(),
+          })
+          .eq('id', inviteId)
+          .eq('invitee_id', userId),
+      ),
+    );
+    if (updateError) throw updateError;
+
+    return { ok: true };
   },
 };

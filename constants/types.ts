@@ -83,6 +83,18 @@ export interface TaskHistoryEntry {
     taskCount?: number;
     assignee?: string;
   }
+
+export interface EventInvite {
+  id: string;
+  eventId: string;
+  inviterId: string;
+  inviteeId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  respondedAt?: string | null;
+  event?: CalendarEvent | null;
+  inviter?: User | null;
+}
   
   export interface AnalyticsData {
     totalTasks: number;

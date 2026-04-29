@@ -23,6 +23,7 @@ type AppPreferencesState = {
   setTimeFormat: (timeFormat: TimeFormat) => Promise<void>;
   setThemeMode: (themeMode: ThemeMode) => Promise<void>;
   setOnboardingCompleted: (completed: boolean) => Promise<void>;
+  resetForSignedOut: () => Promise<void>;
 };
 
 async function persist(
@@ -84,5 +85,10 @@ export const useAppPreferencesStore = create<AppPreferencesState>((set, get) => 
     set({ onboardingCompleted });
     const { language, dateFormat, timeFormat, themeMode } = get();
     await persist({ language, dateFormat, timeFormat, themeMode, onboardingCompleted });
+  },
+  resetForSignedOut: async () => {
+    const { language, dateFormat, timeFormat, themeMode } = get();
+    set({ onboardingCompleted: false });
+    await persist({ language, dateFormat, timeFormat, themeMode, onboardingCompleted: false });
   },
 }));
