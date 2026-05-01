@@ -14,7 +14,7 @@ export default function RegisterScreen() {
   const [companyName, setCompanyName] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyOptions, setCompanyOptions] = useState<Array<{ id: string; name: string }>>([]);
-  const [role, setRole] = useState<'Project Manager' | 'Team Leader' | 'Team Member'>('Team Member');
+  const [role, setRole] = useState<'Project Manager' | 'Team Leader' | 'Team Member' | null>(null);
   const [roleModalVisible, setRoleModalVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -74,7 +74,7 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!email || !password || !name || !companyName || !companyId) {
+    if (!email || !password || !name || !companyName || !companyId || !role) {
       alert('Please fill all fields');
       return;
     }
@@ -243,7 +243,7 @@ export default function RegisterScreen() {
 
               <TouchableOpacity style={styles.inputWrapper} onPress={() => setRoleModalVisible(true)}>
                 <User size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                <Text style={styles.selectText}>{role}</Text>
+                <Text style={[styles.selectText, !role && styles.selectPlaceholder]}>{role || 'Roles'}</Text>
                 <ChevronDown size={18} color={theme.textSecondary} />
               </TouchableOpacity>
 

@@ -7,7 +7,6 @@ import Colors from '@/constants/colors';
 import { supabaseService } from '@/services/supabaseService';
 import { User as AppUser } from '@/constants/types';
 import { useLocalization } from '@/utils/localization';
-import { EditableAvatar } from '@/components/EditableAvatar';
 import { useAppPreferencesStore } from '@/stores/appPreferencesStore';
 
 const LANGUAGE_LABELS: Record<'en' | 'ar', string> = {
@@ -25,7 +24,6 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
-    jobTitle: 'Product Manager',
     email: 'mark@example.com',
     phone: '+20 111 222 3333',
     department: 'Development',
@@ -45,7 +43,6 @@ export default function EditProfileScreen() {
         setFormData((prev) => ({
           ...prev,
           fullName: data.name || '',
-          jobTitle: data.jobTitle || prev.jobTitle,
           email: data.email || '',
           phone: data.phone || '',
           department: data.department || prev.department,
@@ -79,8 +76,6 @@ export default function EditProfileScreen() {
           phone: formData.phone,
           department: formData.department,
           role: normalizedRole,
-          jobTitle: formData.jobTitle,
-          avatar: profile?.avatar,
         });
         router.back();
       } catch (error: any) {
@@ -105,23 +100,6 @@ export default function EditProfileScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.avatarSection}>
-          <EditableAvatar
-            value={profile?.avatar}
-            disabled={saving}
-            onUploaded={async (url) => {
-              const previous = profile?.avatar ?? null;
-              setProfile((p) => (p ? { ...p, avatar: url } : p));
-              try {
-                await supabaseService.updateCurrentProfile({ avatar: url });
-              } catch (e) {
-                setProfile((p) => (p ? { ...p, avatar: previous || '' } : p));
-                throw e;
-              }
-            }}
-          />
-        </View>
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           <View style={styles.inputRow}>
@@ -132,14 +110,6 @@ export default function EditProfileScreen() {
               placeholderTextColor={theme.textSecondary}
               value={formData.fullName}
               onChangeText={(text) => setFormData({ ...formData, fullName: text })}
-            />
-          </View>
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>{t('jobTitle')}</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.jobTitle}
-              onChangeText={(text) => setFormData({ ...formData, jobTitle: text })}
             />
           </View>
           <View style={styles.inputRow}>
@@ -269,10 +239,6 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  avatarSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
   },
   section: {
     backgroundColor: theme.cardSecondary,
