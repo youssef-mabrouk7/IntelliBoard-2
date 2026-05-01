@@ -481,7 +481,36 @@ export const supabaseService = {
 
     const { data, error } = await withTimeout(withRetry(() => query));
     if (error) {
-      if (isMissingCompanyIdColumnError(error)) return [];
+      if (isMissingCompanyIdColumnError(error)) {
+        let fallbackQuery = supabase
+          .from('tasks')
+          .select(`
+            *,
+            assignees:task_assignees(user(*))
+          `);
+        if (projectId) fallbackQuery = fallbackQuery.eq('project_id', projectId);
+        const fallback = await withTimeout(withRetry(() => fallbackQuery));
+        if (fallback.error) {
+          if (isMissingTableError(fallback.error)) return [];
+          throw fallback.error;
+        }
+        const scopedRows = (fallback.data || []).filter((taskRow: any) => {
+          const assignees = Array.isArray(taskRow?.assignees) ? taskRow.assignees : [];
+          return assignees.some((a: any) => (a?.user?.company_id ?? a?.user?.companyId) === companyId);
+        });
+        const mappedFallback = scopedRows.map(mapTask);
+        if (!mappedFallback.length) return mappedFallback;
+        const { data: subtasksData, error: subtasksError } = await withTimeout(
+          withRetry(() =>
+            supabase
+              .from('task_subtasks')
+              .select('*')
+              .in('task_id', mappedFallback.map((t) => t.id)),
+          ),
+        );
+        if (subtasksError && !isMissingTableError(subtasksError)) throw subtasksError;
+        return applySubtaskProgress(mappedFallback, (subtasksData || []).map(mapTaskSubtask));
+      }
       if (isMissingTableError(error)) return [];
       throw error;
     }
@@ -520,7 +549,41 @@ export const supabaseService = {
       ),
     );
     if (error) {
-      if (isMissingCompanyIdColumnError(error)) return [];
+      if (isMissingCompanyIdColumnError(error)) {
+        const fallback = await withTimeout(
+          withRetry(() =>
+            supabase
+              .from('tasks')
+              .select(
+                `
+            *,
+            assignees:task_assignees(user(*))
+          `,
+              )
+              .eq('team_id', teamId),
+          ),
+        );
+        if (fallback.error) {
+          if (isMissingTableError(fallback.error)) return [];
+          throw fallback.error;
+        }
+        const scopedRows = (fallback.data || []).filter((taskRow: any) => {
+          const assignees = Array.isArray(taskRow?.assignees) ? taskRow.assignees : [];
+          return assignees.some((a: any) => (a?.user?.company_id ?? a?.user?.companyId) === companyId);
+        });
+        const mappedFallback = scopedRows.map(mapTask);
+        if (!mappedFallback.length) return mappedFallback;
+        const { data: subtasksData, error: subtasksError } = await withTimeout(
+          withRetry(() =>
+            supabase
+              .from('task_subtasks')
+              .select('*')
+              .in('task_id', mappedFallback.map((t) => t.id)),
+          ),
+        );
+        if (subtasksError && !isMissingTableError(subtasksError)) throw subtasksError;
+        return applySubtaskProgress(mappedFallback, (subtasksData || []).map(mapTaskSubtask));
+      }
       if (isMissingTableError(error)) return [];
       throw error;
     }
@@ -785,7 +848,27 @@ export const supabaseService = {
       ),
     );
     if (error && isMissingCompanyIdColumnError(error)) {
-      throw new Error('Tasks are not company-scoped in this database yet. Add `tasks.company_id` and company policies, then retry.');
+      const fallback = await withTimeout(
+        withRetry(() =>
+          supabase
+            .from('tasks')
+            .select(
+              `
+          *,
+          assignees:task_assignees(user(*))
+        `,
+            )
+            .eq('id', taskId)
+            .single(),
+        ),
+      );
+      if (fallback.error) throw fallback.error;
+      const assignees = Array.isArray((fallback.data as any)?.assignees) ? (fallback.data as any).assignees : [];
+      const inSameCompany = assignees.some((a: any) => (a?.user?.company_id ?? a?.user?.companyId) === companyId);
+      if (!inSameCompany) throw new Error('Task not found for your company.');
+      const mappedFallback = mapTask(fallback.data);
+      const subtasksFallback = await this.getTaskSubtasks(taskId);
+      return applySubtaskProgress([mappedFallback], subtasksFallback)[0];
     }
     if (error) throw error;
     const mapped = mapTask(data);
@@ -1147,13 +1230,63 @@ export const supabaseService = {
       data = fallback.data;
       error = fallback.error as any;
     }
+    if (error) {
+      const errText = `${String(error?.message || '').toLowerCase()}\n${String(error?.details || '').toLowerCase()}\n${String(error?.hint || '').toLowerCase()}`;
+      const missingProgress =
+        errText.includes("could not find the 'progress' column") ||
+        (errText.includes('progress') && (errText.includes('schema cache') || errText.includes('column')));
+      if (missingProgress) {
+        const fallback = await withTimeout(
+          withRetry(() =>
+            supabase
+              .from('teams')
+              .insert([
+                {
+                  ...(companyId ? { company_id: companyId } : {}),
+                  name: team.name,
+                  description: team.description,
+                  color: team.color,
+                },
+              ])
+              .select()
+              .single(),
+          ),
+        );
+        data = fallback.data;
+        error = fallback.error as any;
+
+        if (error && isMissingCompanyIdColumnError(error)) {
+          const fallbackNoCompany = await withTimeout(
+            withRetry(() =>
+              supabase
+                .from('teams')
+                .insert([
+                  {
+                    name: team.name,
+                    description: team.description,
+                    color: team.color,
+                  },
+                ])
+                .select()
+                .single(),
+            ),
+          );
+          data = fallbackNoCompany.data;
+          error = fallbackNoCompany.error as any;
+        }
+      }
+    }
     if (error) throw error;
 
-    if (memberIds.length > 0) {
+    const { data: authData } = await supabase.auth.getUser();
+    const creatorId = authData.user?.id;
+    const uniqueMemberIds = Array.from(new Set([...(memberIds || []), ...(creatorId ? [creatorId] : [])])).filter(Boolean);
+
+    if (uniqueMemberIds.length > 0) {
       let { error: membersError } = await withTimeout(
         withRetry(() =>
           supabase.from('team_members').insert(
-            memberIds.map((userId) => ({
+            uniqueMemberIds.map((userId) => ({
               team_id: data.id,
               user_id: userId,
               company_id: companyId,
@@ -1165,7 +1298,7 @@ export const supabaseService = {
         const fallbackMembers = await withTimeout(
           withRetry(() =>
             supabase.from('team_members').insert(
-              memberIds.map((userId) => ({
+              uniqueMemberIds.map((userId) => ({
                 team_id: data.id,
                 user_id: userId,
               })),
