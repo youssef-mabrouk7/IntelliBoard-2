@@ -13,7 +13,7 @@ create table if not exists public.companies (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.profiles (
+create table if not exists public."user" (
   id uuid primary key references auth.users(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete restrict,
   name text not null default '',
@@ -27,8 +27,8 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists profiles_company_idx on public.profiles(company_id);
-create index if not exists profiles_email_idx on public.profiles(email);
+create index if not exists user_company_idx on public."user"(company_id);
+create index if not exists user_email_idx on public."user"(email);
 
 -- ---------------------------------------------------------------------------
 -- Business entities
@@ -36,7 +36,7 @@ create index if not exists profiles_email_idx on public.profiles(email);
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete restrict,
-  created_by uuid references public.profiles(id) on delete set null,
+  created_by uuid references public."user"(id) on delete set null,
   name text not null,
   description text default '',
   company_name text,
@@ -100,7 +100,7 @@ create index if not exists task_subtasks_task_idx on public.task_subtasks(task_i
 
 create table if not exists public.project_members (
   project_id uuid not null references public.projects(id) on delete cascade,
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public."user"(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete restrict,
   created_at timestamptz not null default now(),
   primary key (project_id, user_id)
@@ -110,7 +110,7 @@ create index if not exists project_members_company_idx on public.project_members
 
 create table if not exists public.team_members (
   team_id uuid not null references public.teams(id) on delete cascade,
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public."user"(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete restrict,
   created_at timestamptz not null default now(),
   primary key (team_id, user_id)
@@ -120,7 +120,7 @@ create index if not exists team_members_company_idx on public.team_members(compa
 
 create table if not exists public.task_assignees (
   task_id uuid not null references public.tasks(id) on delete cascade,
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public."user"(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete restrict,
   created_at timestamptz not null default now(),
   primary key (task_id, user_id)
@@ -146,7 +146,7 @@ create index if not exists calendar_events_company_idx on public.calendar_events
 
 create table if not exists public.event_assignees (
   event_id uuid not null references public.calendar_events(id) on delete cascade,
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public."user"(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete restrict,
   created_at timestamptz not null default now(),
   primary key (event_id, user_id)
@@ -161,7 +161,7 @@ create table if not exists public.invites (
   role text not null default 'Member',
   message text default '',
   attachment_urls text[] not null default '{}',
-  created_by uuid references public.profiles(id) on delete set null,
+  created_by uuid references public."user"(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -178,7 +178,7 @@ security definer
 set search_path = public
 as $$
   select p.company_id
-  from public.profiles p
+  from public."user" p
   where p.id = auth.uid()
   limit 1
 $$;
@@ -259,8 +259,8 @@ begin
 end;
 $$;
 
-create trigger profiles_set_updated_at
-before update on public.profiles
+create trigger user_set_updated_at
+before update on public."user"
 for each row execute function public.apply_updated_at();
 
 create trigger projects_set_updated_at
@@ -327,7 +327,7 @@ for each row execute function public.enforce_parent_company_consistency();
 -- RLS (strict company isolation)
 -- ---------------------------------------------------------------------------
 alter table public.companies enable row level security;
-alter table public.profiles enable row level security;
+alter table public."user" enable row level security;
 alter table public.projects enable row level security;
 alter table public.teams enable row level security;
 alter table public.tasks enable row level security;
@@ -345,26 +345,49 @@ for select to authenticated
 using (id = public.current_company_id());
 
 -- Profiles: company scope for read/write.
-create policy profiles_select_company on public.profiles
+create policy user_select_company on public."user"
 for select to authenticated
 using (company_id = public.current_company_id());
 
-create policy profiles_insert_company on public.profiles
+create policy user_insert_company on public."user"
 for insert to authenticated
 with check (
   id = auth.uid()
   and company_id = public.current_company_id()
 );
 
-create policy profiles_update_company on public.profiles
+create policy user_update_company on public."user"
 for update to authenticated
 using (company_id = public.current_company_id())
 with check (company_id = public.current_company_id());
 
 -- Generic tenant policies for all company-owned tables.
+drop policy if exists projects_select_company on public.projects;
 create policy projects_select_company on public.projects
 for select to authenticated
-using (company_id = public.current_company_id());
+using (
+  company_id = public.current_company_id()
+  and (
+    created_by = auth.uid()
+    or exists (
+      select 1
+      from public.project_members pm
+      where pm.project_id = projects.id
+        and pm.user_id = auth.uid()
+        and pm.company_id = public.current_company_id()
+    )
+    or exists (
+      select 1
+      from public.tasks t
+      join public.team_members tm
+        on tm.team_id = t.team_id
+       and tm.user_id = auth.uid()
+       and tm.company_id = public.current_company_id()
+      where t.project_id = projects.id
+        and t.company_id = public.current_company_id()
+    )
+  )
+);
 create policy projects_insert_company on public.projects
 for insert to authenticated
 with check (company_id = public.current_company_id());
@@ -376,9 +399,19 @@ create policy projects_delete_company on public.projects
 for delete to authenticated
 using (company_id = public.current_company_id());
 
+drop policy if exists teams_select_company on public.teams;
 create policy teams_select_company on public.teams
 for select to authenticated
-using (company_id = public.current_company_id());
+using (
+  company_id = public.current_company_id()
+  and exists (
+    select 1
+    from public.team_members tm
+    where tm.team_id = teams.id
+      and tm.user_id = auth.uid()
+      and tm.company_id = public.current_company_id()
+  )
+);
 create policy teams_insert_company on public.teams
 for insert to authenticated
 with check (company_id = public.current_company_id());
@@ -390,9 +423,35 @@ create policy teams_delete_company on public.teams
 for delete to authenticated
 using (company_id = public.current_company_id());
 
+drop policy if exists tasks_select_company on public.tasks;
 create policy tasks_select_company on public.tasks
 for select to authenticated
-using (company_id = public.current_company_id());
+using (
+  company_id = public.current_company_id()
+  and (
+    exists (
+      select 1
+      from public.team_members tm
+      where tm.team_id = tasks.team_id
+        and tm.user_id = auth.uid()
+        and tm.company_id = public.current_company_id()
+    )
+    or exists (
+      select 1
+      from public.task_assignees ta
+      where ta.task_id = tasks.id
+        and ta.user_id = auth.uid()
+        and ta.company_id = public.current_company_id()
+    )
+    or exists (
+      select 1
+      from public.project_members pm
+      where pm.project_id = tasks.project_id
+        and pm.user_id = auth.uid()
+        and pm.company_id = public.current_company_id()
+    )
+  )
+);
 create policy tasks_insert_company on public.tasks
 for insert to authenticated
 with check (company_id = public.current_company_id());
@@ -505,14 +564,14 @@ using (company_id = public.current_company_id());
 -- ---------------------------------------------------------------------------
 -- RBAC + task history extensions
 -- ---------------------------------------------------------------------------
-alter table public.profiles
+alter table public."user"
   alter column role set default 'Team Member';
 
-alter table public.profiles
-  drop constraint if exists profiles_role_check;
+alter table public."user"
+  drop constraint if exists user_role_check;
 
-alter table public.profiles
-  add constraint profiles_role_check
+alter table public."user"
+  add constraint user_role_check
   check (role in ('Project Manager', 'Team Leader', 'Team Member'));
 
 alter table public.task_subtasks
@@ -522,7 +581,7 @@ create table if not exists public.task_history (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references public.companies(id) on delete restrict,
   task_id uuid not null references public.tasks(id) on delete cascade,
-  changed_by uuid references public.profiles(id) on delete set null,
+  changed_by uuid references public."user"(id) on delete set null,
   action_type text not null default 'update' check (action_type in ('create', 'update', 'delete')),
   field_name text not null,
   old_value text,
@@ -545,7 +604,7 @@ security definer
 set search_path = public
 as $$
   select p.role
-  from public.profiles p
+  from public."user" p
   where p.id = auth.uid()
   limit 1
 $$;

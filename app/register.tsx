@@ -119,7 +119,7 @@ export default function RegisterScreen() {
         } as Record<string, any>;
 
         const attemptInsertProfile = async (payload: Record<string, any>) =>
-          supabase.from('profiles').insert([payload]);
+          supabase.from('user').insert([payload]);
 
         let { error: profileError } = await attemptInsertProfile({
           ...baseProfile,

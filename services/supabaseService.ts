@@ -70,7 +70,7 @@ const mapTask = (t: any): Task => ({
   projectId: t.project_id ?? undefined,
   teamId: t.team_id ?? undefined,
   attachmentUrls: Array.isArray(t.attachment_urls) ? t.attachment_urls : [],
-  assignees: (t.assignees?.map((a: any) => a.profiles).filter(Boolean) || []) as User[],
+  assignees: (t.assignees?.map((a: any) => a.user).filter(Boolean) || []) as User[],
 });
 
 const mapProject = (p: any): Project => ({
@@ -86,7 +86,7 @@ const mapProject = (p: any): Project => ({
     (Array.isArray(p.tasks_count) ? Number(p.tasks_count?.[0]?.count ?? 0) : Number(p.tasks_count?.count ?? 0)) ||
     Number(p.tasks ?? 0),
   color: p.color ?? '#4A7C9B',
-  members: p.members?.map((m: any) => m.profiles) || [],
+  members: p.members?.map((m: any) => m.user) || [],
   tags: p.tags || [],
 });
 
@@ -96,7 +96,7 @@ const mapTeam = (t: any): Team => ({
   description: t.description ?? '',
   progress: t.progress ?? 0,
   color: t.color ?? '#4A7C9B',
-  members: t.members?.map((m: any) => m.profiles) || [],
+  members: t.members?.map((m: any) => m.user) || [],
   memberCount: t.members?.length ?? 0,
 });
 
@@ -110,7 +110,7 @@ const mapEvent = (e: any): CalendarEvent => ({
   color: e.color ?? '#4A7C9B',
   taskCount: e.task_count ?? undefined,
   assignee: e.assignee ?? undefined,
-  assignees: e.assignees?.map((a: any) => a.profiles) || [],
+  assignees: e.assignees?.map((a: any) => a.user) || [],
 });
 
 const mapEventInvite = (row: any): EventInvite => ({
@@ -197,7 +197,7 @@ async function ensureCurrentProfileExists() {
   if (!user) return null;
 
   const { data: existingProfile, error: existingError } = await withTimeout(
-    withRetry(() => supabase.from('profiles').select('id, role').eq('id', user.id).maybeSingle()),
+    withRetry(() => supabase.from('user').select('id, role').eq('id', user.id).maybeSingle()),
   );
   if (existingError && !isMissingTableError(existingError)) throw existingError;
 
@@ -212,13 +212,13 @@ async function ensureCurrentProfileExists() {
     name: (user.user_metadata as any)?.name ?? '',
     avatar: (user.user_metadata as any)?.avatar_url ?? (user.user_metadata as any)?.avatar ?? null,
     // Never rely on JWT/user_metadata for authorization decisions.
-    // The canonical role is stored in `profiles.role`.
+    // The canonical role is stored in `user.role`.
     role: roleToPersist,
   };
 
-  // Upsert is idempotent and fixes FK failures when `profiles` row doesn't exist yet.
+  // Upsert is idempotent and fixes FK failures when `user` row doesn't exist yet.
   const { error } = await withTimeout(
-    withRetry(() => supabase.from('profiles').upsert(payload, { onConflict: 'id' })),
+    withRetry(() => supabase.from('user').upsert(payload, { onConflict: 'id' })),
   );
   if (error) throw error;
   return user.id;
@@ -232,7 +232,7 @@ async function getCurrentUserProfile() {
 
   const { data, error } = await withTimeout(
     withRetry(() =>
-      supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle(),
+      supabase.from('user').select('*').eq('id', authUser.id).maybeSingle(),
     ),
   );
   if (error) throw error;
@@ -291,11 +291,13 @@ export const supabaseService = {
       };
     };
 
+    const randomnessHint = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const body = {
       title: input.title,
       description: input.description,
       category: input.category ?? '',
       priority: input.priority ?? 'medium',
+      randomnessHint,
     };
     const backendBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -305,7 +307,10 @@ export const supabaseService = {
           withRetry(() =>
             fetch(`${backendBaseUrl.replace(/\/$/, '')}/api/ai/suggest-task`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store',
+              },
               body: JSON.stringify(body),
             }),
           ),
@@ -385,7 +390,7 @@ export const supabaseService = {
       .select(`
         *,
         tasks_count:tasks(count),
-        members:project_members(profiles(*))
+        members:project_members(user(*))
       `),
       ),
     );
@@ -408,7 +413,7 @@ export const supabaseService = {
             `
         *,
         tasks_count:tasks(count),
-        members:project_members(profiles(*))
+        members:project_members(user(*))
       `,
           )
           .eq('id', projectId)
@@ -458,7 +463,7 @@ export const supabaseService = {
       .from('tasks')
       .select(`
         *,
-        assignees:task_assignees(profiles(*))
+        assignees:task_assignees(user(*))
       `);
     
     if (projectId) {
@@ -493,7 +498,7 @@ export const supabaseService = {
           .select(
             `
         *,
-        assignees:task_assignees(profiles(*))
+        assignees:task_assignees(user(*))
       `,
           )
           .eq('team_id', teamId),
@@ -519,6 +524,46 @@ export const supabaseService = {
 
   async createTask(task: Partial<Task>) {
     await requireRole('manageTasks');
+    const assigneeIds = Array.from(
+      new Set((task.assignees || []).map((u) => String(u?.id || '')).filter(Boolean)),
+    );
+    const linkTaskAssignees = async (taskId: string) => {
+      if (assigneeIds.length === 0) return;
+      const currentProfile = await this.getCurrentProfile().catch(() => null);
+      const baseRows = assigneeIds.map((userId) => ({
+        task_id: taskId,
+        user_id: userId,
+        company_id: currentProfile?.companyId ?? null,
+      }));
+
+      let assigneeRes = await withTimeout(
+        withRetry(() =>
+          supabase.from('task_assignees').upsert(baseRows, { onConflict: 'task_id,user_id' }),
+        ),
+      );
+
+      const assigneeErr = assigneeRes.error;
+      if (assigneeErr) {
+        const errText = `${String(assigneeErr.message || '').toLowerCase()}\n${String((assigneeErr as any)?.details || '').toLowerCase()}\n${String((assigneeErr as any)?.hint || '').toLowerCase()}`;
+        const missingCompanyId =
+          errText.includes("could not find the 'company_id' column") ||
+          (errText.includes('company_id') && (errText.includes('schema cache') || errText.includes('column')));
+
+        if (missingCompanyId) {
+          const rowsWithoutCompany = assigneeIds.map((user_id) => ({ task_id: taskId, user_id }));
+          assigneeRes = await withTimeout(
+            withRetry(() =>
+              supabase.from('task_assignees').upsert(rowsWithoutCompany, { onConflict: 'task_id,user_id' }),
+            ),
+          );
+        }
+      }
+
+      if (assigneeRes.error && !isMissingTableError(assigneeRes.error)) {
+        throw assigneeRes.error;
+      }
+    };
+
     const payload: any = {
       project_id: task.projectId,
       team_id: task.teamId,
@@ -546,6 +591,7 @@ export const supabaseService = {
     let res = await attemptInsert(payload);
     if (!res.error) {
       const created = mapTask(res.data);
+      await linkTaskAssignees(created.id);
       await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
       return created;
     }
@@ -565,6 +611,7 @@ export const supabaseService = {
       res = await attemptInsert(withoutTeam);
       if (!res.error) {
         const created = mapTask(res.data);
+        await linkTaskAssignees(created.id);
         await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
         return created;
       }
@@ -580,6 +627,7 @@ export const supabaseService = {
       res = await attemptInsert(withoutAttachments);
       if (!res.error) {
         const created = mapTask(res.data);
+        await linkTaskAssignees(created.id);
         await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
         return created;
       }
@@ -671,7 +719,7 @@ export const supabaseService = {
           .select(
             `
         *,
-        assignees:task_assignees(profiles(*))
+        assignees:task_assignees(user(*))
       `,
           )
           .eq('id', taskId)
@@ -741,7 +789,7 @@ export const supabaseService = {
       withRetry(() =>
         supabase
           .from('task_history')
-          .select('*, actor:profiles(*)')
+          .select('*, actor:user(*)')
           .eq('task_id', taskId)
           .order('created_at', { ascending: false }),
       ),
@@ -787,7 +835,7 @@ export const supabaseService = {
           .select(
             `
         *,
-        members:team_members(profiles(*))
+        members:team_members(user(*))
       `,
           )
           .eq('id', teamId)
@@ -804,7 +852,7 @@ export const supabaseService = {
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user')
       .select('*')
       .eq('id', user.id)
       .single();
@@ -820,7 +868,7 @@ export const supabaseService = {
 
   async getProfiles() {
     const { data, error } = await withTimeout(
-      withRetry(() => supabase.from('profiles').select('*')),
+      withRetry(() => supabase.from('user').select('*')),
     );
     if (error) {
       if (isMissingTableError(error)) return [];
@@ -843,7 +891,7 @@ export const supabaseService = {
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
-          .from('profiles')
+          .from('user')
           .select('id,email')
           .or(orFilter),
       ),
@@ -893,7 +941,7 @@ export const supabaseService = {
 
     const { data, error } = await withTimeout(
       withRetry(() =>
-        supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select('*').single(),
+        supabase.from('user').upsert(payload, { onConflict: 'id' }).select('*').single(),
       ),
     );
     if (error) throw error;
@@ -932,7 +980,7 @@ export const supabaseService = {
       .from('teams')
       .select(`
         *,
-        members:team_members(profiles(*))
+        members:team_members(user(*))
       `)),
     );
     
@@ -990,7 +1038,7 @@ export const supabaseService = {
       .from('calendar_events')
       .select(`
         *,
-        assignees:event_assignees(profiles(*))
+        assignees:event_assignees(user(*))
       `)),
     );
     
@@ -1093,11 +1141,11 @@ export const supabaseService = {
         withRetry(() =>
           supabase
             .from('calendar_events')
-            .select(`*, assignees:event_assignees(profiles(*))`)
+            .select(`*, assignees:event_assignees(user(*))`)
             .in('id', eventIds),
         ),
       ),
-      withTimeout(withRetry(() => supabase.from('profiles').select('*').in('id', inviterIds))),
+      withTimeout(withRetry(() => supabase.from('user').select('*').in('id', inviterIds))),
     ]);
 
     const eventsById = new Map<string, any>((eventsRes.data || []).map((e: any) => [String(e.id), e]));

@@ -4,7 +4,7 @@
 create extension if not exists "pgcrypto";
 
 -- 1) Profiles
-create table if not exists public.profiles (
+create table if not exists public."user" (
   id uuid references auth.users(id) on delete cascade primary key,
   name text not null default '',
   email text not null default '',
@@ -27,7 +27,7 @@ create table if not exists public.projects (
   status text not null default 'active' check (status in ('active', 'completed', 'onHold')),
   color text,
   created_at timestamptz not null default now(),
-  created_by uuid references public.profiles(id) on delete set null
+  created_by uuid references public."user"(id) on delete set null
 );
 
 -- Backward/forward compatible alters for existing DBs
@@ -89,7 +89,7 @@ alter table public.calendar_events
 -- Junction tables
 create table if not exists public.task_assignees (
   task_id uuid references public.tasks(id) on delete cascade,
-  user_id uuid references public.profiles(id) on delete cascade,
+  user_id uuid references public."user"(id) on delete cascade,
   primary key (task_id, user_id)
 );
 
@@ -103,19 +103,19 @@ create table if not exists public.task_subtasks (
 
 create table if not exists public.project_members (
   project_id uuid references public.projects(id) on delete cascade,
-  user_id uuid references public.profiles(id) on delete cascade,
+  user_id uuid references public."user"(id) on delete cascade,
   primary key (project_id, user_id)
 );
 
 create table if not exists public.team_members (
   team_id uuid references public.teams(id) on delete cascade,
-  user_id uuid references public.profiles(id) on delete cascade,
+  user_id uuid references public."user"(id) on delete cascade,
   primary key (team_id, user_id)
 );
 
 create table if not exists public.event_assignees (
   event_id uuid references public.calendar_events(id) on delete cascade,
-  user_id uuid references public.profiles(id) on delete cascade,
+  user_id uuid references public."user"(id) on delete cascade,
   primary key (event_id, user_id)
 );
 
@@ -126,8 +126,8 @@ create table if not exists public.event_invites (
   id uuid primary key default gen_random_uuid(),
   company_id uuid,
   event_id uuid not null references public.calendar_events(id) on delete cascade,
-  inviter_id uuid not null references public.profiles(id) on delete cascade,
-  invitee_id uuid not null references public.profiles(id) on delete cascade,
+  inviter_id uuid not null references public."user"(id) on delete cascade,
+  invitee_id uuid not null references public."user"(id) on delete cascade,
   status text not null default 'pending' check (status in ('pending', 'accepted', 'rejected')),
   created_at timestamptz not null default now(),
   responded_at timestamptz,
@@ -143,7 +143,7 @@ create index if not exists idx_task_assignees_user_id on public.task_assignees(u
 create index if not exists idx_team_members_user_id on public.team_members(user_id);
 
 -- RLS enable
-alter table public.profiles enable row level security;
+alter table public."user" enable row level security;
 alter table public.projects enable row level security;
 alter table public.tasks enable row level security;
 alter table public.teams enable row level security;
@@ -156,8 +156,8 @@ alter table public.event_assignees enable row level security;
 alter table public.event_invites enable row level security;
 
 -- Remove previous versions to avoid duplicate policy errors
-drop policy if exists "Public profiles are viewable by everyone." on public.profiles;
-drop policy if exists "Users can update their own profile." on public.profiles;
+drop policy if exists "Public profiles are viewable by everyone." on public."user";
+drop policy if exists "Users can update their own profile." on public."user";
 drop policy if exists "Projects are viewable by members." on public.projects;
 drop policy if exists "Tasks are viewable by project members." on public.tasks;
 drop policy if exists task_subtasks_select on public.task_subtasks;
@@ -165,19 +165,19 @@ drop policy if exists task_subtasks_insert on public.task_subtasks;
 
 -- Profiles policies
 create policy profiles_select_authenticated
-on public.profiles
+on public."user"
 for select
 to authenticated
 using (true);
 
 create policy profiles_insert_self
-on public.profiles
+on public."user"
 for insert
 to authenticated
 with check (auth.uid() = id);
 
 create policy profiles_update_self
-on public.profiles
+on public."user"
 for update
 to authenticated
 using (auth.uid() = id)
@@ -193,6 +193,13 @@ using (
   or exists (
     select 1 from public.project_members pm
     where pm.project_id = projects.id and pm.user_id = auth.uid()
+  )
+  or exists (
+    select 1
+    from public.tasks t
+    join public.team_members tm on tm.team_id = t.team_id
+    where t.project_id = projects.id
+      and tm.user_id = auth.uid()
   )
 );
 
@@ -237,6 +244,14 @@ using (
   or exists (
     select 1 from public.project_members pm
     where pm.project_id = tasks.project_id and pm.user_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.team_members tm
+    where tm.team_id = tasks.team_id and tm.user_id = auth.uid()
+  )
+  or exists (
+    select 1 from public.task_assignees ta
+    where ta.task_id = tasks.id and ta.user_id = auth.uid()
   )
   or exists (
     select 1 from public.projects p
@@ -307,7 +322,12 @@ create policy teams_select
 on public.teams
 for select
 to authenticated
-using (true);
+using (
+  exists (
+    select 1 from public.team_members tm
+    where tm.team_id = teams.id and tm.user_id = auth.uid()
+  )
+);
 
 create policy teams_insert
 on public.teams
@@ -345,7 +365,7 @@ for select
 to authenticated
 using (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 );
 
 create policy calendar_events_insert
@@ -354,7 +374,7 @@ for insert
 to authenticated
 with check (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 );
 
 create policy calendar_events_update
@@ -363,11 +383,11 @@ for update
 to authenticated
 using (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 )
 with check (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 );
 
 -- Event assignees policies
@@ -380,7 +400,7 @@ for select
 to authenticated
 using (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 );
 
 create policy event_assignees_insert
@@ -389,7 +409,7 @@ for insert
 to authenticated
 with check (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 );
 
 create policy event_invites_select
@@ -398,7 +418,7 @@ for select
 to authenticated
 using (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
   and (invitee_id = auth.uid() or inviter_id = auth.uid())
 );
 
@@ -409,11 +429,11 @@ to authenticated
 with check (
   inviter_id = auth.uid()
   and company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
   and exists (
-    select 1 from public.profiles invitee
+    select 1 from public."user" invitee
     where invitee.id = event_invites.invitee_id
-      and invitee.company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+      and invitee.company_id = (select p.company_id from public."user" p where p.id = auth.uid())
   )
 );
 
@@ -423,12 +443,12 @@ for update
 to authenticated
 using (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
   and (invitee_id = auth.uid() or inviter_id = auth.uid())
 )
 with check (
   company_id is not null
-  and company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
+  and company_id = (select p.company_id from public."user" p where p.id = auth.uid())
 );
 
 -- Task due-date + history extension
@@ -438,7 +458,7 @@ alter table public.task_subtasks
 create table if not exists public.task_history (
   id uuid primary key default gen_random_uuid(),
   task_id uuid not null references public.tasks(id) on delete cascade,
-  changed_by uuid references public.profiles(id) on delete set null,
+  changed_by uuid references public."user"(id) on delete set null,
   action_type text not null default 'update' check (action_type in ('create', 'update', 'delete')),
   field_name text not null,
   old_value text,

@@ -32,7 +32,6 @@ export default function CreateTaskScreen() {
   const draftCategory = useTaskMetaDraftStore((s) => s.category);
   const clearTaskMetaDraft = useTaskMetaDraftStore((s) => s.clear);
   const taskSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
-  const setDraftSubtasks = useSubtaskDraftStore((s) => s.setSubtasks);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -168,16 +167,9 @@ export default function CreateTaskScreen() {
         priority: priority.toLowerCase(),
       });
 
-      const suggestedSubtasks = Array.from(
-        new Set(
-          (suggestion.subtasks ?? [])
-            .map((item) => String(item).trim())
-            .filter(Boolean)
-            .map((item) => item.replace(/\s+/g, ' ')),
-        ),
-      );
       const suggestedDueDate =
         suggestion.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(suggestion.dueDate) ? suggestion.dueDate : null;
+      const suggestedDescription = String(suggestion.description ?? '').trim();
       const suggestedPriorityRaw = String(suggestion.priority ?? '').toLowerCase();
       const suggestedPriorityMap: Record<string, 'High' | 'Medium' | 'Low'> = {
         high: 'High',
@@ -188,13 +180,10 @@ export default function CreateTaskScreen() {
       const suggestedCategory = String(suggestion.category ?? '').trim();
 
       const message = [
+        `Description: ${suggestedDescription || '-'}`,
         `Due Date: ${suggestedDueDate || '-'}`,
         `Priority: ${suggestedPriority || '-'}`,
         `Category: ${suggestedCategory || '-'}`,
-        `Subtasks: ${suggestedSubtasks.length || 0}`,
-        ...(suggestedSubtasks.length
-          ? suggestedSubtasks.map((s, index) => `${index + 1}. ${s}`)
-          : ['- No suggested subtasks']),
       ].join('\n');
 
       Alert.alert('AI Suggestions', message, [
@@ -202,6 +191,9 @@ export default function CreateTaskScreen() {
         {
           text: 'OK',
           onPress: () => {
+            if (suggestedDescription) {
+              setDescription(suggestedDescription);
+            }
             if (suggestedDueDate) {
               setDateDraft('task', { dateISO: suggestedDueDate });
             }
@@ -210,17 +202,6 @@ export default function CreateTaskScreen() {
             }
             if (suggestedCategory) {
               setCategory(suggestedCategory);
-            }
-            if (suggestedSubtasks.length > 0) {
-              setDraftSubtasks(
-                'task',
-                suggestedSubtasks.map((title, index) => ({
-                  id: `ai-${Date.now()}-${index}`,
-                  title,
-                  completed: false,
-                  dueDate: null,
-                })),
-              );
             }
           },
         },
@@ -256,6 +237,7 @@ export default function CreateTaskScreen() {
               </>
             )}
           </TouchableOpacity>
+          <Text style={styles.aiPoweredByText}>Powered by HuggingFace AI</Text>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Task Name</Text>
             <TextInput
@@ -570,6 +552,11 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: theme.tint,
+  },
+  aiPoweredByText: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    marginBottom: 12,
   },
   inputLabel: {
     fontSize: 14,
