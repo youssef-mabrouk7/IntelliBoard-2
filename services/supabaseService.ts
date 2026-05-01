@@ -3,6 +3,11 @@ import { Project, Task, User, Team, CalendarEvent, TaskSubtask, TaskHistoryEntry
 
 const isMissingTableError = (error: { code?: string } | null) => error?.code === 'PGRST205' || error?.code === '42P01';
 const TRANSIENT_ERROR_CODES = new Set(['57014', 'ETIMEDOUT', 'ECONNRESET', 'ENETUNREACH']);
+const isMissingCompanyIdColumnError = (error: any) => {
+  const errText = `${String(error?.message || '').toLowerCase()}\n${String(error?.details || '').toLowerCase()}\n${String(error?.hint || '').toLowerCase()}`;
+  return errText.includes("could not find the 'company_id' column")
+    || (errText.includes('company_id') && (errText.includes('schema cache') || errText.includes('column')));
+};
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 type AppRole = 'Project Manager' | 'Team Leader' | 'Team Member';
@@ -210,7 +215,6 @@ async function ensureCurrentProfileExists() {
     id: user.id,
     email: user.email ?? '',
     name: (user.user_metadata as any)?.name ?? '',
-    avatar: (user.user_metadata as any)?.avatar_url ?? (user.user_metadata as any)?.avatar ?? null,
     // Never rely on JWT/user_metadata for authorization decisions.
     // The canonical role is stored in `user.role`.
     role: roleToPersist,
@@ -459,12 +463,17 @@ export const supabaseService = {
 
   // --- Tasks ---
   async getTasks(projectId?: string) {
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) return [];
+
     let query = supabase
       .from('tasks')
       .select(`
         *,
         assignees:task_assignees(user(*))
-      `);
+      `)
+      .eq('company_id', companyId);
     
     if (projectId) {
       query = query.eq('project_id', projectId);
@@ -472,6 +481,7 @@ export const supabaseService = {
 
     const { data, error } = await withTimeout(withRetry(() => query));
     if (error) {
+      if (isMissingCompanyIdColumnError(error)) return [];
       if (isMissingTableError(error)) return [];
       throw error;
     }
@@ -491,6 +501,10 @@ export const supabaseService = {
   },
 
   async getTasksByTeamId(teamId: string) {
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) return [];
+
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
@@ -501,10 +515,12 @@ export const supabaseService = {
         assignees:task_assignees(user(*))
       `,
           )
-          .eq('team_id', teamId),
+          .eq('team_id', teamId)
+          .eq('company_id', companyId),
       ),
     );
     if (error) {
+      if (isMissingCompanyIdColumnError(error)) return [];
       if (isMissingTableError(error)) return [];
       throw error;
     }
@@ -524,6 +540,12 @@ export const supabaseService = {
 
   async createTask(task: Partial<Task>) {
     await requireRole('manageTasks');
+    const normalizedTitle = String(task.title ?? '').trim();
+    const normalizedDescription = String(task.description ?? '').trim();
+    if (!normalizedTitle) {
+      throw new Error('Task title is required.');
+    }
+
     const assigneeIds = Array.from(
       new Set((task.assignees || []).map((u) => String(u?.id || '')).filter(Boolean)),
     );
@@ -567,8 +589,8 @@ export const supabaseService = {
     const payload: any = {
       project_id: task.projectId,
       team_id: task.teamId,
-      title: task.title,
-      description: task.description,
+      title: normalizedTitle,
+      description: normalizedDescription,
       due_date: task.dueDate,
       priority: task.priority,
       status: task.status,
@@ -587,6 +609,37 @@ export const supabaseService = {
             .single(),
         ),
       );
+
+    const checkDuplicateTask = async (p: any, includeTeamId: boolean) => {
+      let query = supabase
+        .from('tasks')
+        .select('id')
+        .eq('title', p.title)
+        .eq('description', p.description)
+        .eq('due_date', p.due_date)
+        .eq('priority', p.priority)
+        .limit(1);
+
+      if (p.project_id) query = query.eq('project_id', p.project_id);
+      if (includeTeamId && p.team_id) query = query.eq('team_id', p.team_id);
+
+      return withTimeout(withRetry(() => query));
+    };
+
+    let duplicateCheck = await checkDuplicateTask(payload, true);
+    if (duplicateCheck.error && isMissingTableError(duplicateCheck.error)) {
+      duplicateCheck = { data: [], error: null } as any;
+    }
+    if (duplicateCheck.error && isMissingCompanyIdColumnError(duplicateCheck.error)) {
+      duplicateCheck = await checkDuplicateTask(payload, false);
+      if (duplicateCheck.error && isMissingTableError(duplicateCheck.error)) {
+        duplicateCheck = { data: [], error: null } as any;
+      }
+    }
+    if (duplicateCheck.error) throw duplicateCheck.error;
+    if (Array.isArray(duplicateCheck.data) && duplicateCheck.data.length > 0) {
+      throw new Error('Duplicate task: a task with the same title, description, due date, and priority already exists.');
+    }
 
     let res = await attemptInsert(payload);
     if (!res.error) {
@@ -712,6 +765,10 @@ export const supabaseService = {
   },
 
   async getTaskById(taskId: string) {
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) throw new Error('Your profile is missing companyId. Please select a company in registration/profile.');
+
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
@@ -723,9 +780,13 @@ export const supabaseService = {
       `,
           )
           .eq('id', taskId)
+          .eq('company_id', companyId)
           .single(),
       ),
     );
+    if (error && isMissingCompanyIdColumnError(error)) {
+      throw new Error('Tasks are not company-scoped in this database yet. Add `tasks.company_id` and company policies, then retry.');
+    }
     if (error) throw error;
     const mapped = mapTask(data);
     const subtasks = await this.getTaskSubtasks(taskId);
@@ -828,7 +889,11 @@ export const supabaseService = {
   },
 
   async getTeamById(teamId: string) {
-    const { data, error } = await withTimeout(
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) throw new Error('Your profile is missing companyId. Please select a company in registration/profile.');
+
+    let { data, error } = await withTimeout(
       withRetry(() =>
         supabase
           .from('teams')
@@ -839,9 +904,33 @@ export const supabaseService = {
       `,
           )
           .eq('id', teamId)
+          .eq('company_id', companyId)
           .single(),
       ),
     );
+    if (error && isMissingCompanyIdColumnError(error)) {
+      const fallback = await withTimeout(
+        withRetry(() =>
+          supabase
+            .from('teams')
+            .select(
+              `
+        *,
+        members:team_members(user(*))
+      `,
+            )
+            .eq('id', teamId)
+            .single(),
+        ),
+      );
+      data = fallback.data;
+      error = fallback.error as any;
+      if (!error && data) {
+        const members = Array.isArray((data as any).members) ? (data as any).members : [];
+        const inSameCompany = members.some((m: any) => (m?.user?.company_id ?? m?.user?.companyId) === companyId);
+        if (!inSameCompany) throw new Error('Team not found for your company.');
+      }
+    }
     if (error) throw error;
     return mapTeam(data);
   },
@@ -931,7 +1020,6 @@ export const supabaseService = {
       id: user.id,
       name: patch.name,
       email: patch.email,
-      avatar: patch.avatar,
       role: patch.role,
       company_name: patch.companyName,
       department: patch.department,
@@ -975,14 +1063,37 @@ export const supabaseService = {
 
   // --- Teams ---
   async getTeams() {
-    const { data, error } = await withTimeout(
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) return [];
+
+    let { data, error } = await withTimeout(
       withRetry(() => supabase
       .from('teams')
       .select(`
         *,
         members:team_members(user(*))
-      `)),
+      `)
+      .eq('company_id', companyId)),
     );
+    if (error && isMissingCompanyIdColumnError(error)) {
+      const fallback = await withTimeout(
+        withRetry(() => supabase
+          .from('teams')
+          .select(`
+            *,
+            members:team_members(user(*))
+          `)),
+      );
+      data = fallback.data;
+      error = fallback.error as any;
+      if (!error) {
+        data = (data || []).filter((team: any) => {
+          const members = Array.isArray(team?.members) ? team.members : [];
+          return members.some((m: any) => (m?.user?.company_id ?? m?.user?.companyId) === companyId);
+        });
+      }
+    }
     
     if (error) {
       if (isMissingTableError(error)) return [];
@@ -993,12 +1104,19 @@ export const supabaseService = {
 
   async createTeam(team: Pick<Team, 'name' | 'description' | 'color' | 'progress'>, memberIds: string[] = []) {
     await requireRole('manageTeamMembers');
-    const { data, error } = await withTimeout(
+    const profile = await this.getCurrentProfile();
+    const companyId = profile?.companyId;
+    if (!companyId) {
+      throw new Error('Your profile is missing companyId. Please select a company in registration/profile.');
+    }
+
+    let { data, error } = await withTimeout(
       withRetry(() =>
         supabase
           .from('teams')
           .insert([
             {
+              company_id: companyId,
               name: team.name,
               description: team.description,
               color: team.color,
@@ -1009,19 +1127,53 @@ export const supabaseService = {
           .single(),
       ),
     );
+    if (error && isMissingCompanyIdColumnError(error)) {
+      const fallback = await withTimeout(
+        withRetry(() =>
+          supabase
+            .from('teams')
+            .insert([
+              {
+                name: team.name,
+                description: team.description,
+                color: team.color,
+                progress: team.progress ?? 0,
+              },
+            ])
+            .select()
+            .single(),
+        ),
+      );
+      data = fallback.data;
+      error = fallback.error as any;
+    }
     if (error) throw error;
 
     if (memberIds.length > 0) {
-      const { error: membersError } = await withTimeout(
+      let { error: membersError } = await withTimeout(
         withRetry(() =>
           supabase.from('team_members').insert(
             memberIds.map((userId) => ({
               team_id: data.id,
               user_id: userId,
+              company_id: companyId,
             })),
           ),
         ),
       );
+      if (membersError && isMissingCompanyIdColumnError(membersError)) {
+        const fallbackMembers = await withTimeout(
+          withRetry(() =>
+            supabase.from('team_members').insert(
+              memberIds.map((userId) => ({
+                team_id: data.id,
+                user_id: userId,
+              })),
+            ),
+          ),
+        );
+        membersError = fallbackMembers.error as any;
+      }
       if (membersError) throw membersError;
     }
 
