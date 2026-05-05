@@ -253,6 +253,33 @@ async function requireRole(permission: 'manageProjects' | 'manageTasks' | 'manag
 }
 
 export const supabaseService = {
+  async syncProjectProgress(projectId?: string) {
+    if (!projectId) return;
+    const projectTasks = await this.getTasks(projectId);
+    const completedCount = projectTasks.filter((task) => task.status === 'completed').length;
+    const progress = projectTasks.length > 0 ? Math.round((completedCount / projectTasks.length) * 100) : 0;
+
+    const { error } = await withTimeout(
+      withRetry(() =>
+        supabase
+          .from('projects')
+          .update({ progress })
+          .eq('id', projectId),
+      ),
+    );
+
+    if (!error) return;
+    if (isMissingTableError(error)) return;
+
+    const errText = `${String(error?.message || '').toLowerCase()}\n${String(error?.details || '').toLowerCase()}\n${String(error?.hint || '').toLowerCase()}`;
+    const missingProgressColumn =
+      errText.includes("could not find the 'progress' column") ||
+      (errText.includes('progress') && (errText.includes('schema cache') || errText.includes('column')));
+    if (missingProgressColumn) return;
+
+    throw error;
+  },
+
   async getTaskSuggestion(input: {
     title: string;
     description: string;
@@ -709,6 +736,7 @@ export const supabaseService = {
       const created = mapTask(res.data);
       await linkTaskAssignees(created.id);
       await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
+      await this.syncProjectProgress(created.projectId);
       return created;
     }
 
@@ -729,6 +757,7 @@ export const supabaseService = {
         const created = mapTask(res.data);
         await linkTaskAssignees(created.id);
         await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
+        await this.syncProjectProgress(created.projectId);
         return created;
       }
     }
@@ -745,6 +774,7 @@ export const supabaseService = {
         const created = mapTask(res.data);
         await linkTaskAssignees(created.id);
         await this.logTaskHistory(created.id, 'create', 'task', null, created.title);
+        await this.syncProjectProgress(created.projectId);
         return created;
       }
     }
@@ -895,6 +925,7 @@ export const supabaseService = {
     if (existing.progress !== updated.progress) {
       await this.logTaskHistory(taskId, 'update', 'progress', String(existing.progress), String(updated.progress));
     }
+    await this.syncProjectProgress(existing.projectId ?? updated.projectId);
     return updated;
   },
 
