@@ -22,19 +22,10 @@ export default function CollaborationsScreen() {
   }, []);
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Collaborations</Text>
-        <TouchableOpacity style={styles.headerIcon}>
-          <Search size={22} color={theme.text} />
-        </TouchableOpacity>
-      </View>
+    
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionSubtitle}>Active Collaborations</Text>
           <Text style={styles.sectionTitle}>Working Together</Text>
         </View>
 
