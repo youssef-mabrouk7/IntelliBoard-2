@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Menu, Search, Bell, ArrowRight, Circle, Check } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
 import SideDrawer from '@/components/SideDrawer';
 import { supabaseService } from '@/services/supabaseService';
-import { Project, Task } from '@/constants/types';
-import { useEffect } from 'react';
+import { Project, Task, Team } from '@/constants/types';
 import { toISODate, useLocalization, weekDates } from '@/utils/localization';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+
+const COLLABORATIONS_STORAGE_KEY = 'team_collaborations_v1';
+type TeamCollaboration = {
+  teamAId: string;
+  teamBId: string;
+};
 
 export default function HomeScreen() {
   const { t, locale, isRTL, formatDate } = useLocalization();
@@ -23,22 +29,82 @@ export default function HomeScreen() {
   const theme = Colors.current;
   const styles = createStyles(theme);
 
-  useEffect(() => {
-    async function loadData() {
+  const loadData = useCallback(async () => {
+    try {
+      const [projectsData, tasksData, teamsData] = await Promise.all([
+        supabaseService.getProjects(),
+        supabaseService.getTasks(),
+        supabaseService.getTeams(),
+      ]);
+
+      let parsedCollaborations: TeamCollaboration[] = [];
       try {
-        const [projectsData, tasksData] = await Promise.all([
-          supabaseService.getProjects(),
-          supabaseService.getTasks()
-        ]);
-        setProjects(projectsData);
-        setTasks(tasksData || []);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
+        const rawCollaborations = await AsyncStorage.getItem(COLLABORATIONS_STORAGE_KEY);
+        parsedCollaborations = rawCollaborations ? JSON.parse(rawCollaborations) : [];
+      } catch {
+        parsedCollaborations = [];
       }
+
+      const validCollaborations = Array.isArray(parsedCollaborations) ? parsedCollaborations : [];
+      const collaborationProjects: Project[] = validCollaborations
+        .map((collab, index) => {
+          const teamA = teamsData.find((team: Team) => team.id === collab.teamAId);
+          const teamB = teamsData.find((team: Team) => team.id === collab.teamBId);
+          if (!teamA || !teamB) return null;
+
+          const mergedMembersMap = new Map(
+            [...teamA.members, ...teamB.members].map((member) => [member.id, member]),
+          );
+          const mergedMembers = Array.from(mergedMembersMap.values());
+          const avgProgress = Math.round((teamA.progress + teamB.progress) / 2);
+
+          return {
+            id: `${teamA.id}__${teamB.id}`,
+            name: `${teamA.name} x ${teamB.name}`,
+            description: `${teamA.name} collaborating with ${teamB.name}`,
+            dueDate: new Date().toISOString().slice(0, 10),
+            progress: avgProgress,
+            status: 'active',
+            tasks: 0,
+            members: mergedMembers,
+            tags: ['collaboration'],
+            color: index % 2 === 0 ? teamA.color : teamB.color,
+          } as Project;
+        })
+        .filter(Boolean) as Project[];
+
+      const mergedProjects = [
+        ...collaborationProjects,
+        ...projectsData.filter((p) => !collaborationProjects.some((c) => c.id === p.id)),
+      ];
+      setProjects(mergedProjects);
+
+      const collaborationTeamIds = Array.from(
+        new Set(validCollaborations.flatMap((c) => [c.teamAId, c.teamBId]).filter(Boolean)),
+      );
+      const collaborationTasksLists = await Promise.all(
+        collaborationTeamIds.map((teamId) => supabaseService.getTasksByTeamId(teamId)),
+      );
+      const collaborationTasks = collaborationTasksLists.flat();
+      const mergedTasksMap = new Map<string, Task>();
+      [...(tasksData || []), ...collaborationTasks].forEach((task) => {
+        mergedTasksMap.set(task.id, task);
+      });
+      setTasks(Array.from(mergedTasksMap.values()));
+    } catch (error) {
+      console.error('Error loading data:', error);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadData();
+    }, [loadData]),
+  );
 
   const refreshTasks = async () => {
     const tasksData = await supabaseService.getTasks();

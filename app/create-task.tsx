@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Flag, Tag, Paperclip, List, ChevronRight, Briefcase, Users as UsersIcon, Sparkles } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
 import { Project, Team, User } from '@/constants/types';
 import { supabaseService } from '@/services/supabaseService';
@@ -15,6 +16,16 @@ import { useTaskMetaDraftStore } from '@/stores/taskMetaDraftStore';
 import { useLocalization } from '@/utils/localization';
 
 const EMPTY_ATTACHMENTS: DraftAttachment[] = [];
+const COLLABORATIONS_STORAGE_KEY = 'team_collaborations_v1';
+
+type TeamCollaboration = {
+  teamAId: string;
+  teamBId: string;
+};
+
+type TeamPickerOption =
+  | { kind: 'team'; id: string; label: string; teams: Team[]; members: User[] }
+  | { kind: 'collaboration'; id: string; label: string; teams: Team[]; members: User[] };
 
 export default function CreateTaskScreen() {
   const theme = Colors.current;
@@ -34,6 +45,7 @@ export default function CreateTaskScreen() {
   const taskSubtasks = useSubtaskDraftStore((s) => s.byContext.task) ?? [];
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [collaborations, setCollaborations] = useState<TeamCollaboration[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -51,12 +63,21 @@ export default function CreateTaskScreen() {
         supabaseService.getProjects(),
         supabaseService.getCurrentProfile().catch(() => null),
       ]);
+      let storedCollaborations: TeamCollaboration[] = [];
+      try {
+        const rawCollaborations = await AsyncStorage.getItem(COLLABORATIONS_STORAGE_KEY);
+        const parsed = rawCollaborations ? JSON.parse(rawCollaborations) : [];
+        storedCollaborations = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        storedCollaborations = [];
+      }
       setUsers(profiles);
       setTeams(teamsData);
+      setCollaborations(storedCollaborations);
       setProjects(projectsData);
 
       // Defaults: first project/team/user if available.
-      setSelectedTeamId((prev) => prev ?? (teamsData[0]?.id ?? null));
+      setSelectedTeamId((prev) => prev ?? (teamsData[0]?.id ? `team:${teamsData[0].id}` : null));
       setSelectedProjectId((prev) => prev ?? (projectsData[0]?.id ?? null));
       setSelectedUserId((prev) => prev ?? (currentProfile?.id ?? profiles[0]?.id ?? null));
     };
@@ -68,9 +89,39 @@ export default function CreateTaskScreen() {
     if (draftCategory) setCategory(draftCategory);
   }, [draftPriority, draftCategory]);
 
-  const selectedTeam = useMemo(
-    () => (selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : undefined),
-    [teams, selectedTeamId],
+  const teamPickerOptions = useMemo<TeamPickerOption[]>(() => {
+    const teamOptions: TeamPickerOption[] = teams.map((team) => ({
+      kind: 'team',
+      id: `team:${team.id}`,
+      label: team.name,
+      teams: [team],
+      members: team.members || [],
+    }));
+
+    const collabOptions: TeamPickerOption[] = collaborations
+      .map((collab) => {
+        const teamA = teams.find((team) => team.id === collab.teamAId);
+        const teamB = teams.find((team) => team.id === collab.teamBId);
+        if (!teamA || !teamB) return null;
+        const mergedMembersMap = new Map(
+          [...teamA.members, ...teamB.members].map((member) => [member.id, member]),
+        );
+        return {
+          kind: 'collaboration',
+          id: `collab:${teamA.id}__${teamB.id}`,
+          label: `${teamA.name} x ${teamB.name}`,
+          teams: [teamA, teamB],
+          members: Array.from(mergedMembersMap.values()),
+        } as TeamPickerOption;
+      })
+      .filter(Boolean) as TeamPickerOption[];
+
+    return [...collabOptions, ...teamOptions];
+  }, [collaborations, teams]);
+
+  const selectedTeamOption = useMemo(
+    () => (selectedTeamId ? teamPickerOptions.find((option) => option.id === selectedTeamId) : undefined),
+    [selectedTeamId, teamPickerOptions],
   );
   const selectedProject = useMemo(
     () => (selectedProjectId ? projects.find((p) => p.id === selectedProjectId) : undefined),
@@ -78,16 +129,16 @@ export default function CreateTaskScreen() {
   );
 
   const availableAssignees = useMemo(() => {
-    if (selectedTeam && selectedTeam.members?.length) return selectedTeam.members;
+    if (selectedTeamOption && selectedTeamOption.members?.length) return selectedTeamOption.members;
     return users;
-  }, [selectedTeam, users]);
+  }, [selectedTeamOption, users]);
 
   const assignedUser = useMemo(() => {
     const fromId = selectedUserId ? availableAssignees.find((u) => u.id === selectedUserId) : undefined;
     return fromId ?? availableAssignees[0];
   }, [availableAssignees, selectedUserId]);
 
-  const assignedTeam = selectedTeam;
+  const assignedTeamLabel = selectedTeamOption?.label;
   const [creating, setCreating] = useState(false);
   const taskAttachmentsState = useAttachmentDraftStore((s) => s.byContext.task);
   const taskAttachments = taskAttachmentsState ?? EMPTY_ATTACHMENTS;
@@ -121,30 +172,40 @@ export default function CreateTaskScreen() {
         attachmentUrls.push(uploaded.url);
       }
 
-      const createdTask = await supabaseService.createTask({
-        title: taskName.trim(),
-        description: description.trim(),
-        dueDate,
-        priority: dbPriority,
-        status: 'inProgress',
-        progress: 0,
-        category,
-        subtasks: taskSubtasks.length,
-        projectId: selectedProject?.id ?? undefined,
-        teamId: assignedTeam?.id ?? undefined,
-        assignees: assignedUser ? [assignedUser] : [],
-        attachmentUrls,
-      });
-      if (taskSubtasks.length > 0) {
-        await supabaseService.createTaskSubtasks(
-          createdTask.id,
-          taskSubtasks.map((s) => ({ title: s.title, completed: s.completed, dueDate: s.dueDate ?? null })),
-        );
+      const targetTeams = selectedTeamOption?.teams ?? [];
+      const teamIdsForCreation = targetTeams.map((team) => team.id);
+      const effectiveTeamIds = teamIdsForCreation.length > 0 ? teamIdsForCreation : [undefined];
+
+      for (const teamId of effectiveTeamIds) {
+        const createdTask = await supabaseService.createTask({
+          title: taskName.trim(),
+          description: description.trim(),
+          dueDate,
+          priority: dbPriority,
+          status: 'inProgress',
+          progress: 0,
+          category,
+          subtasks: taskSubtasks.length,
+          projectId: selectedProject?.id ?? undefined,
+          teamId,
+          assignees: assignedUser ? [assignedUser] : [],
+          attachmentUrls,
+        });
+        if (taskSubtasks.length > 0) {
+          await supabaseService.createTaskSubtasks(
+            createdTask.id,
+            taskSubtasks.map((s) => ({ title: s.title, completed: s.completed, dueDate: s.dueDate ?? null })),
+          );
+        }
       }
       setDraftAttachments('task', []);
       clearDraftSubtasks('task');
       clearTaskMetaDraft();
-      Alert.alert('Success', 'Task created successfully.');
+      if (selectedTeamOption?.kind === 'collaboration') {
+        Alert.alert('Success', 'Task created for both collaboration teams.');
+      } else {
+        Alert.alert('Success', 'Task created successfully.');
+      }
       router.back();
     } catch (error: any) {
       Alert.alert('Create Task Failed', error?.message || 'Unknown error.');
@@ -293,7 +354,7 @@ export default function CreateTaskScreen() {
                 <Text style={styles.optionLabel}>Team</Text>
               </View>
               <View style={styles.optionRight}>
-                <Text style={styles.optionValue}>{assignedTeam?.name || 'None'}</Text>
+                <Text style={styles.optionValue}>{assignedTeamLabel || 'None'}</Text>
                 <ChevronRight size={18} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
@@ -375,20 +436,22 @@ export default function CreateTaskScreen() {
           <Text style={styles.sectionTitle}>Teams</Text>
           <TouchableOpacity style={styles.teamRow} onPress={() => setTeamPickerOpen(true)}>
             <View>
-              <Text style={styles.teamName}>{assignedTeam?.name || 'Select team'}</Text>
-              <Text style={styles.teamEmail}>{assignedTeam ? `${assignedTeam.memberCount} members` : 'No team selected'}</Text>
+              <Text style={styles.teamName}>{assignedTeamLabel || 'Select team'}</Text>
+              <Text style={styles.teamEmail}>
+                {selectedTeamOption ? `${selectedTeamOption.members.length} members` : 'No team selected'}
+              </Text>
             </View>
             <View style={styles.membersRow}>
-              {(assignedTeam?.members || []).slice(0, 3).map((member, idx) => (
+              {(selectedTeamOption?.members || []).slice(0, 3).map((member, idx) => (
                 <Image
                   key={idx}
                   source={{ uri: member.avatar || 'https://via.placeholder.com/60' }}
                   style={[styles.memberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
                 />
               ))}
-              {(assignedTeam?.memberCount || 0) > 3 && (
+              {(selectedTeamOption?.members.length || 0) > 3 && (
                 <View style={styles.moreBadge}>
-                  <Text style={styles.moreText}>+{(assignedTeam?.memberCount || 0) - 3}</Text>
+                  <Text style={styles.moreText}>+{(selectedTeamOption?.members.length || 0) - 3}</Text>
                 </View>
               )}
             </View>
@@ -441,20 +504,20 @@ export default function CreateTaskScreen() {
               >
                 <Text style={styles.modalRowText}>None</Text>
               </TouchableOpacity>
-              {teams.map((t) => (
+              {teamPickerOptions.map((option) => (
                 <TouchableOpacity
-                  key={t.id}
+                  key={option.id}
                   style={styles.modalRow}
                   onPress={() => {
-                    setSelectedTeamId(t.id);
+                    setSelectedTeamId(option.id);
                     // When switching teams, pick the first team member (if any) as default assignee.
-                    const firstMember = t.members?.[0];
+                    const firstMember = option.members?.[0];
                     setSelectedUserId(firstMember?.id ?? null);
                     setTeamPickerOpen(false);
                   }}
                 >
                   <Text style={styles.modalRowText}>
-                    {t.name} {t.memberCount ? `(${t.memberCount})` : ''}
+                    {option.label} {option.members.length ? `(${option.members.length})` : ''}
                   </Text>
                 </TouchableOpacity>
               ))}
