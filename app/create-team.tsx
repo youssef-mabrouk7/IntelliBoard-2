@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, X, Check } from 'lucide-react-native';
@@ -27,11 +27,6 @@ export default function CreateTeamScreen() {
   const [selectedColor, setSelectedColor] = useState(4);
   const [members, setMembers] = useState<User[]>([]);
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    const load = async () => setMembers((await supabaseService.getProfiles()).slice(0, 2));
-    load();
-  }, []);
 
   const handleCreate = async () => {
     if (!teamName.trim()) {
