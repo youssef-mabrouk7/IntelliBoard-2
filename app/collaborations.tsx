@@ -45,7 +45,6 @@ export default function CollaborationsScreen() {
         status: 'active',
         tasks: 0,
         members: mergedMembers,
-        tags: ['collaboration'],
         color: index % 2 === 0 ? teamA.color : teamB.color,
       };
   };

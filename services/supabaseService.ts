@@ -92,7 +92,6 @@ const mapProject = (p: any): Project => ({
     Number(p.tasks ?? 0),
   color: p.color ?? '#4A7C9B',
   members: p.members?.map((m: any) => m.user) || [],
-  tags: p.tags || [],
 });
 
 const mapTeam = (t: any): Team => ({
@@ -202,23 +201,33 @@ async function ensureCurrentProfileExists() {
   if (!user) return null;
 
   const { data: existingProfile, error: existingError } = await withTimeout(
-    withRetry(() => supabase.from('user').select('id, role').eq('id', user.id).maybeSingle()),
+    withRetry(() => supabase.from('user').select('id, role, company_id').eq('id', user.id).maybeSingle()),
   );
   if (existingError && !isMissingTableError(existingError)) throw existingError;
 
+  const metadata = (user.user_metadata as any) ?? {};
   const roleFromProfile = normalizeRole((existingProfile as any)?.role);
-  const roleFromMetadata = normalizeRole((user.user_metadata as any)?.role);
+  const roleFromMetadata = normalizeRole(metadata.role);
   const roleToPersist: AppRole =
     (existingProfile as any)?.id ? roleFromProfile : roleFromMetadata || 'Team Member';
 
-  const payload = {
+  const companyIdFromProfile = (existingProfile as any)?.company_id ?? null;
+  const companyIdFromMetadata = metadata.company_id ?? metadata.companyId ?? null;
+  const companyIdToPersist = companyIdFromProfile ?? companyIdFromMetadata ?? null;
+
+  if (!(existingProfile as any)?.id && !companyIdToPersist) {
+    throw new Error(
+      'Your profile is missing a company. Log out, register again, and select a company from the list.',
+    );
+  }
+
+  const payload = stripUndefined({
     id: user.id,
     email: user.email ?? '',
-    name: (user.user_metadata as any)?.name ?? '',
-    // Never rely on JWT/user_metadata for authorization decisions.
-    // The canonical role is stored in `user.role`.
+    name: metadata.name ?? metadata.full_name ?? '',
     role: roleToPersist,
-  };
+    company_id: companyIdToPersist ?? undefined,
+  });
 
   // Upsert is idempotent and fixes FK failures when `user` row doesn't exist yet.
   const { error } = await withTimeout(
@@ -243,12 +252,22 @@ async function getCurrentUserProfile() {
   return data as User | null;
 }
 
-async function requireRole(permission: 'manageProjects' | 'manageTasks' | 'manageTeamMembers') {
+type AppPermission = 'createProject' | 'manageContent' | 'markTask';
+
+async function requireRole(permission: AppPermission) {
   const profile = await getCurrentUserProfile();
-  const role = normalizeRole(profile?.role);
+  if (!profile) throw new Error('You must be signed in to perform this action.');
+  const role = normalizeRole(profile.role);
+
+  // Team Member: may only update task progress/status (mark tasks).
+  if (permission === 'markTask') return;
+
+  // Project Manager: full access.
   if (role === 'Project Manager') return;
-  if (permission === 'manageTasks' && role === 'Team Leader') return;
-  if (permission === 'manageTeamMembers' && role === 'Team Leader') return;
+
+  // Team Leader: same as PM except creating new projects.
+  if (role === 'Team Leader' && permission !== 'createProject') return;
+
   throw new Error(`You do not have permission to perform this action. Current role: ${role}.`);
 }
 
@@ -456,7 +475,7 @@ export const supabaseService = {
   },
 
   async createProject(project: Partial<Project>) {
-    await requireRole('manageProjects');
+    await requireRole('createProject');
     const userId = await ensureCurrentProfileExists();
     const payload: any = {
       name: project.name,
@@ -478,10 +497,6 @@ export const supabaseService = {
         ),
       );
 
-    // Try a few payload shapes to handle schema drift:
-    // - `tags` missing column
-    // - `tags` is text[] but client sent wrong literal
-    // - `tags` is text, not text[]
     let res = await attemptInsert(payload);
     if (!res.error) return mapProject(res.data);
 
@@ -629,7 +644,7 @@ export const supabaseService = {
   },
 
   async createTask(task: Partial<Task>) {
-    await requireRole('manageTasks');
+    await requireRole('manageContent');
     const normalizedTitle = String(task.title ?? '').trim();
     const normalizedDescription = String(task.description ?? '').trim();
     if (!normalizedTitle) {
@@ -803,7 +818,7 @@ export const supabaseService = {
     taskId: string,
     subtasks: Array<{ title: string; completed?: boolean; dueDate?: string | null }>,
   ) {
-    await requireRole('manageTasks');
+    await requireRole('manageContent');
     if (!subtasks.length) return [];
     const payload = subtasks
       .filter((s) => s.title.trim().length > 0)
@@ -830,7 +845,7 @@ export const supabaseService = {
   },
 
   async updateTaskSubtaskStatus(taskId: string, subtaskId: string, completed: boolean) {
-    await requireRole('manageTasks');
+    await requireRole('markTask');
     const { data, error } = await withTimeout(
       withRetry(() =>
         supabase
@@ -907,7 +922,7 @@ export const supabaseService = {
   },
 
   async updateTaskStatus(taskId: string, status: Task['status'], progress: number) {
-    await requireRole('manageTasks');
+    await requireRole('markTask');
     const existing = await this.getTaskById(taskId);
     const { data, error } = await withTimeout(
       withRetry(() => supabase
@@ -930,7 +945,7 @@ export const supabaseService = {
   },
 
   async updateTaskDetails(taskId: string, patch: Partial<Pick<Task, 'title' | 'description' | 'dueDate' | 'priority' | 'category'>>) {
-    await requireRole('manageTasks');
+    await requireRole('manageContent');
     const existing = await this.getTaskById(taskId);
     const updates: Record<string, any> = {};
     if (patch.title !== undefined) updates.title = patch.title;
@@ -1155,7 +1170,7 @@ export const supabaseService = {
   },
 
   async createInvites(payload: { emails: string[]; role: string; message?: string; attachmentUrls?: string[] }) {
-    await requireRole('manageTeamMembers');
+    await requireRole('manageContent');
     const { error } = await withTimeout(
       withRetry(() =>
         supabase.from('invites').insert([
@@ -1217,7 +1232,7 @@ export const supabaseService = {
   },
 
   async createTeam(team: Pick<Team, 'name' | 'description' | 'color' | 'progress'>, memberIds: string[] = []) {
-    await requireRole('manageTeamMembers');
+    await requireRole('manageContent');
     const profile = await this.getCurrentProfile();
     const companyId = profile?.companyId;
     if (!companyId) {
@@ -1369,7 +1384,7 @@ export const supabaseService = {
     event: Pick<CalendarEvent, 'title' | 'date' | 'startTime' | 'endTime' | 'color' | 'status'>,
     participantIds: string[] = [],
   ) {
-    await requireRole('manageTasks');
+    await requireRole('manageContent');
     const creatorId = await ensureCurrentProfileExists();
     const profile = await this.getCurrentProfile();
     const companyId = profile?.companyId;

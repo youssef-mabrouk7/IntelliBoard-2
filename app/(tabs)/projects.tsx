@@ -14,7 +14,7 @@ export default function ProjectsScreen() {
   const styles = createStyles(theme);
   const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Completed'>('All');
   const [sortBy, setSortBy] = useState<'Date' | 'Name' | 'Progress'>('Date');
-  const [filterBy, setFilterBy] = useState<'All' | 'Design' | 'Development' | 'Marketing'>('All');
+  const [filterBy, setFilterBy] = useState<'All' | 'active' | 'completed' | 'onHold'>('All');
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -39,14 +39,13 @@ export default function ProjectsScreen() {
     if (activeTab === 'Completed') return p.status === 'completed';
     return true;
   });
-  if (filterBy !== 'All') filteredProjects = filteredProjects.filter(p => p.tags.includes(filterBy));
+  if (filterBy !== 'All') filteredProjects = filteredProjects.filter((p) => p.status === filterBy);
   const q = searchQuery.trim().toLowerCase();
   if (q) {
     filteredProjects = filteredProjects.filter((p) =>
       p.name.toLowerCase().includes(q) ||
       (p.description || '').toLowerCase().includes(q) ||
-      (p.companyName || '').toLowerCase().includes(q) ||
-      p.tags.some((tag) => tag.toLowerCase().includes(q)),
+      (p.companyName || '').toLowerCase().includes(q),
     );
   }
   filteredProjects = [...filteredProjects].sort((a, b) => {
@@ -102,7 +101,7 @@ export default function ProjectsScreen() {
             <ChevronDown size={16} color={theme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.filterButton} onPress={() => { setShowFilterDropdown(!showFilterDropdown); setShowSortDropdown(false); }}>
-            <Text style={styles.filterText}>Filter: {filterBy}</Text>
+            <Text style={styles.filterText}>Filter: {filterBy === 'All' ? 'All' : filterBy === 'onHold' ? 'On Hold' : filterBy.charAt(0).toUpperCase() + filterBy.slice(1)}</Text>
             <ChevronDown size={16} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -119,9 +118,14 @@ export default function ProjectsScreen() {
 
         {showFilterDropdown && (
           <View style={styles.dropdownMenu}>
-            {(['All', 'Design', 'Development', 'Marketing'] as const).map((option) => (
-              <TouchableOpacity key={option} style={[styles.dropdownItem, filterBy === option && styles.dropdownItemActive]} onPress={() => { setFilterBy(option); setShowFilterDropdown(false); }}>
-                <Text style={[styles.dropdownItemText, filterBy === option && styles.dropdownItemTextActive]}>{option}</Text>
+            {([
+              { value: 'All' as const, label: 'All' },
+              { value: 'active' as const, label: 'Active' },
+              { value: 'onHold' as const, label: 'On Hold' },
+              { value: 'completed' as const, label: 'Completed' },
+            ]).map((option) => (
+              <TouchableOpacity key={option.value} style={[styles.dropdownItem, filterBy === option.value && styles.dropdownItemActive]} onPress={() => { setFilterBy(option.value); setShowFilterDropdown(false); }}>
+                <Text style={[styles.dropdownItemText, filterBy === option.value && styles.dropdownItemTextActive]}>{option.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -136,16 +140,11 @@ export default function ProjectsScreen() {
           {filteredProjects.map((project) => (
             <TouchableOpacity key={project.id} style={styles.projectCard} onPress={() => router.push(`/project/${project.id}`)}>
               <Text style={styles.projectName}>{project.name}</Text>
-              <View style={styles.tagsRow}>
-                {!!project.companyName && (
+              {!!project.companyName && (
+                <View style={styles.metaRow}>
                   <View style={styles.companyBadge}><Text style={styles.companyText}>{project.companyName}</Text></View>
-                )}
-                {project.tags.map((tag, idx) => (
-                  <View key={idx} style={[styles.tagBadge, { backgroundColor: getTagColor(tag, theme) }]}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
+                </View>
+              )}
               <View style={styles.progressSection}>
                 <View style={styles.progressBar}>
                   <View style={[styles.progressFill, { width: `${project.progress}%`, backgroundColor: getProgressColor(project.progress, theme) }]} />
@@ -173,17 +172,6 @@ export default function ProjectsScreen() {
       <SideDrawer isVisible={drawerVisible} onClose={() => setDrawerVisible(false)} />
     </SafeAreaView>
   );
-}
-
-function getTagColor(tag: string, theme: typeof Colors.light) {
-  switch (tag) {
-    case 'Design': return theme.tint;
-    case 'Development': return theme.tint;
-    case 'Active': return '#64B5F6';
-    case 'Marketing': return '#FFB74D';
-    case 'On Hold': return '#FFE0B2';
-    default: return theme.tint;
-  }
 }
 
 function getProgressColor(progress: number, theme: typeof Colors.light) {
@@ -229,9 +217,7 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
   projectsList: { paddingHorizontal: 16, gap: 16, paddingBottom: 30 },
   projectCard: { backgroundColor: theme.cardSecondary, borderRadius: 16, padding: 16 },
   projectName: { fontSize: 17, fontWeight: '600', color: theme.text, marginBottom: 12 },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  tagBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  tagText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   companyBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: theme.info + '22', borderWidth: 1, borderColor: theme.info + '77' },
   companyText: { fontSize: 12, fontWeight: '700', color: theme.info },
   progressSection: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },

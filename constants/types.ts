@@ -57,7 +57,6 @@ export interface TaskHistoryEntry {
     status: 'active' | 'completed' | 'onHold';
     tasks: number;
     members: User[];
-    tags: string[];
     color: string;
   }
   

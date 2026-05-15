@@ -9,7 +9,6 @@ create extension if not exists "pgcrypto";
 create table if not exists public.companies (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  slug text not null unique,
   created_at timestamptz not null default now()
 );
 
@@ -44,7 +43,6 @@ create table if not exists public.projects (
   progress int not null default 0 check (progress between 0 and 100),
   status text not null default 'active' check (status in ('active', 'completed', 'onHold')),
   color text not null default '#4A7C9B',
-  tags text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -324,6 +322,36 @@ before insert or update on public.task_subtasks
 for each row execute function public.enforce_parent_company_consistency();
 
 -- ---------------------------------------------------------------------------
+-- API grants (required alongside RLS; missing grants cause \"permission denied\")
+-- ---------------------------------------------------------------------------
+grant usage on schema public to anon, authenticated;
+
+grant select on table public.companies to anon;
+
+grant select, insert, update, delete on table
+  public.projects,
+  public.project_members,
+  public.teams,
+  public.team_members,
+  public.tasks,
+  public.task_assignees,
+  public.task_subtasks,
+  public.task_history,
+  public.calendar_events,
+  public.event_assignees,
+  public.invites,
+  public.companies
+  to authenticated;
+
+grant select, insert, update, delete on table public."user" to authenticated;
+
+grant usage, select on all sequences in schema public to authenticated;
+
+grant execute on function public.current_company_id() to authenticated;
+grant execute on function public.current_user_role() to authenticated;
+grant execute on function public.has_any_role(text[]) to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- RLS (strict company isolation)
 -- ---------------------------------------------------------------------------
 alter table public.companies enable row level security;
@@ -339,12 +367,24 @@ alter table public.calendar_events enable row level security;
 alter table public.event_assignees enable row level security;
 alter table public.invites enable row level security;
 
--- Companies: users can only see their own company record.
-create policy companies_select_own on public.companies
-for select to authenticated
-using (id = public.current_company_id());
+-- Companies: readable for registration (anon + authenticated pick company by name).
+grant select on table public.companies to anon, authenticated;
+
+create policy companies_select_for_registration on public.companies
+for select to anon, authenticated
+using (true);
 
 -- Profiles: company scope for read/write.
+grant select, insert, update on table public."user" to authenticated;
+
+create policy user_select_own on public."user"
+for select to authenticated
+using (id = auth.uid());
+
+create policy user_insert_own_profile on public."user"
+for insert to authenticated
+with check (id = auth.uid());
+
 create policy user_select_company on public."user"
 for select to authenticated
 using (company_id = public.current_company_id());
@@ -404,17 +444,23 @@ create policy teams_select_company on public.teams
 for select to authenticated
 using (
   company_id = public.current_company_id()
-  and exists (
-    select 1
-    from public.team_members tm
-    where tm.team_id = teams.id
-      and tm.user_id = auth.uid()
-      and tm.company_id = public.current_company_id()
+  and (
+    public.has_any_role(array['Project Manager', 'Team Leader'])
+    or exists (
+      select 1
+      from public.team_members tm
+      where tm.team_id = teams.id
+        and tm.user_id = auth.uid()
+        and tm.company_id = public.current_company_id()
+    )
   )
 );
 create policy teams_insert_company on public.teams
 for insert to authenticated
-with check (company_id = public.current_company_id());
+with check (
+  company_id = public.current_company_id()
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
+);
 create policy teams_update_company on public.teams
 for update to authenticated
 using (company_id = public.current_company_id())
@@ -712,7 +758,7 @@ create policy teams_insert_company on public.teams
 for insert to authenticated
 with check (
   company_id = public.current_company_id()
-  and public.has_any_role(array['Project Manager'])
+  and public.has_any_role(array['Project Manager', 'Team Leader'])
 );
 
 create policy teams_update_company on public.teams

@@ -70,6 +70,10 @@ export default function RegisterScreen() {
       return 'This email is already registered. Please log in instead.';
     }
 
+    if (message.includes('null value in column "company_id"')) {
+      return 'Company is required. Please select a company from the list before creating your account.';
+    }
+
     return error?.message || 'Registration failed. Please try again.';
   };
 
@@ -101,57 +105,43 @@ export default function RegisterScreen() {
         password,
         options: {
           data: {
+            name,
             full_name: name,
             company_name: companyName,
+            company_id: companyId,
+            role,
           },
         },
       });
 
       if (signUpError) throw signUpError;
 
-      if (user) {
-        const baseProfile = {
-          id: user.id,
-          name,
-          email,
-          role,
-          company_id: companyId,
-        } as Record<string, any>;
+      const profilePayload = {
+        id: user?.id,
+        name,
+        email,
+        role,
+        company_id: companyId,
+      };
 
-        const attemptInsertProfile = async (payload: Record<string, any>) =>
-          supabase.from('user').insert([payload]);
+      if (user?.id) {
+        const { error: profileError } = await supabase
+          .from('user')
+          .upsert([profilePayload], { onConflict: 'id' });
 
-        let { error: profileError } = await attemptInsertProfile({
-          ...baseProfile,
-          company_name: companyName,
-        });
-
-        // Backward compatibility for DBs that still use `company`.
-        if (profileError && String(profileError.message || '').includes("Could not find the 'company_name' column")) {
-          const retry = await attemptInsertProfile({
-            ...baseProfile,
-            company: companyName,
-          });
-          profileError = retry.error;
-        }
-
-        // Last fallback for DBs without company columns yet.
-        if (
-          profileError &&
-          (String(profileError.message || '').includes("Could not find the 'company' column") ||
-            String(profileError.message || '').includes("Could not find the 'company_name' column"))
-        ) {
-          const retry = await attemptInsertProfile(baseProfile);
-          profileError = retry.error;
-        }
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-        }
+        if (profileError) throw profileError;
       }
 
-      alert('Registration successful! Please check your email for verification if needed.');
-      router.replace('/(tabs)/home');
+      alert(
+        user?.id
+          ? 'Registration successful! Please check your email for verification if needed.'
+          : 'Account created. Check your email to verify, then log in to finish setup.',
+      );
+      if (user?.id) {
+        router.replace('/(tabs)/home');
+      } else {
+        router.replace('/login');
+      }
     } catch (error: any) {
       const msg = error?.message as string | undefined;
       if ((msg ?? '').toLowerCase().includes('network request failed')) {

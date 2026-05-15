@@ -32,9 +32,6 @@ create table if not exists public.projects (
 
 -- Backward/forward compatible alters for existing DBs
 alter table public.projects
-  add column if not exists tags text[] not null default '{}'::text[];
-
-alter table public.projects
   add column if not exists tasks integer not null default 0;
 
 -- 3) Teams

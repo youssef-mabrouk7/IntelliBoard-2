@@ -107,12 +107,12 @@ export default function AllProjectsScreen() {
               </View>
               <View style={styles.projectContent}>
                 <Text style={styles.projectName}>{project.name}</Text>
-                <View style={styles.tagsRow}>
-                  {project.tags.slice(0, 2).map((tag, idx) => (
-                    <View key={idx} style={[styles.tagBadge, { backgroundColor: getTagColor(tag, theme) }]}>
-                      <Text style={styles.tagText}>{tag}</Text>
-                    </View>
-                  ))}
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusBadge, { backgroundColor: project.color + '33' }]}>
+                    <Text style={[styles.statusText, { color: project.color }]}>
+                      {project.status === 'onHold' ? 'On Hold' : project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                    </Text>
+                  </View>
                 </View>
                 <View style={styles.progressSection}>
                   <View style={styles.progressBar}>
@@ -143,19 +143,6 @@ export default function AllProjectsScreen() {
       </TouchableOpacity>
     </SafeAreaView>
   );
-}
-
-function getTagColor(tag: string, theme: typeof Colors.light) {
-  switch (tag) {
-    case 'Design':
-      return '#9C7BB8';
-    case 'Development':
-      return '#4A7C9B';
-    case 'Marketing':
-      return '#FFB74D';
-    default:
-      return theme.tint;
-  }
 }
 
 const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
@@ -281,20 +268,19 @@ const createStyles = (theme: typeof Colors.light) => StyleSheet.create({
     color: theme.text,
     marginBottom: 8,
   },
-  tagsRow: {
+  statusRow: {
     flexDirection: 'row',
     gap: 6,
     marginBottom: 10,
   },
-  tagBadge: {
+  statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
   },
-  tagText: {
+  statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   progressSection: {
     flexDirection: 'row',
